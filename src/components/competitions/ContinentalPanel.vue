@@ -9,7 +9,7 @@ import BracketView from '@/components/bracket/BracketView.vue'
 import PodiumCard from '@/components/bracket/PodiumCard.vue'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
 import { formatCurrency } from '@/utils/formatCurrency'
-import { PRIZES } from '@/utils/constants'
+import { PRIZES } from '@/config'
 import type { ContinentalTeam } from '@/types/competitions'
 
 const { continentalState, continentalStageLabel, continentalStandings, continentalOpponent } = storeToRefs(

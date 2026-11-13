@@ -1,4 +1,4 @@
-import { MATCH_SIM } from '@/utils/constants'
+import { MATCH_SIM } from '@/config'
 
 export interface OutcomeOptions {
   /** O usuário joga em casa. */

@@ -13,7 +13,7 @@ import { useMatchStore } from '@/stores/match'
 import { homeBonusApplies, useMatchSimulation } from '@/composables/useMatchSimulation'
 import { formatCurrency } from '@/utils/formatCurrency'
 import { estimateOutcome } from '@/utils/winChance'
-import { ECONOMY, MATCH_SIM } from '@/utils/constants'
+import { ECONOMY, MATCH_SIM } from '@/config'
 import { useSquadStore } from '@/stores/squad'
 
 const router = useRouter()

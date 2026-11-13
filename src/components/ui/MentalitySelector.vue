@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TacticalMentality } from '@/types/match'
-import { MENTALITIES } from '@/utils/constants'
+import { MENTALITIES } from '@/config'
 
 withDefaults(defineProps<{
   modelValue: TacticalMentality

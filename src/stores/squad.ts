@@ -5,7 +5,7 @@ import type { FormationName } from '@/types/match'
 import { applyAging, generatePlayer, refreshPlayerEconomy, retireAgeFor } from '@/utils/generatePlayer'
 import { buildFormationSlots, calculateTeamStrength, getEffectiveOvr, pickBestLineup } from '@/utils/calculateTeamStrength'
 import { useClubStore } from '@/stores/club'
-import { FORMATIONS, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE } from '@/utils/constants'
+import { FORMATIONS, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE } from '@/config'
 
 export interface SquadSave {
   players: Player[]

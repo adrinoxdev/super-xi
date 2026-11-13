@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FACILITIES_LIST, STAFF_CATALOG } from '@/utils/constants'
+import { FACILITIES_LIST, STAFF_CATALOG } from '@/config'
 import IdentityEditor from '@/components/club/IdentityEditor.vue'
 import UpgradeCard from '@/components/club/UpgradeCard.vue'
 import StaffCard from '@/components/club/StaffCard.vue'

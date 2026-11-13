@@ -1,6 +1,6 @@
 import type { Player, PlayerPosition } from '../types/player'
 import type { FormationName } from '../types/match'
-import { FORMATIONS, INJURY } from './constants'
+import { FORMATIONS, INJURY } from '@/config'
 import { clamp } from './random'
 
 export interface TeamStrengthBreakdown {

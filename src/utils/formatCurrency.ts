@@ -1,5 +1,5 @@
 import type { Player } from '../types'
-import { POS_BR_MAP, TRANSFER_LABELS } from './constants'
+import { POS_BR_MAP, TRANSFER_LABELS } from '@/config'
 import { clamp } from './random'
 
 export function formatCurrency(val: number | null | undefined): string {

@@ -4,7 +4,7 @@ import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
 import type { LastMatchSummary } from '@/types/match'
 import type { Player } from '@/types/player'
-import { ECONOMY, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE } from '@/utils/constants'
+import { ECONOMY, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE } from '@/config'
 import { formatCurrency } from '@/utils/formatCurrency'
 import { generatePlayer, saleCap } from '@/utils/generatePlayer'
 

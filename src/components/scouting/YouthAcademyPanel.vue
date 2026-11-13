@@ -4,7 +4,7 @@ import { useScoutingStore } from '@/stores/scouting'
 import { useScouting } from '@/composables/useScouting'
 import { blockedMsg, squadFullTitle } from '@/composables/useClub'
 import { useSquadStore } from '@/stores/squad'
-import { MAX_TRYOUTS_PER_SEASON } from '@/utils/constants'
+import { MAX_TRYOUTS_PER_SEASON } from '@/config'
 import { formatCurrency, formatPosBR } from '@/utils/formatCurrency'
 
 const club = useClubStore()

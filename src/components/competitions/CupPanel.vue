@@ -10,7 +10,7 @@ import BracketView from '@/components/bracket/BracketView.vue'
 import PodiumCard from '@/components/bracket/PodiumCard.vue'
 import { useSquadStore } from '@/stores/squad'
 import { computed } from 'vue'
-import { PRIZES } from '@/utils/constants'
+import { PRIZES } from '@/config'
 
 const club = useClubStore()
 const squad = useSquadStore()

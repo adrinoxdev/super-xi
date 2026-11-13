@@ -17,7 +17,7 @@ import {
   STAGE_NAMES,
   zoneBadgeClass
 } from '@/utils/leagueScheduler'
-import { PRIZES, SERIE_TYPICAL_OVER } from '@/utils/constants'
+import { PRIZES, SERIE_TYPICAL_OVER } from '@/config'
 import { simulateMatchScore } from '@/utils/bracket'
 import { seedSerieDR64 } from '@/utils/bracketSeeding'
 import { EXTRA_D_CLUBS } from '@/utils/extraClubs'

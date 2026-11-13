@@ -7,7 +7,7 @@ import { useScoutingStore } from '@/stores/scouting'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
 import { ATHLETE_ECONOMY_VERSION, BALANCE_VERSION, PROGRESSION_VERSION, migrateAthleteEconomyV1, migrateBalanceV2, migrateProgressionV3 } from '@/utils/balanceMigration'
-import { STORAGE_KEY } from '@/utils/constants'
+import { STORAGE_KEY } from '@/config'
 import { checkMilestones } from '@/utils/progression'
 
 // Definição única em constants.ts; reexportada por compatibilidade com quem importava daqui.

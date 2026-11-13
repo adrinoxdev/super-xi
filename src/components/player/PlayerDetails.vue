@@ -9,7 +9,7 @@ import { useClubStore } from '@/stores/club'
 import { useSquad, sellPriceFor, loanOutFeeFor } from '@/composables/useSquad'
 import { usePersistence } from '@/composables/usePersistence'
 import { retireAgeFor, agingDrop } from '@/utils/generatePlayer'
-import { MARKET_STATUS_OPTIONS, TRAINING_FOCUS_OPTIONS } from '@/utils/constants'
+import { MARKET_STATUS_OPTIONS, TRAINING_FOCUS_OPTIONS } from '@/config'
 import ProgressBar from '@/components/ui/ProgressBar.vue'
 import { formatCurrency } from '@/utils/formatCurrency'
 

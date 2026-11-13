@@ -7,7 +7,7 @@ import { useClubStore } from '@/stores/club'
 import { useMatchStore } from '@/stores/match'
 import { homeBonusApplies, useMatchSimulation } from '@/composables/useMatchSimulation'
 import { getStatBarPct } from '@/utils/formatCurrency'
-import { MATCH_SIM } from '@/utils/constants'
+import { MATCH_SIM } from '@/config'
 
 const match = useMatchStore()
 const club = useClubStore()

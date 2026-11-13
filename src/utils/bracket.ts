@@ -4,7 +4,7 @@ import type {
   PenaltyShootout, Podium, PodiumEntry,
 } from '../types/bracket'
 import { clamp, type Rng } from './random'
-import { MATCH_SIM } from './constants'
+import { MATCH_SIM } from '@/config'
 
 export const SIM_TICKS = MATCH_SIM.ticks
 export const HOME_ADVANTAGE = MATCH_SIM.homeAdvantage

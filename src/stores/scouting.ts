@@ -10,7 +10,7 @@ import {
   SCOUT_OVR_OFFSETS,
   SCOUT_REPORT_COUNT,
   STAFF_BONUS
-} from '@/utils/constants'
+} from '@/config'
 import { generatePlayer } from '@/utils/generatePlayer'
 import { clamp, randInt } from '@/utils/random'
 import { useClubStore } from './club'

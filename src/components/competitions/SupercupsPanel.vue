@@ -5,7 +5,7 @@ import { useClubStore } from '@/stores/club'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
 import { useCompetitionsStore } from '@/stores/competitions'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
-import { PRIZES } from '@/utils/constants'
+import { PRIZES } from '@/config'
 import { formatCurrency } from '@/utils/formatCurrency'
 
 const club = useClubStore()

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useClubStore } from '@/stores/club'
 import { useClub, blockedMsg } from '@/composables/useClub'
 import { formatCurrency } from '@/utils/formatCurrency'
-import { STAFF_CONTRACT_DAYS, STAFF_RENEW_WINDOW_MS, staffContractCost } from '@/utils/constants'
+import { STAFF_CONTRACT_DAYS, STAFF_RENEW_WINDOW_MS, staffContractCost } from '@/config'
 import type { StaffKey } from '@/types/club'
 
 const props = defineProps<{ staff: { key: StaffKey; title: string; cost: number; description: string } }>()

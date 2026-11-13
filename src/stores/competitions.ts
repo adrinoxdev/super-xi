@@ -8,7 +8,7 @@ import type {
   CupState,
   FinalState
 } from '@/types'
-import { CONTINENTAL_RIVALS, PRIZES } from '@/utils/constants'
+import { CONTINENTAL_RIVALS, PRIZES } from '@/config'
 import type { Bracket, BracketTeam, BracketTie, Podium } from '@/types'
 import {
   completeBracket,

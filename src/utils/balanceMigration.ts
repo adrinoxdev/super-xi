@@ -1,9 +1,9 @@
 import type { ContinentalTeam } from '@/types/competitions'
 import type { Player } from '@/types/player'
-import { CONTINENTAL_RIVALS, SERIE_TYPICAL_OVER } from '@/utils/constants'
+import { CONTINENTAL_RIVALS, SERIE_TYPICAL_OVER } from '@/config'
 import { EXTRA_D_CLUBS } from '@/utils/extraClubs'
 import { refreshPlayerEconomy, retireAgeFor, wageForOverall } from '@/utils/generatePlayer'
-import { CONTRACT } from '@/utils/constants'
+import { CONTRACT } from '@/config'
 import { LEAGUE_CLUBS_POOL } from '@/utils/leagueScheduler'
 
 /** Versão do balanceamento gravada em club.balanceVersion. Saves sem o campo são anteriores ao v2. */

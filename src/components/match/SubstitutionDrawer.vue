@@ -8,7 +8,7 @@ import { useSquadStore } from '@/stores/squad'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
 import { formatPosBR } from '@/utils/formatCurrency'
 import { getEffectiveOvr } from '@/utils/calculateTeamStrength'
-import { FORMATIONS } from '@/utils/constants'
+import { FORMATIONS } from '@/config'
 import type { Player } from '@/types/player'
 
 const match = useMatchStore()

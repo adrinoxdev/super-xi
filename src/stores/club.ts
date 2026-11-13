@@ -33,7 +33,7 @@ import {
   STAFF_CONTRACT_MS,
   STAFF_RENEW_WINDOW_MS,
   UPGRADE_COSTS
-} from '@/utils/constants'
+} from '@/config'
 import {
   normalizeCrestOrientation,
   normalizeCrestPattern,

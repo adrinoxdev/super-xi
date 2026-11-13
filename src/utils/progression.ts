@@ -1,4 +1,4 @@
-import { MILESTONES } from '@/utils/constants'
+import { MILESTONES } from '@/config'
 import type { Milestone } from '@/types/club'
 
 export interface MilestoneState {

@@ -1,4 +1,4 @@
-import { PRIZES } from './constants'
+import { PRIZES } from '@/config'
 import type { CompetitionStageType, LeagueFixture, LeagueStandingRow, LeagueTeam } from '../types/league'
 
 export type SerieCode = 'D' | 'C' | 'B' | 'A'

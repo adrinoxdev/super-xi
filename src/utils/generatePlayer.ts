@@ -1,5 +1,5 @@
 import type { Player, PlayerAttributes, PlayerPosition } from '../types/player'
-import { AGING, ALL_POSITIONS, ATHLETE_MAX_OVERALL, OVER_TAIL, STAR, VALUE, VALUE_AGE, WAGE } from './constants'
+import { AGING, ALL_POSITIONS, ATHLETE_MAX_OVERALL, OVER_TAIL, STAR, VALUE, VALUE_AGE, WAGE } from '@/config'
 import { clamp, pickRandom, randInt } from './random'
 
 const FIRST_NAMES = [

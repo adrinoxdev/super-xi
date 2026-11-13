@@ -5,7 +5,7 @@ import { useSquadStore } from './squad'
 import { generatePlayer, saleCap } from '../utils/generatePlayer'
 import { useClubStore } from './club'
 import { pickRandom } from '../utils/random'
-import { OFFER_RIVAL_CLUBS, TRANSFER } from '../utils/constants'
+import { OFFER_RIVAL_CLUBS, TRANSFER } from '@/config'
 
 export interface MarketSave {
   incomingOffers: IncomingOffer[]

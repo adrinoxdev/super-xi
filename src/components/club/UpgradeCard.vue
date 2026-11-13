@@ -3,7 +3,7 @@ import { useClubStore } from '@/stores/club'
 import { useClub, blockedMsg } from '@/composables/useClub'
 import { formatCurrency } from '@/utils/formatCurrency'
 import { computed } from 'vue'
-import { FACILITY_MAX_LEVEL, SQUAD_CAPACITIES, SQUAD_MAX_SIZE, ECONOMY, SERIE_ECONOMY, UPGRADE_COSTS, facilityIncomeFactor } from '@/utils/constants'
+import { FACILITY_MAX_LEVEL, SQUAD_CAPACITIES, SQUAD_MAX_SIZE, ECONOMY, SERIE_ECONOMY, UPGRADE_COSTS, facilityIncomeFactor } from '@/config'
 import type { ClubUpgrades } from '@/types/club'
 
 const props = defineProps<{ facility: { key: keyof ClubUpgrades; title: string; description: string } }>()
