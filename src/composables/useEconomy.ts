@@ -1,0 +1,70 @@
+import { computed } from 'vue'
+import { useClubStore } from '@/stores/club'
+import { useSquadStore } from '@/stores/squad'
+import { useUiStore } from '@/stores/ui'
+import type { LastMatchSummary } from '@/types/match'
+import type { Player } from '@/types/player'
+import { ECONOMY, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE } from '@/utils/constants'
+import { formatCurrency } from '@/utils/formatCurrency'
+import { generatePlayer, saleCap } from '@/utils/generatePlayer'
+
+export function useEconomy() {
+  const club = useClubStore()
+  const squad = useSquadStore()
+  const ui = useUiStore()
+
+  function ticketIncome(isHome: boolean): number {
+    return isHome ? club.projectedStadiumIncome : Math.round(club.projectedStadiumIncome * ECONOMY.awayTicketShare)
+  }
+
+  /** Dívida acima do limite da série: a diretoria vende o atleta de maior salário (um por partida). */
+  function forcedSale(): { name: string; price: number } | null {
+    const sellable = squad.players.filter((p) => !p.isLoanedIn && !p.isLoanedOut)
+    const bench = sellable.filter((p) => !squad.isStarter(p.id))
+    const byWage = (a: Player, b: Player) => b.wage - a.wage
+    let target: Player | undefined = (squad.players.length > MIN_SQUAD_SIZE ? bench : []).sort(byWage)[0]
+    if (!target) {
+      // Elenco no mínimo: vende o titular mais caro e promove um jovem da base (ou da peneira) para manter 11.
+      target = [...sellable].sort(byWage)[0]
+      if (!target) return null
+      // Não mexe na lista da base (o save regenera lista vazia): sobe um jovem gerado na hora.
+      const kid = generatePlayer({ position: target.position, minOvr: 45, maxOvr: 49, isYouth: true })
+      kid.acquiredSeason = club.season
+      kid.acquiredFee = 0
+      // Nunca passa do limite absoluto: com elenco no teto, a vaga do vendido não é reposta.
+      if (squad.players.length < SQUAD_MAX_SIZE) {
+        squad.addPlayer(kid)
+        club.recordTransfer('sign', kid.name, kid.position, kid.overall, 0)
+      }
+      squad.removePlayer(target.id)
+    } else {
+      squad.removePlayer(target.id)
+    }
+    const price = saleCap(target, Math.round(target.value * ECONOMY.forcedSaleShare), club.season)
+    club.budget += price
+    club.recordTransfer('sell', target.name, target.position, target.overall, price)
+    ui.showToast(`Dívida acima do limite: a diretoria vendeu ${target.name} por ${formatCurrency(price)}.`, 'danger')
+    return { name: target.name, price }
+  }
+
+  function settleMatch(uGoals: number, oGoals: number, isHome: boolean): LastMatchSummary {
+    const eco = club.serieEconomy
+    const ticket = ticketIncome(isHome)
+    const sponsor = club.projectedSponsorIncome
+    const winBonus =
+      uGoals > oGoals ? Math.round(eco.sponsorBase * ECONOMY.winBonusShare) : uGoals === oGoals ? Math.round(eco.sponsorBase * ECONOMY.drawBonusShare) : 0
+    const wages = squad.totalWageBill
+    // Saldo negativo é permitido (dívida): paga juros por partida e bloqueia gastos (spend exige saldo).
+    const interest = club.budget < 0 ? Math.round(-club.budget * ECONOMY.debtInterestPerMatch) : 0
+    const maintenance = club.maintenanceCost
+    const net = ticket + sponsor + winBonus - wages - interest - maintenance
+    club.budget += net
+    club.reputation += uGoals > oGoals ? 3 : uGoals === oGoals ? 1 : 0
+    const sale = club.budget < -eco.debtLimit ? forcedSale() : null
+    return { ticket, sponsor, winBonus, wages, net, interest, maintenance, forcedSale: sale }
+  }
+
+  const projectedTotalIncome = computed(() => club.projectedStadiumIncome + club.projectedSponsorIncome)
+
+  return { ticketIncome, settleMatch, projectedTotalIncome }
+}

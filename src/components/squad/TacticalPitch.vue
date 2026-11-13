@@ -1,0 +1,111 @@
+<script setup lang="ts">
+import { useSquadStore } from '@/stores/squad'
+import { useMatchStore } from '@/stores/match'
+import { useUiStore } from '@/stores/ui'
+import { useSquad } from '@/composables/useSquad'
+import MentalitySelector from '@/components/ui/MentalitySelector.vue'
+import PlayerCard from '@/components/player/PlayerCard.vue'
+import { getEffectiveOvr } from '@/utils/calculateTeamStrength'
+import { formatPosBR } from '@/utils/formatCurrency'
+
+const squad = useSquadStore()
+const match = useMatchStore()
+const ui = useUiStore()
+const { formatStarterName, selectPitchSlot, changeFormation, autoPickBestLineup } = useSquad()
+
+function pct(mod: number): string {
+  const v = Math.round((mod - 1) * 100)
+  return (v >= 0 ? '+' : '') + v
+}
+</script>
+
+<template>
+  <div class="lg:col-span-7 bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div class="min-w-0">
+        <h3 class="font-bold text-base text-ink">Prancheta Tática ({{ squad.formation }})</h3>
+        <p class="text-xs text-ink-muted break-words">Toque em um titular para substituir ou alternar posição.</p>
+      </div>
+      <button
+        type="button"
+        @click="autoPickBestLineup"
+        class="shrink-0 px-3.5 py-2 rounded-xl bg-emeraldpro-soft hover:bg-emeraldpro hover:text-white text-emeraldpro text-xs font-bold transition-colors self-start sm:self-auto"
+      >
+        Melhor Escalação
+      </button>
+    </div>
+
+    <div class="flex flex-wrap gap-1.5">
+      <button
+        v-for="fName in squad.formationNames"
+        :key="fName"
+        type="button"
+        @click="changeFormation(fName)"
+        :class="[
+          'px-2.5 py-1 rounded-lg text-xs font-bold transition-all border',
+          squad.formation === fName
+            ? 'bg-emeraldpro text-white border-emeraldpro shadow-sm'
+            : 'bg-subtle text-ink-muted border-borderline hover:text-ink'
+        ]"
+      >
+        {{ fName }}
+      </button>
+    </div>
+
+    <div class="relative w-full h-[430px] sm:h-[510px] rounded-2xl pitch-bg border-2 border-emerald-800/30 overflow-hidden select-none shadow-inner">
+      <div class="absolute inset-3 border-2 border-white/30 rounded-xl pointer-events-none"></div>
+      <div class="absolute left-3 right-3 top-1/2 h-0.5 bg-white/30 pointer-events-none"></div>
+      <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-2 border-white/30 pointer-events-none"></div>
+      <div class="absolute left-1/2 top-3 -translate-x-1/2 w-40 h-16 border-2 border-t-0 border-white/30 pointer-events-none"></div>
+      <div class="absolute left-1/2 bottom-3 -translate-x-1/2 w-40 h-16 border-2 border-b-0 border-white/30 pointer-events-none"></div>
+
+      <div
+        v-for="(slot, idx) in squad.pitchSlots"
+        :key="idx"
+        :style="{ left: slot.x + '%', top: slot.y + '%' }"
+        :class="[
+          'absolute -translate-x-1/2 -translate-y-1/2',
+          ui.selectedPitchSlotIndex === idx ? 'z-20 scale-105' : 'z-10'
+        ]"
+      >
+        <PlayerCard
+          v-if="slot.player"
+          :player="slot.player"
+          size="xs"
+          clickable
+          show-stamina
+          :selected="ui.selectedPitchSlotIndex === idx"
+          :overall="getEffectiveOvr(slot.player, slot.role)"
+          :pos-label="formatPosBR(slot.role)"
+          :label="formatStarterName(slot.player)"
+          @click="selectPitchSlot(idx)"
+        />
+        <button
+          v-else
+          type="button"
+          @click="selectPitchSlot(idx)"
+          :class="[
+            'w-[58px] sm:w-[74px] rounded-xl p-1 sm:p-1.5 bg-surface shadow-md border-2 transition-transform hover:scale-105 flex flex-col items-center text-center',
+            ui.selectedPitchSlotIndex === idx ? 'border-amberpro ring-2 ring-amberpro/40' : 'border-white'
+          ]"
+        >
+          <div class="w-full flex items-center justify-between text-[8px] sm:text-[10px] font-extrabold leading-none">
+            <span class="text-amberpro">{{ formatPosBR(slot.role) }}</span>
+            <span class="font-score text-xs sm:text-sm text-ink">--</span>
+          </div>
+          <span class="text-[8px] sm:text-[10px] font-bold text-ink truncate w-full mt-0.5 leading-tight">Vazio</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="pt-1 space-y-2">
+      <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-xs">
+        <span class="font-bold text-ink">Postura Tática da Equipe</span>
+        <span class="font-semibold text-emeraldpro">
+          ATQ {{ pct(match.mentalityInfo.atkMod) }}% • DEF {{ pct(match.mentalityInfo.defMod) }}%
+        </span>
+      </div>
+      <MentalitySelector v-model="match.selectedMentality" variant="compact" />
+    </div>
+  </div>
+</template>

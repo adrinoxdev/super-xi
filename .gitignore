@@ -1,0 +1,8 @@
+node_modules
+dist
+*.local
+.DS_Store
+calib-results.json
+escada-results.json
+_origem
+docs

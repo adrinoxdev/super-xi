@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { @apply bg-canvas text-ink font-sans antialiased min-h-screen selection:bg-emeraldpro selection:text-white; }
+
+.font-score {
+  font-variant-numeric: tabular-nums;
+}
+
+.pitch-bg {
+  background: linear-gradient(180deg, #10B981 0%, #059669 100%);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.06) 0px,
+      rgba(255, 255, 255, 0.06) 34px,
+      rgba(0, 0, 0, 0.05) 34px,
+      rgba(0, 0, 0, 0.05) 68px
+    ),
+    linear-gradient(180deg, #0D9466 0%, #047857 100%);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.96); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop {
+  animation: popIn 0.22s ease-out backwards;
+}
