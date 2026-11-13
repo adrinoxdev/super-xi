@@ -6,3 +6,4 @@ calib-results.json
 escada-results.json
 _origem
 docs
+scripts/verify-competitions/*.json
