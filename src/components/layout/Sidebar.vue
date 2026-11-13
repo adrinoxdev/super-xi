@@ -5,6 +5,7 @@ import { useSquadStore } from '@/stores/squad'
 import { useNavigation } from '@/composables/useNavigation'
 import ClubCrest from '@/components/ui/ClubCrest.vue'
 
+const base = import.meta.env.BASE_URL
 const club = useClubStore()
 const league = useLeagueStore()
 const squad = useSquadStore()
@@ -14,6 +15,9 @@ const { navItems, goTo } = useNavigation()
 <template>
   <aside class="hidden md:flex md:w-64 bg-surface border-r border-borderline flex-col justify-between shrink-0 sticky top-0 h-screen overflow-y-auto z-20 self-start">
     <div>
+      <div class="px-5 pt-4 pb-3 border-b border-borderline flex justify-center">
+        <img :src="`${base}logo.png`" alt="Super XI" class="h-20 w-auto select-none" draggable="false" />
+      </div>
       <div class="px-5 md:h-20 py-5 md:py-0 border-b border-borderline flex items-center gap-3">
         <ClubCrest size="md" />
         <div class="min-w-0">

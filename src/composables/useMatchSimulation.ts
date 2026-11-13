@@ -10,7 +10,7 @@ import { useUiStore } from '@/stores/ui'
 import type { MatchCompetition, MatchEventType, MatchOpponent } from '@/types/match'
 import type { PlayerAttributes } from '@/types/player'
 import { getEffectiveOvr } from '@/utils/calculateTeamStrength'
-import { evolutionFactor, FORMATIONS, INJURY, MATCH_SIM, POSITION_KEY_FOCUS, PROGRESSION, progressionAgeFactor, STAFF_BONUS } from '@/utils/constants'
+import { evolutionFactor, FORMATIONS, INJURY, MATCH_SIM, POSITION_KEY_FOCUS, PROGRESSION, progressionAgeFactor, STAFF_BONUS } from '@/config'
 import { refreshPlayerEconomy } from '@/utils/generatePlayer'
 import { checkMilestones } from '@/utils/progression'
 import {
@@ -33,20 +33,26 @@ import { useSeason } from './useSeason'
 const MATCH_DURATION_NORMAL_MS = 120_000 // 2 min
 const MATCH_DURATION_2X_MS = 60_000 // 1 min
 
-let matchTimer: ReturnType<typeof setInterval> | null = null
+// Cada competição tem seu próprio relógio: partidas de competições diferentes rodam em paralelo.
+const matchTimers: Partial<Record<MatchCompetition, ReturnType<typeof setInterval>>> = {}
 
-// Gols registrados na partida em andamento (revertidos se abandonada).
-let matchGoalLog: string[] = []
+// Gols registrados na partida em andamento de cada competição (revertidos se abandonada).
+const matchGoalLogs: Partial<Record<MatchCompetition, string[]>> = {}
+
+// Mentalidade vigente quando o painel de substituições abriu (para narrar a mudança de estilo).
+let mentalityOnOpen: string | null = null
 
 // Minuto do último comentário solto: segura o ritmo para o narrador não falar o tempo todo.
-let lastCommentMinute = -99
-const COMMENT_GAP_MIN = 2
-const COMMENT_CHANCE = 0.65
+const lastCommentMinutes: Partial<Record<MatchCompetition, number>> = {}
+// Intervalo entre comentários sorteado a cada fala (2 a 6 min), para não cair sempre nos mesmos minutos.
+const COMMENT_GAP_RANGE: [number, number] = [2, 6]
+const nextCommentGap: Partial<Record<MatchCompetition, number>> = {}
 
-function clearMatchTimer() {
-  if (matchTimer !== null) {
-    clearInterval(matchTimer)
-    matchTimer = null
+function clearMatchTimer(comp: MatchCompetition) {
+  const t = matchTimers[comp]
+  if (t !== undefined) {
+    clearInterval(t)
+    delete matchTimers[comp]
   }
 }
 
@@ -67,18 +73,18 @@ export function useMatchSimulation() {
   const { settleMatch } = useEconomy()
   const { applyStageOutcome } = useSeason()
 
-  const activeMatchIsHome = computed(() => {
-    if (match.activeMatchCompetition === 'league') return league.nextFixtureIsHome
-    if (match.activeMatchCompetition === 'continental') {
+  function isHomeFor(comp: MatchCompetition): boolean {
+    if (comp === 'league') return league.nextFixtureIsHome
+    if (comp === 'continental') {
       const c = competitions.continentalState
       // groupRound = rodada a jogar (1-based); rodadas 4 a 6 do grupo são fora
       return c.stage !== 'GROUPS' || c.groupRound <= 3
     }
     return true
-  })
+  }
+  const activeMatchIsHome = computed(() => isHomeFor(match.activeMatchCompetition))
 
-  const activeMatchOpponent = computed<MatchOpponent>(() => {
-    const comp = match.activeMatchCompetition
+  function opponentFor(comp: MatchCompetition): MatchOpponent {
     if (comp === 'supercup') {
       return {
         name: competitions.supercupState.rivalName,
@@ -101,10 +107,10 @@ export function useMatchSimulation() {
       return competitions.continentalOpponent
     }
     return league.nextOpponent
-  })
+  }
+  const activeMatchOpponent = computed<MatchOpponent>(() => opponentFor(match.activeMatchCompetition))
 
-  const activeMatchCompetitionLabel = computed(() => {
-    const comp = match.activeMatchCompetition
+  function labelFor(comp: MatchCompetition): string {
     if (comp === 'supercup') return 'Supercopa Soberana • Final Única'
     if (comp === 'recopa') return 'Recopa Condor • Final Única'
     if (comp === 'cup') return 'Taça Cacique • ' + competitions.cupRoundLabel
@@ -121,7 +127,8 @@ export function useMatchSimulation() {
       return league.currentStageLabel + ' • ' + legLabel
     }
     return league.currentStageLabel + ' • Rodada ' + league.currentRound
-  })
+  }
+  const activeMatchCompetitionLabel = computed(() => labelFor(match.activeMatchCompetition))
 
   // Mando de +3 OVER só vale na liga e no continental; Copa, Supercopa e Recopa não dão mando ao usuário.
   const homeBonusOn = computed(() => homeBonusApplies(match.activeMatchCompetition))
@@ -135,34 +142,57 @@ export function useMatchSimulation() {
   const effectiveUserPower = computed(() => Math.round(userMatchRating.value))
   const effectiveOpponentPower = computed(() => Math.round(opponentMatchRating.value))
 
-  function discardInProgressGoals() {
-    matchGoalLog.forEach((id) => club.revertGoal(id))
-    matchGoalLog = []
+  // Rating de uma competição específica (a partida pode não ser a exibida).
+  function ratingsFor(comp: MatchCompetition) {
+    const bonus = homeBonusApplies(comp)
+    const home = isHomeFor(comp)
+    return {
+      user: squad.teamStrength.rating + (bonus && home ? MATCH_SIM.homeAdvantage : 0),
+      opp: opponentFor(comp).power + (bonus && !home ? MATCH_SIM.homeAdvantage : 0)
+    }
+  }
+
+  function discardInProgressGoals(comp: MatchCompetition) {
+    ;(matchGoalLogs[comp] ?? []).forEach((id) => club.revertGoal(id))
+    matchGoalLogs[comp] = []
   }
 
   function prepareMatch(comp: MatchCompetition = 'league') {
-    clearMatchTimer()
+    // Partida desta competição já em andamento (ou encerrada e não fechada): só volta para ela, sem reiniciar.
+    if (match.isCompetitionMatchActive(comp)) {
+      match.activeMatchCompetition = comp
+      router.push('/match')
+      return
+    }
     if (!competitions.isCompetitionPlayable(comp)) {
       ui.showToast('Competição já encerrada.', 'warning')
       router.push(comp === 'league' ? '/league' : '/competitions')
       return
     }
-    discardInProgressGoals()
+    clearMatchTimer(comp)
+    discardInProgressGoals(comp)
     match.activeMatchCompetition = comp
-    match.resetMatchState()
+    match.resetMatchState(comp)
     router.push('/pre-match')
   }
 
+  /** Troca a competição exibida na tela de partida (partidas simultâneas). */
+  function switchActiveMatch(comp: MatchCompetition) {
+    if (comp === match.activeMatchCompetition) return
+    match.activeMatchCompetition = comp
+    router.push(match.isCompetitionMatchActive(comp) ? '/match' : '/pre-match')
+  }
+
   function startLiveMatch() {
-    clearMatchTimer()
     const comp = match.activeMatchCompetition
+    clearMatchTimer(comp)
     if (!competitions.isCompetitionPlayable(comp)) {
       ui.showToast('Competição já encerrada.', 'warning')
       router.push(comp === 'league' ? '/league' : '/competitions')
       return
     }
-    discardInProgressGoals()
-    lastCommentMinute = -99
+    discardInProgressGoals(comp)
+    lastCommentMinutes[comp] = -99
     resetNarration()
     match.matchState = {
       isRunning: true,
@@ -180,39 +210,42 @@ export function useMatchSimulation() {
         }
       ]
     }
-    match.resetStats()
+    match.resetStats(comp)
     match.showSubDrawer = false
     // O relógio só roda se a tela da partida realmente abriu.
     const abortStart = () => {
-      clearMatchTimer()
-      match.resetMatchState()
+      clearMatchTimer(comp)
+      match.resetMatchState(comp)
       ui.showToast('Não foi possível abrir a partida. Recarregue a página.', 'danger')
     }
-    router.push('/match').then((failure) => (failure ? abortStart() : runMatchLoop()), abortStart)
+    router.push('/match').then((failure) => (failure ? abortStart() : runMatchLoop(comp)), abortStart)
   }
 
-  function runMatchLoop() {
-    clearMatchTimer()
+  function runMatchLoop(comp: MatchCompetition = match.activeMatchCompetition) {
+    clearMatchTimer(comp)
+    const st = match.sessions[comp].matchState
     // Duração da partida: 2 min na velocidade normal e 1 min no 2x. O relógio avança 2 minutos de jogo por tick (45 ticks).
-    const totalMs = match.matchState.speed === 2 ? MATCH_DURATION_2X_MS : MATCH_DURATION_NORMAL_MS
+    const totalMs = st.speed === 2 ? MATCH_DURATION_2X_MS : MATCH_DURATION_NORMAL_MS
     const intervalMs = Math.round(totalMs / (90 / 2))
-    matchTimer = setInterval(() => {
-      if (!match.matchState.isRunning) return
-      match.matchState.minute += 2
-      simulateMatchTick(match.matchState.minute)
-      if (match.matchState.minute >= 90) {
-        match.matchState.minute = 90
-        match.matchState.isRunning = false
-        match.matchState.isFinished = true
-        clearMatchTimer()
-        concludeMatch()
+    matchTimers[comp] = setInterval(() => {
+      const state = match.sessions[comp].matchState
+      if (!state.isRunning) return
+      state.minute += 2
+      simulateMatchTick(state.minute, comp)
+      if (state.minute >= 90) {
+        state.minute = 90
+        state.isRunning = false
+        state.isFinished = true
+        clearMatchTimer(comp)
+        concludeMatch(comp)
       }
     }, intervalMs)
   }
 
   function toggleMatchSpeed() {
+    const comp = match.activeMatchCompetition
     match.matchState.speed = match.matchState.speed === 1 ? 2 : 1
-    if (match.matchState.isRunning) runMatchLoop()
+    if (match.matchState.isRunning) runMatchLoop(comp)
   }
 
   function openInMatchSubDrawer() {
@@ -220,13 +253,28 @@ export function useMatchSimulation() {
     match.showSubDrawer = true
     match.subOutId = ''
     match.subInId = ''
+    mentalityOnOpen = match.selectedMentality
+  }
+
+  // Narra a mudança de estilo de jogo feita no painel (compara com a mentalidade de quando ele abriu).
+  function announceMentalityChange() {
+    if (!mentalityOnOpen || mentalityOnOpen === match.selectedMentality) return
+    const info = match.mentalityInfo
+    match.matchState.events.unshift({
+      minute: match.matchState.minute,
+      type: 'sub',
+      description: `Mudança de estilo no ${club.name}: passa a jogar com postura ${info.label} (ATQ x${info.atkMod.toFixed(2)} • DEF x${info.defMod.toFixed(2)}).`
+    })
+    mentalityOnOpen = match.selectedMentality
+    saveGame()
   }
 
   function closeInMatchSubDrawer() {
+    announceMentalityChange()
     match.showSubDrawer = false
     if (!match.matchState.isFinished) {
       match.matchState.isRunning = true
-      runMatchLoop()
+      runMatchLoop(match.activeMatchCompetition)
     }
   }
 
@@ -261,6 +309,7 @@ export function useMatchSimulation() {
     const outPl = squad.players.find((p) => p.id === match.subOutId)
     const forced = !!outPl?.injury
     if (!match.subOutId || !match.subInId || (!forced && match.matchState.subsUsed >= 5)) return
+    announceMentalityChange()
     const inPl = squad.players.find((p) => p.id === match.subInId)
     if (!squad.substituteStarter(match.subOutId, match.subInId)) return
     if (!forced) match.matchState.subsUsed += 1
@@ -274,21 +323,23 @@ export function useMatchSimulation() {
     saveGame()
   }
 
-  function simulateMatchTick(minute: number) {
+  function simulateMatchTick(minute: number, comp: MatchCompetition = match.activeMatchCompetition) {
     const ment = match.mentalityInfo
-    const stats = match.matchStats
-    const state = match.matchState
+    const session = match.sessions[comp]
+    const stats = session.matchStats
+    const state = session.matchState
     const M = MATCH_SIM
-    const diff = userMatchRating.value - opponentMatchRating.value
+    const ratings = ratingsFor(comp)
+    const diff = ratings.user - ratings.opp
     const userName = club.name
-    const oppName = activeMatchOpponent.value.name
+    const oppName = opponentFor(comp).name
     let narrated = false
     const say = (type: MatchEventType, description: string) => {
       state.events.unshift({ minute, type, description })
       narrated = true
     }
 
-    rollLiveInjury(minute)
+    rollLiveInjury(minute, comp)
 
     const basePoss = clamp(Math.round(50 + diff * M.possessionPerOver + (ment.atkMod - 1) * 40), 32, 68)
     stats.userPossession = clamp(basePoss + randInt(-3, 3), 28, 72)
@@ -321,7 +372,7 @@ export function useMatchSimulation() {
           state.userScore++
           if (shooter) {
             club.recordGoal(shooter)
-            matchGoalLog.push(shooter.id)
+            ;(matchGoalLogs[comp] ??= []).push(shooter.id)
           }
           say('goal', goalLine(userName, shooter?.name))
         } else {
@@ -353,8 +404,9 @@ export function useMatchSimulation() {
     if (minute >= 90) say('info', fullTimeLine(userName, oppName, state.userScore, state.opponentScore))
 
     // Momentos vagos: sem lance narrado neste tick, espaça os comentários e solta um dado real, uma dica ou uma piada.
-    if (!narrated && minute < 88 && minute - lastCommentMinute >= COMMENT_GAP_MIN && Math.random() < COMMENT_CHANCE) {
-      lastCommentMinute = minute
+    if (!narrated && minute < 88 && minute - (lastCommentMinutes[comp] ?? -99) >= (nextCommentGap[comp] ?? 2)) {
+      lastCommentMinutes[comp] = minute
+      nextCommentGap[comp] = randInt(COMMENT_GAP_RANGE[0], COMMENT_GAP_RANGE[1])
       const tired = squad.currentStartersList.find((p) => (p.stamina ?? 100) < 60)
       const injured = squad.currentStartersList.find((p) => p.injury)
       say(
@@ -383,7 +435,7 @@ export function useMatchSimulation() {
   // Lesão ao vivo: a cada tick cada titular sorteia (chance da partida dividida pelos 45 ticks). A chance sobe com
   // cansaço e cai com Departamento Médico e Fisioterapeuta. A partida pausa e abre as substituições com o lesionado
   // já selecionado; trocá-lo não gasta substituição.
-  function rollLiveInjury(minute: number) {
+  function rollLiveInjury(minute: number, comp: MatchCompetition) {
     if (minute >= 88) return
     const medCut = 1 - INJURY.medicalReductionPerLevel * (club.upgrades.medicalCenterLevel - 1)
     const physio = club.clubStaff.physio
@@ -396,7 +448,8 @@ export function useMatchSimulation() {
       const matches = Math.max(1, Math.round(randInt(lo, hi) * medCut * (physio ? STAFF_BONUS.physioDurationMult : 1)))
       // +1: o fim desta partida já desconta um jogo de quem for substituído.
       p.injury = { matchesLeft: matches + 1 }
-      const state = match.matchState
+      const session = match.sessions[comp]
+      const state = session.matchState
       state.events.unshift({
         minute,
         type: 'injury',
@@ -404,10 +457,10 @@ export function useMatchSimulation() {
       })
       ui.showToast(`${p.name} se lesionou! Faça a substituição.`, 'danger')
       state.isRunning = false
-      clearMatchTimer()
-      match.showSubDrawer = true
-      match.subOutId = p.id
-      match.subInId = ''
+      clearMatchTimer(comp)
+      session.showSubDrawer = true
+      session.subOutId = p.id
+      session.subInId = ''
       return
     }
   }
@@ -477,17 +530,18 @@ export function useMatchSimulation() {
     return gains
   }
 
-  function concludeMatch() {
-    const uGoals = match.matchState.userScore
-    const oGoals = match.matchState.opponentScore
-    const comp = match.activeMatchCompetition
-    const isHome = activeMatchIsHome.value
-    const rival = activeMatchOpponent.value
+  function concludeMatch(comp: MatchCompetition = match.activeMatchCompetition) {
+    const session = match.sessions[comp]
+    const uGoals = session.matchState.userScore
+    const oGoals = session.matchState.opponentScore
+    const isHome = isHomeFor(comp)
+    const rival = opponentFor(comp)
 
-    matchGoalLog = []
-    match.lastMatchSummary = settleMatch(uGoals, oGoals, isHome)
+    matchGoalLogs[comp] = []
+    const summary = settleMatch(uGoals, oGoals, isHome)
+    session.lastMatchSummary = summary
     const evolved = applyPostMatchProgression()
-    if (evolved.length) match.lastMatchSummary.evolutions = evolved.map((g) => ({ name: g.name, overall: g.overall }))
+    if (evolved.length) summary.evolutions = evolved.map((g) => ({ name: g.name, overall: g.overall }))
     const newMilestones = club.addMilestones(
       checkMilestones({
         season: club.season,
@@ -496,7 +550,7 @@ export function useMatchSimulation() {
         existingIds: club.progress.milestones.map((m) => m.id)
       })
     )
-    if (newMilestones.length) match.lastMatchSummary.milestones = newMilestones.map((m) => m.title)
+    if (newMilestones.length) summary.milestones = newMilestones.map((m) => m.title)
 
     if (comp === 'supercup' || comp === 'recopa') {
       const r = competitions.applyFinalResult(comp, uGoals, oGoals)
@@ -517,12 +571,15 @@ export function useMatchSimulation() {
   }
 
   function finishMatchAndReturn() {
+    const comp = match.activeMatchCompetition
     match.matchState.isFinished = false
     match.matchState.isRunning = false
     match.showSubDrawer = false
-    router.push(match.activeMatchCompetition === 'league' ? '/league' : '/competitions')
-    // Competição que acabou de terminar não deve ficar como alvo do item "Partidas".
-    if (!competitions.isCompetitionPlayable(match.activeMatchCompetition)) match.activeMatchCompetition = 'league'
+    router.push(comp === 'league' ? '/league' : '/competitions')
+    // Se outra partida segue aberta, ela vira o alvo do item "Partidas"; senão, competição encerrada volta para a liga.
+    const other = match.openCompetitions.find((c) => c !== comp)
+    if (other) match.activeMatchCompetition = other
+    else if (!competitions.isCompetitionPlayable(comp)) match.activeMatchCompetition = 'league'
   }
 
   return {
@@ -532,6 +589,9 @@ export function useMatchSimulation() {
     effectiveUserPower,
     effectiveOpponentPower,
     prepareMatch,
+    switchActiveMatch,
+    opponentFor,
+    labelFor,
     startLiveMatch,
     runMatchLoop,
     toggleMatchSpeed,

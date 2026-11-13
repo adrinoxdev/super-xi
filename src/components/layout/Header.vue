@@ -9,6 +9,7 @@ import { useSeason } from '@/composables/useSeason'
 import { formatCurrency } from '@/utils/formatCurrency'
 import ClubCrest from '@/components/ui/ClubCrest.vue'
 
+const base = import.meta.env.BASE_URL
 const club = useClubStore()
 const league = useLeagueStore()
 const squad = useSquadStore()
@@ -20,6 +21,7 @@ const { resetCareer } = useSeason()
 <template>
   <header class="bg-surface/95 backdrop-blur border-b border-borderline sticky top-0 z-30 px-3 sm:px-6 py-2.5 md:py-0 md:h-20 flex items-center justify-between gap-2 sm:gap-3">
     <div class="flex items-center gap-2 min-w-0">
+      <img :src="`${base}logo.png`" alt="Super XI" class="md:hidden h-9 w-auto shrink-0 select-none" draggable="false" />
       <ClubCrest size="sm" class="md:hidden" />
       <div class="min-w-0">
         <h2 class="font-bold text-sm sm:text-base md:text-lg text-ink leading-tight truncate">{{ currentPageTitle }}</h2>

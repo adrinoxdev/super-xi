@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MatchSwitcher from '@/components/match/MatchSwitcher.vue'
 import Scoreboard from '@/components/match/Scoreboard.vue'
 import SubstitutionDrawer from '@/components/match/SubstitutionDrawer.vue'
 import PostMatchSummary from '@/components/match/PostMatchSummary.vue'
@@ -11,6 +12,7 @@ const match = useMatchStore()
 
 <template>
   <section class="space-y-6 animate-pop">
+    <MatchSwitcher />
     <Scoreboard />
     <SubstitutionDrawer v-if="match.showSubDrawer && !match.matchState.isFinished" />
     <PostMatchSummary v-if="match.matchState.isFinished && match.lastMatchSummary" />

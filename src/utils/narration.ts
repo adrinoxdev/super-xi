@@ -3,23 +3,24 @@
 // (elenco do usuário); sem nome, o autor da jogada é o clube. Nomes de clube entram sem artigo ("para Nova Santa Rita")
 // porque o gênero do clube varia.
 
-let lastLine = ''
-// Frases já ditas na partida em andamento: evita repetir comentário e lance.
-const usedLines = new Set<string>()
+// Memória deslizante das últimas frases (vale para todas as partidas simultâneas): uma frase só volta depois de
+// RECENT_MEMORY outras, em vez de esgotar o repertório e repetir sempre as mesmas.
+const RECENT_MEMORY = 24
+const recentLines: string[] = []
 
-/** Zera a memória de frases. Chamar no início de cada partida. */
+/** Esquece as frases recentes (início de uma nova partida). */
 export function resetNarration(): void {
-  lastLine = ''
-  usedLines.clear()
+  recentLines.length = 0
 }
 
 function pick(lines: string[]): string {
-  let pool = lines.filter((l) => l !== lastLine && !usedLines.has(l))
-  if (!pool.length) pool = lines.filter((l) => l !== lastLine)
+  // Se o repertório for menor que a memória, só evita as mais recentes.
+  const window = recentLines.slice(-Math.min(RECENT_MEMORY, Math.max(1, lines.length - 1)))
+  let pool = lines.filter((l) => !window.includes(l))
   if (!pool.length) pool = lines
   const line = pool[Math.floor(Math.random() * pool.length)]
-  lastLine = line
-  usedLines.add(line)
+  recentLines.push(line)
+  if (recentLines.length > RECENT_MEMORY * 2) recentLines.splice(0, RECENT_MEMORY)
   return line
 }
 
@@ -28,9 +29,20 @@ export function goalLine(team: string, scorer?: string): string {
     ? pick([
         `GOL! ${scorer} marca para ${team}.`,
         `Bola na rede! ${scorer} balança as redes para ${team}.`,
-        `${scorer} finaliza e é gol de ${team}.`
+        `${scorer} finaliza e é gol de ${team}.`,
+        `${scorer} não perdoa e abre o placar de ${team} no lance!`,
+        `É dele! ${scorer} manda para o fundo da rede e ${team} comemora.`,
+        `Que finalização de ${scorer}! O goleiro nem se mexe: gol de ${team}.`,
+        `${scorer} aparece livre na área e ${team} converte.`
       ])
-    : pick([`GOL! ${team} marca.`, `Bola na rede para ${team}!`, `Gol de ${team}: a finalização entra.`])
+    : pick([
+        `GOL! ${team} marca.`,
+        `Bola na rede para ${team}!`,
+        `Gol de ${team}: a finalização entra.`,
+        `${team} encontra o caminho e balança as redes!`,
+        `Tabela rápida e ${team} termina a jogada com gol.`,
+        `Sem chance para o goleiro: gol de ${team}.`
+      ])
 }
 
 /** Frase completa da defesa: usa o nome do goleiro quando o jogo o conhece. */
@@ -40,16 +52,36 @@ export function keeperDefends(keeper: string | undefined, team: string): string 
 
 export function savedLine(attacker: string, shooter: string | undefined, keeperPhrase: string): string {
   const who = shooter ?? attacker
-  return pick([`${who} finaliza no alvo. ${keeperPhrase}.`, `Chute na direção do gol! ${keeperPhrase}.`, `Finalização de ${who} no alvo. ${keeperPhrase}.`])
+  return pick([
+    `${who} finaliza no alvo. ${keeperPhrase}.`,
+    `Chute na direção do gol! ${keeperPhrase}.`,
+    `Finalização de ${who} no alvo. ${keeperPhrase}.`,
+    `${who} bate firme, mas ${keeperPhrase.charAt(0).toLowerCase() + keeperPhrase.slice(1)}.`,
+    `Perigo! ${who} arrisca e ${keeperPhrase.charAt(0).toLowerCase() + keeperPhrase.slice(1)}.`,
+    `Quase! ${who} testa o goleiro. ${keeperPhrase}.`
+  ])
 }
 
 export function offTargetLine(team: string, shooter?: string): string {
   const who = shooter ?? team
-  return pick([`${who} tenta de longe e a bola passa fora.`, `Finalização de ${who} sai para fora.`, `${who} chuta, mas sem direção de gol.`])
+  return pick([
+    `${who} tenta de longe e a bola passa fora.`,
+    `Finalização de ${who} sai para fora.`,
+    `${who} chuta, mas sem direção de gol.`,
+    `A bola de ${who} passa raspando a trave.`,
+    `${who} se apressa na conclusão e manda por cima do gol.`,
+    `Chute torto de ${who}, sem perigo.`
+  ])
 }
 
 export function cornerLine(team: string): string {
-  return pick([`Escanteio para ${team}.`, `${team} ganha um escanteio.`, `Bola desviada na defesa: escanteio para ${team}.`])
+  return pick([
+    `Escanteio para ${team}.`,
+    `${team} ganha um escanteio.`,
+    `Bola desviada na defesa: escanteio para ${team}.`,
+    `${team} pressiona e força o córner.`,
+    `Cruzamento cortado em cima da linha: escanteio de ${team}.`
+  ])
 }
 
 export function halfTimeLine(a: string, b: string, scoreA: number, scoreB: number): string {
@@ -90,7 +122,11 @@ function possessionLines(team: string, other: string, strong: boolean): string[]
     `${team} mantém a bola no pé e empurra ${other} para trás.`,
     `${team} circula a bola de um lado para o outro, esperando a brecha.`,
     `${other} se fecha e ${team} tenta abrir a defesa pelas laterais.`,
-    `${team} sobe as linhas e pressiona a saída de bola de ${other}.`
+    `${team} sobe as linhas e pressiona a saída de bola de ${other}.`,
+    `${team} inverte o jogo para a ponta e ${other} precisa se reposicionar.`,
+    `Toque de primeira de ${team}, que ganha campo com a posse.`,
+    `${other} recua o time e deixa ${team} com a bola.`,
+    `${team} varia a jogada, procura o pivô e recomeça pelo meio.`
   ]
   if (strong) base.push(`${team} domina o meio-campo e quase não deixa ${other} respirar.`, `Jogo no campo de ataque de ${team}: ${other} só se defende.`)
   return base
@@ -105,7 +141,13 @@ function balancedLines(a: string, b: string): string[] {
     `Falta no meio-campo, o árbitro marca e a partida é reiniciada.`,
     `Lateral para ${Math.random() < 0.5 ? a : b}, e a bola volta a rolar.`,
     `Tiro de meta, a defesa recomeça a jogada.`,
-    `Time se reorganiza atrás da linha da bola, sem pressa.`
+    `Time se reorganiza atrás da linha da bola, sem pressa.`,
+    `Chutão para o ataque, o zagueiro domina e acalma o jogo.`,
+    `Torcida se manifesta e a bola volta a ficar no meio-campo.`,
+    `Substituições sendo preparadas nos dois bancos de reservas.`,
+    `Falta dura em ${Math.random() < 0.5 ? a : b}, o árbitro conversa com os jogadores.`,
+    `Bola recuada para o goleiro, que reinicia a jogada com calma.`,
+    `${a} tenta o contra-ataque, mas ${b} fecha bem os espaços.`
   ]
 }
 
@@ -113,7 +155,9 @@ function pressureLines(team: string, other: string): string[] {
   return [
     `${team} pressiona e cria perigo: ${other} está acuado na própria área.`,
     `Cruzamento de ${team} na área, a zaga de ${other} afasta com dificuldade.`,
-    `${team} chega com mais gente ao ataque e ${other} só consegue rebater.`
+    `${team} chega com mais gente ao ataque e ${other} só consegue rebater.`,
+    `Bola rebatida na entrada da área e ${team} segue em cima de ${other}.`,
+    `${other} não consegue sair: ${team} reconquista a bola logo após a perda.`
   ]
 }
 
@@ -138,7 +182,10 @@ export function commentLine(c: CommentCtx): string {
     lines.push(
       `${c.userPlayer} recebe, levanta a cabeça e procura o companheiro livre.`,
       `${c.userPlayer} ganha a disputa e toca para ${c.user} sair jogando.`,
-      `${c.userPlayer} acompanha o lance e fecha o espaço.`
+      `${c.userPlayer} acompanha o lance e fecha o espaço.`,
+      `${c.userPlayer} tenta o drible e é desarmado, a bola sobra para ${c.opp}.`,
+      `${c.userPlayer} pede a bola e organiza a saída de ${c.user}.`,
+      `${c.userPlayer} cai pela direita e levanta a bola na área.`
     )
   }
   if (c.tired) lines.push(`${c.tired.name} já mostra cansaço e perde um pouco de velocidade na jogada.`)

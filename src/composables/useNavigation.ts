@@ -65,7 +65,7 @@ export function useNavigation() {
       ...i,
       active: i.id === 'match' ? p === '/match' || p === '/pre-match' : p === i.path,
       // Partida em andamento (rodando ou pausada para substituições, ainda não encerrada).
-      live: i.id === 'match' && !match.matchState.isFinished && (match.matchState.isRunning || match.showSubDrawer)
+      live: i.id === 'match' && match.liveCompetitions.length > 0
     }))
   })
 
@@ -73,6 +73,10 @@ export function useNavigation() {
 
   function goToMatchTab(): void {
     // Competição guardada da última partida já encerrada: volta ao pré-jogo da liga (como no protótipo).
+    // Há partida ao vivo em outra competição: abre ela em vez do pré-jogo vazio.
+    if (!match.isMatchActive && match.openCompetitions.length) {
+      match.activeMatchCompetition = match.liveCompetitions[0] ?? match.openCompetitions[0]
+    }
     if (!match.isMatchActive && !competitions.isCompetitionPlayable(match.activeMatchCompetition)) {
       match.activeMatchCompetition = 'league'
     }
