@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
+import ListRow from '@/components/ui/ListRow.vue'
 import { Trophy } from 'lucide-vue-next'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
 import type { Podium, PodiumEntry } from '@/types/bracket'
@@ -16,17 +18,18 @@ function places(p: Podium): Array<{ place: number; entry: PodiumEntry | null }> 
 </script>
 
 <template>
-  <section class="bg-surface rounded-2xl p-4 border border-borderline shadow-sm space-y-2">
+  <BaseCard as="section" padding="p-4" class="space-y-2">
     <header class="flex items-center justify-between gap-2">
       <h4 class="font-bold text-sm text-ink flex items-center gap-2 min-w-0">
         <Trophy class="w-4 h-4 text-emeraldpro shrink-0" /> <span class="min-w-0 break-words">Pódios da Temporada {{ season }}</span>
       </h4>
       <button type="button" class="shrink-0 text-xs text-ink-muted hover:text-ink" @click="$emit('close')">Ocultar</button>
     </header>
-    <div
+    <ListRow
       v-for="p in podiums"
       :key="p.competition + p.season"
-      class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-subtle border border-borderline"
+      layout="block"
+      class="flex flex-col sm:flex-row sm:items-center gap-3"
     >
       <span class="text-xs font-bold text-ink sm:w-44 sm:shrink-0 min-w-0 break-words">{{ p.competitionLabel }}</span>
       <div class="grid grid-cols-3 gap-2 flex-1 min-w-0">
@@ -49,6 +52,6 @@ function places(p: Podium): Array<{ place: number; entry: PodiumEntry | null }> 
           >
         </div>
       </div>
-    </div>
-  </section>
+    </ListRow>
+  </BaseCard>
 </template>

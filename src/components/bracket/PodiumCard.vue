@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
+import Badge from '@/components/ui/Badge.vue'
 import { computed } from 'vue'
 import { Trophy } from 'lucide-vue-next'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
@@ -15,7 +17,7 @@ const slots = computed(() => [
 </script>
 
 <template>
-  <section class="bg-surface rounded-2xl p-5 border border-borderline shadow-sm space-y-4">
+  <BaseCard as="section" class="space-y-4">
     <header class="flex items-center justify-between gap-2">
       <h4 class="font-bold text-sm text-ink flex items-center gap-2 min-w-0">
         <Trophy class="w-4 h-4 text-emeraldpro shrink-0" /> <span class="min-w-0 break-words">Pódio — {{ podium.competitionLabel }}</span>
@@ -33,11 +35,7 @@ const slots = computed(() => [
             :is-user="slot.entry.isUser"
           />
           <span class="text-xs font-bold text-ink truncate max-w-full" :title="slot.entry.name">{{ slot.entry.name }}</span>
-          <span
-            v-if="slot.entry.isUser"
-            class="px-2 py-0.5 rounded-full bg-emeraldpro-soft text-emeraldpro text-[10px] font-bold"
-            >Seu clube</span
-          >
+          <Badge v-if="slot.entry.isUser" tone="success">Seu clube</Badge>
         </template>
         <span v-else class="text-xs text-ink-muted">—</span>
         <div :class="['w-full rounded-t-xl flex flex-col items-center justify-center', slot.platform]">
@@ -50,5 +48,5 @@ const slots = computed(() => [
       Final: {{ podium.finalSummary
       }}<template v-if="podium.thirdSummary"> • 3º lugar: {{ podium.thirdSummary }}</template>
     </p>
-  </section>
+  </BaseCard>
 </template>

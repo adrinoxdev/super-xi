@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { useUiStore } from '@/stores/ui'
 import { usePersistence } from '@/composables/usePersistence'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
 
 const ui = useUiStore()
 const { exportCareerCode, importCareerCode } = usePersistence()
 </script>
 
 <template>
-  <div class="bg-surface rounded-2xl p-5 border border-borderline shadow-sm space-y-3">
-    <h3 class="font-bold text-base text-ink">Backup Portátil da Carreira</h3>
+  <BaseCard class="space-y-3">
+    <SectionTitle>Backup Portátil da Carreira</SectionTitle>
     <p class="text-xs text-ink-muted break-words">Exporte ou importe seu código de carreira para transferir seu progresso.</p>
     <div class="flex flex-wrap gap-2">
       <button
@@ -32,5 +34,5 @@ const { exportCareerCode, importCareerCode } = usePersistence()
       placeholder="Cole aqui o código de carreira para importar ou clique em Gerar Código..."
       class="w-full p-2.5 rounded-xl bg-subtle border border-borderline text-[11px] font-mono text-ink"
     ></textarea>
-  </div>
+  </BaseCard>
 </template>

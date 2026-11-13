@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 import { useSquadStore } from '@/stores/squad'
 import { useMatchStore } from '@/stores/match'
 import { useUiStore } from '@/stores/ui'
@@ -20,19 +23,19 @@ function pct(mod: number): string {
 </script>
 
 <template>
-  <div class="lg:col-span-7 bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-4">
+  <BaseCard padding="p-4 sm:p-5" class="lg:col-span-7 space-y-4">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div class="min-w-0">
-        <h3 class="font-bold text-base text-ink">Prancheta Tática ({{ squad.formation }})</h3>
+        <SectionTitle>Prancheta Tática ({{ squad.formation }})</SectionTitle>
         <p class="text-xs text-ink-muted break-words">Toque em um titular para substituir ou alternar posição.</p>
       </div>
-      <button
-        type="button"
+      <BaseButton
+        variant="soft"
         @click="autoPickBestLineup"
-        class="shrink-0 px-3.5 py-2 rounded-xl bg-emeraldpro-soft hover:bg-emeraldpro hover:text-white text-emeraldpro text-xs font-bold transition-colors self-start sm:self-auto"
+        class="shrink-0 px-3.5 py-2 text-xs transition-colors self-start sm:self-auto"
       >
         Melhor Escalação
-      </button>
+      </BaseButton>
     </div>
 
     <div class="flex flex-wrap gap-1.5">
@@ -107,5 +110,5 @@ function pct(mod: number): string {
       </div>
       <MentalitySelector v-model="match.selectedMentality" variant="compact" />
     </div>
-  </div>
+  </BaseCard>
 </template>

@@ -5,6 +5,9 @@ import { useClubStore } from '@/stores/club'
 import { useSquadStore } from '@/stores/squad'
 import { milestoneCatalog } from '@/utils/progression'
 import { fmtOver } from '@/utils/formatOver'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
+import Badge from '@/components/ui/Badge.vue'
 
 const club = useClubStore()
 const squad = useSquadStore()
@@ -22,11 +25,11 @@ const next = computed(() => {
 </script>
 
 <template>
-  <div class="bg-surface rounded-2xl p-5 border border-borderline shadow-sm space-y-3 min-w-0">
-    <h3 class="font-bold text-base text-ink flex items-center gap-2 min-w-0">
-      <Flag class="w-4 h-4 text-emeraldpro shrink-0" />
+  <BaseCard class="space-y-3 min-w-0">
+    <SectionTitle class="min-w-0">
+      <template #icon><Flag class="w-4 h-4 text-emeraldpro shrink-0" /></template>
       <span class="min-w-0 break-words">Marcos ({{ doneCount }}/{{ rows.length }})</span>
-    </h3>
+    </SectionTitle>
     <p v-if="next" class="text-xs text-ink-muted break-words">
       Próximo: {{ next.title }}, faltam <strong class="text-ink">{{ fmtOver(next.left) }}</strong> de OVER.
     </p>
@@ -41,11 +44,11 @@ const next = computed(() => {
           <Check v-if="r.done" class="w-3.5 h-3.5 text-emeraldpro shrink-0" />
           <span class="min-w-0 break-words">{{ r.title }}</span>
         </span>
-        <span v-if="r.done" class="shrink-0 px-2 py-0.5 rounded bg-emeraldpro-soft text-emeraldpro-hover font-bold text-[10px] uppercase whitespace-nowrap">
+        <Badge v-if="r.done" tone="success-strong" shape="rounded" uppercase class="shrink-0 whitespace-nowrap">
           Temp. {{ r.done.season }}
-        </span>
+        </Badge>
         <span v-else class="shrink-0 text-[10px] text-ink-muted">Pendente</span>
       </li>
     </ul>
-  </div>
+  </BaseCard>
 </template>

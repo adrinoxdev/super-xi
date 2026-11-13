@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import ListRow from '@/components/ui/ListRow.vue'
 import { Play } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
 import { useClubStore } from '@/stores/club'
@@ -35,7 +38,7 @@ const { prepareMatch } = useMatchSimulation()
 
 <template>
   <div class="space-y-6">
-    <div class="bg-surface rounded-2xl p-5 border border-borderline shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <BaseCard class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div class="space-y-1 min-w-0">
         <span class="inline-block max-w-full px-2.5 py-0.5 rounded-full bg-emeraldpro-soft text-emeraldpro text-xs font-bold uppercase break-words">
           Mata-Mata Nacional • Jogo Único
@@ -46,15 +49,14 @@ const { prepareMatch } = useMatchSimulation()
         </p>
       </div>
 
-      <button
-        type="button"
+      <BaseButton
         v-if="canPlay"
         @click="prepareMatch('cup')"
-        class="shrink-0 px-5 py-3 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-white text-xs sm:text-sm font-bold shadow-sm flex items-center gap-2 self-start sm:self-auto"
+        class="shrink-0 px-5 py-3 text-xs sm:text-sm shadow-sm flex items-center gap-2 self-start sm:self-auto"
       >
         <Play class="w-4 h-4 fill-current" />
         Jogar {{ cupRoundLabel }}
-      </button>
+      </BaseButton>
       <span
         v-else-if="cupState.champion"
         class="max-w-full break-words px-4 py-2 rounded-xl bg-emeraldpro-soft text-emeraldpro text-xs font-extrabold"
@@ -73,11 +75,11 @@ const { prepareMatch } = useMatchSimulation()
       >
         Eliminado na Temporada {{ club.season }}
       </span>
-    </div>
+    </BaseCard>
 
     <PodiumCard v-if="cupState.bracket?.podium" :podium="cupState.bracket.podium" />
 
-    <div v-if="canPlay && cupState.currentRival" class="bg-surface rounded-2xl p-5 border border-borderline shadow-sm space-y-3">
+    <BaseCard v-if="canPlay && cupState.currentRival" class="space-y-3">
       <h4 class="font-bold text-sm text-ink">{{ isThird ? 'Disputa de 3º Lugar' : 'Confronto da Fase Atual' }}</h4>
       <div class="p-4 rounded-xl bg-subtle border border-borderline flex items-center justify-between gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -91,7 +93,7 @@ const { prepareMatch } = useMatchSimulation()
           OVER {{ cupState.currentRival.power }}
         </span>
       </div>
-    </div>
+    </BaseCard>
 
     <BracketView
       v-if="cupState.bracket"
@@ -100,21 +102,17 @@ const { prepareMatch } = useMatchSimulation()
       :user-power="squad.teamStrength.total"
     />
 
-    <div v-if="cupState.history.length" class="bg-surface rounded-2xl p-5 border border-borderline shadow-sm space-y-3">
+    <BaseCard v-if="cupState.history.length" class="space-y-3">
       <h4 class="font-bold text-sm text-ink">Campanha na Taça Cacique</h4>
       <div class="space-y-2">
-        <div
-          v-for="(item, idx) in cupState.history"
-          :key="idx"
-          class="p-3 rounded-xl bg-subtle border border-borderline flex items-center justify-between gap-2 text-xs"
-        >
+        <ListRow v-for="(item, idx) in cupState.history" :key="idx">
           <div class="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
             <span class="font-bold text-ink">{{ item.roundName }}:</span>
             <span class="text-ink-muted ml-1">{{ item.summary }}</span>
           </div>
           <span class="shrink-0 font-bold text-emeraldpro tabular-nums">+{{ formatCurrency(item.prize) }}</span>
-        </div>
+        </ListRow>
       </div>
-    </div>
+    </BaseCard>
   </div>
 </template>

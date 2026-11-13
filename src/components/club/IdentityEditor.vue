@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
 import { computed } from 'vue'
 import { useClubStore } from '@/stores/club'
 import { useClub } from '@/composables/useClub'
@@ -34,7 +35,7 @@ const chip = (on: boolean) => [
 </script>
 
 <template>
-  <div class="bg-surface rounded-2xl p-4 sm:p-6 border border-borderline shadow-sm space-y-4">
+  <BaseCard padding="p-4 sm:p-6" class="space-y-4">
     <div class="flex items-center justify-between gap-3">
       <div class="min-w-0">
         <h2 class="text-lg sm:text-xl font-bold text-ink break-words">Identidade & Escudo do Clube</h2>
@@ -212,5 +213,5 @@ const chip = (on: boolean) => [
         Atenção: contraste baixo entre as iniciais e o fundo do escudo. Pode ficar difícil de ler.
       </p>
     </div>
-  </div>
+  </BaseCard>
 </template>

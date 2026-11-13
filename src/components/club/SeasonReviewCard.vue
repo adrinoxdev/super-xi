@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Badge from '@/components/ui/Badge.vue'
 import { computed } from 'vue'
 import { TrendingUp } from 'lucide-vue-next'
 import { useClubStore } from '@/stores/club'
@@ -48,13 +49,9 @@ function hide() {
       </li>
     </ul>
     <div v-if="marcos.length" class="flex flex-wrap gap-1.5 min-w-0">
-      <span
-        v-for="m in marcos"
-        :key="m.id"
-        class="max-w-full min-w-0 break-words px-2 py-0.5 rounded-full border border-emeraldpro text-emeraldpro-hover text-[11px] font-bold"
-      >
+      <Badge v-for="m in marcos" :key="m.id" tone="success-outline" size="sm" class="max-w-full min-w-0 break-words">
         Marco: {{ m.title }}
-      </span>
+      </Badge>
     </div>
   </div>
 </template>

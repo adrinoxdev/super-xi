@@ -12,6 +12,9 @@ import BracketView from '@/components/bracket/BracketView.vue'
 import PodiumCard from '@/components/bracket/PodiumCard.vue'
 import PodiumArchiveCard from '@/components/bracket/PodiumArchiveCard.vue'
 import { useUiStore } from '@/stores/ui'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
 
 const club = useClubStore()
 const ui = useUiStore()
@@ -80,7 +83,7 @@ const tables = computed(() => {
       :season="club.season - 1"
       @close="ui.hiddenPodiumSeason = club.season - 1"
     />
-    <div class="bg-surface rounded-2xl p-4 sm:p-6 border border-borderline shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <BaseCard padding="p-4 sm:p-6" class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div class="space-y-1.5 min-w-0">
         <div class="flex flex-wrap items-center gap-2">
           <span class="px-2.5 py-0.5 rounded-full bg-emeraldpro text-white text-xs font-extrabold uppercase">
@@ -95,15 +98,14 @@ const tables = computed(() => {
         </p>
       </div>
 
-      <button
-        type="button"
-        class="shrink-0 px-5 py-3 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-white text-xs sm:text-sm font-bold shadow-sm flex items-center justify-center gap-2 self-start lg:self-auto"
+      <BaseButton
+        class="shrink-0 px-5 py-3 text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 self-start lg:self-auto"
         @click="prepareMatch('league')"
       >
         <Play class="w-4 h-4 fill-current" />
         {{ playLabel }}
-      </button>
-    </div>
+      </BaseButton>
+    </BaseCard>
 
     <div
       v-if="isKnockoutStage && nextUserFixture"
@@ -145,9 +147,9 @@ const tables = computed(() => {
     />
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div class="lg:col-span-7 bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-3">
+      <BaseCard padding="p-4 sm:p-5" class="lg:col-span-7 space-y-3">
         <div class="flex items-center justify-between gap-2">
-          <h3 class="font-bold text-sm sm:text-base text-ink min-w-0">Tabela de Classificação</h3>
+          <SectionTitle size="responsive" class="min-w-0">Tabela de Classificação</SectionTitle>
           <span class="shrink-0 text-[11px] text-ink-muted">Pts • V • SG • GP</span>
         </div>
 
@@ -204,11 +206,11 @@ const tables = computed(() => {
             </tbody>
           </table>
         </div>
-      </div>
+      </BaseCard>
 
-      <div class="lg:col-span-5 bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-4">
+      <BaseCard padding="p-4 sm:p-5" class="lg:col-span-5 space-y-4">
         <div class="flex items-center justify-between gap-2">
-          <h3 class="font-bold text-sm sm:text-base text-ink min-w-0">Jogos da Rodada</h3>
+          <SectionTitle size="responsive" class="min-w-0">Jogos da Rodada</SectionTitle>
           <div class="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
@@ -252,7 +254,7 @@ const tables = computed(() => {
             </span>
           </div>
         </div>
-      </div>
+      </BaseCard>
     </div>
   </section>
 </template>

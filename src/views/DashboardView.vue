@@ -16,6 +16,8 @@ import { retireAgeFor } from '@/utils/generatePlayer'
 import SeasonReviewCard from '@/components/club/SeasonReviewCard.vue'
 import { fmtDelta, fmtOver } from '@/utils/formatOver'
 import PodiumArchiveCard from '@/components/bracket/PodiumArchiveCard.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 
 const router = useRouter()
 const club = useClubStore()
@@ -82,7 +84,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
 
     <FinanceSummary />
 
-    <div class="bg-surface rounded-2xl p-4 sm:p-6 border border-borderline shadow-sm">
+    <BaseCard padding="p-4 sm:p-6">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div class="space-y-1.5 min-w-0">
           <div class="flex flex-wrap items-center gap-2">
@@ -119,14 +121,13 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
             <Shield class="w-4 h-4 text-emeraldpro" />
             Ajustar Tática
           </button>
-          <button
-            type="button"
+          <BaseButton
             @click="prepareMatch('league')"
-            class="px-5 py-2.5 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-white text-xs sm:text-sm font-bold shadow-sm transition-colors flex items-center gap-2"
+            class="px-5 py-2.5 text-xs sm:text-sm shadow-sm transition-colors flex items-center gap-2"
           >
             <Play class="w-4 h-4 fill-current" />
             Jogar Partida
-          </button>
+          </BaseButton>
         </div>
       </div>
 
@@ -142,10 +143,10 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
         OVER do time <strong class="text-ink">{{ fmtOver(squad.teamStrength.rating) }}</strong>
         (<span :class="trendUp ? 'text-emeraldpro font-semibold' : ''">{{ fmtDelta(trendDelta) }}</span> na temporada)
       </p>
-    </div>
+    </BaseCard>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-3">
+      <BaseCard padding="p-4 sm:p-5" class="space-y-3">
         <div class="flex items-center justify-between gap-2">
           <h4 class="font-bold text-sm sm:text-base text-ink flex items-center gap-2 min-w-0">
             <Trophy class="w-4 h-4 text-emeraldpro shrink-0" />
@@ -173,9 +174,9 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
             </div>
           </div>
         </div>
-      </div>
+      </BaseCard>
 
-      <div class="bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-3">
+      <BaseCard padding="p-4 sm:p-5" class="space-y-3">
         <div class="flex items-center justify-between gap-2">
           <h4 class="font-bold text-sm sm:text-base text-ink flex items-center gap-2 min-w-0">
             <Radar class="w-4 h-4 text-emeraldpro shrink-0" />
@@ -206,7 +207,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
           <strong class="text-emeraldpro">{{ Math.round(club.scoutingSpec.accuracy * 100) }}%</strong> e chance de
           <strong class="text-emeraldpro">{{ Math.round(club.gemChanceWithStaff * 100) }}%</strong> de Joias Raras.
         </p>
-      </div>
+      </BaseCard>
     </div>
   </section>
 </template>

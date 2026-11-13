@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Badge from '@/components/ui/Badge.vue'
 import { computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import BaseModal from '@/components/ui/BaseModal.vue'
@@ -61,13 +62,13 @@ const renewBlockedReason = computed(() => {
         • Aposenta aos {{ retireAge }}{{ player.position === 'GK' ? ' (goleiro)' : '' }}
       </p>
       <div class="flex flex-wrap items-center justify-center gap-1.5 min-w-0">
-        <span v-if="lastYear" class="px-2 py-0.5 rounded bg-amberpro-soft text-amberpro text-[11px] font-bold break-words">
+        <Badge v-if="lastYear" tone="warning" shape="rounded" size="sm" class="break-words">
           Último ano: renove ou ele sai de graça na virada
-        </span>
-        <span v-if="retiresNext" class="px-2 py-0.5 rounded bg-amberpro-soft text-amberpro text-[11px] font-bold">Aposentadoria na próxima virada</span>
-        <span v-if="dropNext > 0" class="px-2 py-0.5 rounded bg-subtle border border-borderline text-ink-muted text-[11px] font-bold break-words">
+        </Badge>
+        <Badge v-if="retiresNext" tone="warning" shape="rounded" size="sm">Aposentadoria na próxima virada</Badge>
+        <Badge v-if="dropNext > 0" tone="neutral-outline" shape="rounded" size="sm" class="break-words">
           Idade avançada: perde {{ dropNext }} de OVER na próxima virada
-        </span>
+        </Badge>
       </div>
     </div>
 

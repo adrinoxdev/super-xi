@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import ListRow from '@/components/ui/ListRow.vue'
 import { computed } from 'vue'
 import { Globe, Play } from 'lucide-vue-next'
 import { storeToRefs } from 'pinia'
@@ -53,16 +56,16 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
 
 <template>
   <div>
-    <div v-if="!continentalState.qualified" class="bg-surface rounded-2xl p-6 border border-borderline shadow-sm text-center space-y-2">
+    <BaseCard v-if="!continentalState.qualified" padding="p-6" class="text-center space-y-2">
       <Globe class="w-10 h-10 text-ink-muted mx-auto" />
       <h3 class="text-base sm:text-lg font-bold text-ink">Classificação Continental Pendente</h3>
       <p class="text-xs text-ink-muted max-w-lg mx-auto">
         Termine no <strong class="text-ink">G-6 da Série A</strong> ou conquiste a <strong class="text-ink">Taça Cacique</strong> para disputar a Copa Condor de Prata ou a Copa Condor de Ouro na temporada seguinte!
       </p>
-    </div>
+    </BaseCard>
 
     <div v-else class="space-y-6">
-      <div class="bg-surface rounded-2xl p-5 border border-borderline shadow-sm space-y-4">
+      <BaseCard class="space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div class="space-y-1 min-w-0">
             <div class="flex flex-wrap items-center gap-2">
@@ -72,15 +75,14 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
             <h3 class="text-lg sm:text-xl font-extrabold text-ink break-words">{{ continentalStageLabel }}</h3>
             <p class="text-xs text-ink-muted break-words">Fase de grupos (6 rodadas) + mata-mata em jogo único, com disputa de 3º lugar.</p>
           </div>
-          <button
-            type="button"
+          <BaseButton
             v-if="canPlay"
             @click="prepareMatch('continental')"
-            class="shrink-0 px-5 py-3 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-white text-xs sm:text-sm font-bold shadow-sm flex items-center gap-2 self-start sm:self-auto"
+            class="shrink-0 px-5 py-3 text-xs sm:text-sm shadow-sm flex items-center gap-2 self-start sm:self-auto"
           >
             <Play class="w-4 h-4 fill-current" />
             {{ playLabel }}
-          </button>
+          </BaseButton>
         </div>
         <div v-if="canPlay" class="p-3 rounded-xl bg-subtle border border-borderline text-xs flex flex-wrap items-center justify-between gap-2">
           <span class="text-ink-muted">Próximo adversário</span>
@@ -90,11 +92,11 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
           Prêmios: campeão {{ formatCurrency(PRIZES.continental.champion) }} • vice {{ formatCurrency(PRIZES.continental.runnerUp) }} •
           3º lugar {{ formatCurrency(PRIZES.continental.third) }} • vitória na partida {{ formatCurrency(PRIZES.continental.win) }}
         </p>
-      </div>
+      </BaseCard>
 
       <PodiumCard v-if="continentalState.bracket?.podium" :podium="continentalState.bracket.podium" />
 
-      <div class="bg-surface rounded-2xl p-5 border border-borderline shadow-sm space-y-3">
+      <BaseCard class="space-y-3">
         <h4 class="font-bold text-sm text-ink">Grupo A</h4>
         <div class="overflow-x-auto">
           <table class="w-full text-xs text-left">
@@ -130,12 +132,12 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
             </tbody>
           </table>
         </div>
-      </div>
+      </BaseCard>
 
       <div v-if="otherGroups.length" class="space-y-2">
         <h4 class="font-bold text-sm text-ink">Outros grupos</h4>
         <div class="grid gap-3 sm:grid-cols-3">
-          <div v-for="g in otherGroups" :key="g.id" class="min-w-0 bg-surface rounded-2xl p-4 border border-borderline shadow-sm space-y-2">
+          <BaseCard v-for="g in otherGroups" :key="g.id" padding="p-4" class="min-w-0 space-y-2">
             <h5 class="text-[11px] font-bold uppercase tracking-wide text-ink-muted">Grupo {{ g.id }}</h5>
             <table class="w-full text-[11px] text-left">
               <thead>
@@ -160,7 +162,7 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
                 </tr>
               </tbody>
             </table>
-          </div>
+          </BaseCard>
         </div>
       </div>
 
@@ -171,17 +173,13 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
         :user-power="squad.teamStrength.total"
       />
 
-      <div v-if="continentalState.history.length" class="bg-surface rounded-2xl p-5 border border-borderline shadow-sm space-y-2">
+      <BaseCard v-if="continentalState.history.length" class="space-y-2">
         <h4 class="font-bold text-sm text-ink">Resultados Continentais</h4>
-        <div
-          v-for="(item, idx) in continentalState.history"
-          :key="idx"
-          class="p-3 rounded-xl bg-subtle border border-borderline flex items-center justify-between gap-2 text-xs"
-        >
+        <ListRow v-for="(item, idx) in continentalState.history" :key="idx">
           <span class="min-w-0 flex-1 text-ink break-words [overflow-wrap:anywhere]">{{ item.summary }}</span>
           <span class="shrink-0 font-bold text-emeraldpro tabular-nums">+{{ formatCurrency(item.prize) }}</span>
-        </div>
-      </div>
+        </ListRow>
+      </BaseCard>
     </div>
   </div>
 </template>

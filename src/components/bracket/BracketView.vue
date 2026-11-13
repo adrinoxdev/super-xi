@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
 import { computed, ref } from 'vue'
 import BracketTieCard from '@/components/bracket/BracketTieCard.vue'
 import type { Bracket, BracketTie } from '@/types/bracket'
@@ -66,7 +67,7 @@ const treeHeight = computed(() => (visibleRounds.value[0]?.ties.length ?? 1) * S
 </script>
 
 <template>
-  <section class="bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-4">
+  <BaseCard as="section" padding="p-4 sm:p-5" class="space-y-4">
     <header class="flex flex-wrap items-center justify-between gap-2">
       <h4 class="font-bold text-sm text-ink min-w-0 break-words">{{ title ?? 'Chaveamento' }}</h4>
       <span class="flex items-center gap-1.5 text-[11px] text-ink-muted">
@@ -173,5 +174,5 @@ const treeHeight = computed(() => (visibleRounds.value[0]?.ties.length ?? 1) * S
         <BracketTieCard v-for="t in bracket.side.ties" :key="t.id" :tie="t" :teams="bracket.teams" :user-power="userPower" />
       </div>
     </div>
-  </section>
+  </BaseCard>
 </template>

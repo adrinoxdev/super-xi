@@ -8,6 +8,9 @@ import { useMatchStore } from '@/stores/match'
 import { homeBonusApplies, useMatchSimulation } from '@/composables/useMatchSimulation'
 import { getStatBarPct } from '@/utils/formatCurrency'
 import { MATCH_SIM } from '@/config'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
+import Badge from '@/components/ui/Badge.vue'
 
 const match = useMatchStore()
 const club = useClubStore()
@@ -47,10 +50,10 @@ const rows = computed(() => {
 </script>
 
 <template>
-  <div class="lg:col-span-5 bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-4">
+  <BaseCard padding="p-4 sm:p-5" class="lg:col-span-5 space-y-4">
     <div class="flex items-center justify-between gap-2">
-      <h3 class="font-bold text-sm sm:text-base text-ink min-w-0">Estatísticas em Tempo Real</h3>
-      <span class="shrink-0 px-2 py-0.5 rounded-full bg-subtle text-[11px] font-bold text-ink-muted">Ao Vivo</span>
+      <SectionTitle size="responsive" class="min-w-0">Estatísticas em Tempo Real</SectionTitle>
+      <Badge tone="neutral" size="sm" class="shrink-0">Ao Vivo</Badge>
     </div>
 
     <div class="space-y-3.5 text-xs">
@@ -88,5 +91,5 @@ const rows = computed(() => {
         <strong class="text-emeraldpro">{{ match.mentalityInfo.label }}</strong>
       </div>
     </div>
-  </div>
+  </BaseCard>
 </template>

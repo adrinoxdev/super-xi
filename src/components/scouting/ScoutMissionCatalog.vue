@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 import { useClubStore } from '@/stores/club'
 import { useScoutingStore } from '@/stores/scouting'
 import { useScouting } from '@/composables/useScouting'
@@ -25,8 +28,8 @@ function reportsLabel(type: ScoutMissionType): string {
 </script>
 
 <template>
-  <div class="bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-4">
-    <h3 class="font-bold text-sm sm:text-base text-ink">Enviar Nova Missão de Observação</h3>
+  <BaseCard padding="p-4 sm:p-5" class="space-y-4">
+    <SectionTitle size="responsive">Enviar Nova Missão de Observação</SectionTitle>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
       <div
@@ -57,17 +60,16 @@ function reportsLabel(type: ScoutMissionType): string {
           </label>
         </div>
 
-        <button
-          type="button"
+        <BaseButton
           @click="startScoutMission(m.type)"
           :disabled="club.upgrades.scoutingLevel < m.minLevel || scouting.activeMissions.length >= club.scoutingSpec.slots || club.budget < m.cost"
           :title="club.budget < m.cost ? blockedMsg(m.cost) : undefined"
-          class="w-full px-3 py-2 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover disabled:bg-borderline disabled:text-ink-muted text-white text-xs font-bold transition-colors"
+          class="w-full px-3 py-2 text-xs transition-colors"
         >
           <template v-if="club.upgrades.scoutingLevel < m.minLevel">Requer Scout Nv.{{ m.minLevel }}</template>
           <template v-else>{{ formatCurrency(m.cost) }}</template>
-        </button>
+        </BaseButton>
       </div>
     </div>
-  </div>
+  </BaseCard>
 </template>

@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import ListRow from '@/components/ui/ListRow.vue'
 import { useClubStore } from '@/stores/club'
 import { useScoutingStore } from '@/stores/scouting'
 import { useScouting } from '@/composables/useScouting'
@@ -14,33 +19,35 @@ const { runYouthAcademyTryout, promoteYouthProspect } = useScouting()
 </script>
 
 <template>
-  <div class="bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-4">
+  <BaseCard padding="p-4 sm:p-5" class="space-y-4">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div class="min-w-0">
         <span class="text-[11px] font-bold uppercase tracking-wider text-emeraldpro">Categorias de Base • Sub-17 / Sub-20</span>
-        <h3 class="font-bold text-sm sm:text-base text-ink">Academia de Base Própria ({{ scouting.youthAcademyProspects.length }} Promessas)</h3>
+        <SectionTitle size="responsive">Academia de Base Própria ({{ scouting.youthAcademyProspects.length }} Promessas)</SectionTitle>
         <p class="text-xs text-ink-muted">Peneiras desta temporada: {{ club.tryoutsThisSeason }}/{{ MAX_TRYOUTS_PER_SEASON }}</p>
         <p class="text-xs text-ink-muted break-words">Promoção gratuita: o atleta só pode ser vendido a partir da próxima temporada</p>
       </div>
-      <button
-        type="button"
+      <BaseButton
+        variant="soft"
         @click="runYouthAcademyTryout"
         :disabled="club.budget < 12000 || club.tryoutsThisSeason >= MAX_TRYOUTS_PER_SEASON"
         :title="club.tryoutsThisSeason >= MAX_TRYOUTS_PER_SEASON ? 'Limite de peneiras desta temporada atingido.' : club.budget < 12000 ? blockedMsg(12000) : undefined"
-        class="px-3.5 py-2 rounded-xl bg-emeraldpro-soft hover:bg-emeraldpro hover:text-white disabled:opacity-50 text-emeraldpro text-xs font-bold transition-colors self-start sm:self-auto"
+        class="px-3.5 py-2 disabled:opacity-50 text-xs transition-colors self-start sm:self-auto"
       >
         + Peneira na Base ({{ formatCurrency(12000) }})
-      </button>
+      </BaseButton>
     </div>
 
-    <div v-if="scouting.youthAcademyProspects.length === 0" class="p-6 rounded-xl bg-subtle border border-dashed border-borderline text-center text-xs text-ink-muted">
+    <EmptyState v-if="scouting.youthAcademyProspects.length === 0">
       Nenhuma promessa aguardando promoção no momento. As promessas se renovam na virada de temporada.
-    </div>
+    </EmptyState>
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      <div
+      <ListRow
         v-for="kid in scouting.youthAcademyProspects"
         :key="kid.id"
-        class="p-3.5 rounded-xl bg-subtle border border-borderline flex items-center justify-between gap-3"
+        padding="p-3.5"
+        layout="block"
+        class="flex items-center justify-between gap-3"
       >
         <div class="flex items-center gap-2.5 min-w-0">
           <div class="w-10 h-10 rounded-xl bg-surface border border-borderline flex flex-col items-center justify-center shrink-0">
@@ -63,7 +70,7 @@ const { runYouthAcademyTryout, promoteYouthProspect } = useScouting()
         >
           Promover
         </button>
-      </div>
+      </ListRow>
     </div>
-  </div>
+  </BaseCard>
 </template>

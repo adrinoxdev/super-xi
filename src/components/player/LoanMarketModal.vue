@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ListRow from '@/components/ui/ListRow.vue'
 import { X } from 'lucide-vue-next'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { useUiStore } from '@/stores/ui'
@@ -29,10 +30,11 @@ const { signLoanPlayer } = useSquad()
     </div>
 
     <div class="space-y-2.5">
-      <div
+      <ListRow
         v-for="cand in market.loanMarketCandidates"
         :key="cand.id"
-        class="p-3.5 rounded-xl bg-subtle border border-borderline flex items-center justify-between gap-3 text-xs"
+        padding="p-3.5"
+        gap="gap-3"
       >
         <div class="min-w-0">
           <div class="font-bold text-sm text-ink break-words [overflow-wrap:anywhere]">{{ cand.name }} ({{ formatPosBR(cand.position) }} • OVER {{ cand.overall }})</div>
@@ -45,7 +47,7 @@ const { signLoanPlayer } = useSquad()
           @click="signLoanPlayer(cand)">
           Emprestar
         </button>
-      </div>
+      </ListRow>
     </div>
 
     <div class="flex justify-end gap-2 pt-2">

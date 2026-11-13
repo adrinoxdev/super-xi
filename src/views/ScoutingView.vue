@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { useScoutingStore } from '@/stores/scouting'
 import ScoutStatusBar from '@/components/scouting/ScoutStatusBar.vue'
 import ScoutMissionCard from '@/components/scouting/ScoutMissionCard.vue'
@@ -21,16 +24,16 @@ const scouting = useScoutingStore()
 
     <YouthAcademyPanel />
 
-    <div class="bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-4">
-      <h3 class="font-bold text-sm sm:text-base text-ink break-words">Relatórios de Jogadores Observados ({{ scouting.visibleReports.length }})</h3>
+    <BaseCard padding="p-4 sm:p-5" class="space-y-4">
+      <SectionTitle size="responsive" class="break-words">Relatórios de Jogadores Observados ({{ scouting.visibleReports.length }})</SectionTitle>
 
-      <div v-if="scouting.visibleReports.length === 0" class="p-8 rounded-xl bg-subtle border border-dashed border-borderline text-center text-xs text-ink-muted">
+      <EmptyState v-if="scouting.visibleReports.length === 0" padding="p-8">
         Nenhum relatório disponível. Inicie uma missão de scouting acima para revelar talentos.
-      </div>
+      </EmptyState>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ScoutReportCard v-for="rep in scouting.visibleReports" :key="rep.id" :rep="rep" />
       </div>
-    </div>
+    </BaseCard>
   </section>
 </template>

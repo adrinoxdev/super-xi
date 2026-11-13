@@ -2,18 +2,20 @@
 import { Bandage, Radio, Repeat } from 'lucide-vue-next'
 import { useMatchStore } from '@/stores/match'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
 
 const match = useMatchStore()
 const { toggleMatchSpeed, openInMatchSubDrawer } = useMatchSimulation()
 </script>
 
 <template>
-  <div class="lg:col-span-7 bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-3">
+  <BaseCard padding="p-4 sm:p-5" class="lg:col-span-7 space-y-3">
     <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-      <h3 class="font-bold text-sm sm:text-base text-ink flex items-center gap-2 min-w-0">
-        <Radio class="w-4 h-4 text-emeraldpro shrink-0" />
+      <SectionTitle size="responsive" class="min-w-0">
+        <template #icon><Radio class="w-4 h-4 text-emeraldpro shrink-0" /></template>
         <span class="truncate">Lance a Lance em Tempo Real</span>
-      </h3>
+      </SectionTitle>
       <div v-if="!match.matchState.isFinished" class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
         <button
           type="button"
@@ -52,5 +54,5 @@ const { toggleMatchSpeed, openInMatchSubDrawer } = useMatchSimulation()
         <span class="text-ink leading-relaxed min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{{ ev.description }}</span>
       </div>
     </div>
-  </div>
+  </BaseCard>
 </template>

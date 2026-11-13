@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
 import { useClubStore } from '@/stores/club'
 import { useScoutingStore } from '@/stores/scouting'
 
@@ -7,7 +8,7 @@ const scouting = useScoutingStore()
 </script>
 
 <template>
-  <div class="bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <BaseCard padding="p-4 sm:p-5" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div class="min-w-0">
       <h2 class="text-lg sm:text-xl font-bold text-ink">Central de Scouting & Mercado</h2>
       <p class="text-xs text-ink-muted">Envie olheiros para descobrir reforços ou promova jovens talentos da sua base.</p>
@@ -28,5 +29,5 @@ const scouting = useScoutingStore()
         </span>
       </div>
     </div>
-  </div>
+  </BaseCard>
 </template>

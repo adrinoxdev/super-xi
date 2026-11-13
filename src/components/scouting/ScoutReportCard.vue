@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Badge from '@/components/ui/Badge.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 import { computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import type { ScoutReport } from '@/types/scouting'
@@ -35,12 +37,15 @@ const { openCompareModal, signScoutedPlayer, dismissReport } = useScouting()
             <div class="text-xs text-ink-muted truncate" :title="`${rep.player.age} anos • ${rep.player.nationality}`">{{ rep.player.age }} anos • {{ rep.player.nationality }}</div>
           </div>
         </div>
-        <span
+        <Badge
           v-if="rep.isGem"
-          class="px-2 py-0.5 rounded-full bg-amberpro text-white text-[10px] font-extrabold uppercase shrink-0"
+          tone="warning-solid"
+          weight="extrabold"
+          uppercase
+          class="shrink-0"
         >
           Joia Rara
-        </span>
+        </Badge>
       </div>
 
       <div class="grid grid-cols-3 gap-1.5 text-center text-[11px] bg-surface p-2 rounded-xl border border-borderline">
@@ -69,15 +74,14 @@ const { openCompareModal, signScoutedPlayer, dismissReport } = useScouting()
       >
         Comparar
       </button>
-      <button
-        type="button"
+      <BaseButton
         @click="signScoutedPlayer(rep)"
         :disabled="squad.isFull"
         :title="fullTitle"
-        class="flex-1 min-w-0 py-2 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-xs font-bold transition-colors"
+        class="flex-1 min-w-0 py-2 disabled:cursor-not-allowed text-xs transition-colors"
       >
         Contratar
-      </button>
+      </BaseButton>
       <button
         type="button"
         @click="dismissReport(rep.id)"

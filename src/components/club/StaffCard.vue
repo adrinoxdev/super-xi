@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Badge from '@/components/ui/Badge.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 import { computed } from 'vue'
 import { useClubStore } from '@/stores/club'
 import { useClub, blockedMsg } from '@/composables/useClub'
@@ -40,24 +42,20 @@ const buttonLabel = computed(() => {
     <div class="space-y-1">
       <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <span class="font-bold text-sm text-ink min-w-0 break-words [overflow-wrap:anywhere]">{{ staff.title }}</span>
-        <span
-          v-if="active"
-          class="px-2 py-0.5 rounded-full bg-emeraldpro text-white text-[10px] font-bold uppercase whitespace-normal"
-        >
+        <Badge v-if="active" tone="success-solid" uppercase class="whitespace-normal">
           Expira em {{ remainingLabel }}
-        </span>
+        </Badge>
       </div>
       <p class="text-xs text-ink-muted break-words">{{ staff.description }}</p>
     </div>
 
-    <button
-      type="button"
+    <BaseButton
       @click="hireStaffMember(priced)"
       :disabled="(active && !canRenew) || club.budget < price"
       :title="club.budget < price ? blockedMsg(price) : undefined"
-      class="w-full px-3 py-2 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover disabled:bg-borderline disabled:text-ink-muted text-white text-xs font-bold transition-colors break-words"
+      class="w-full px-3 py-2 text-xs transition-colors break-words"
     >
       {{ buttonLabel }}
-    </button>
+    </BaseButton>
   </div>
 </template>

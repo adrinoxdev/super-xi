@@ -15,6 +15,9 @@ import { formatCurrency } from '@/utils/formatCurrency'
 import { estimateOutcome } from '@/utils/winChance'
 import { ECONOMY, MATCH_SIM } from '@/config'
 import { useSquadStore } from '@/stores/squad'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import ListRow from '@/components/ui/ListRow.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 
 const router = useRouter()
 const club = useClubStore()
@@ -49,7 +52,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
 </script>
 
 <template>
-  <div class="bg-surface rounded-2xl p-5 sm:p-6 border border-borderline shadow-sm space-y-6">
+  <BaseCard padding="p-5 sm:p-6" class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-borderline pb-4">
       <div class="min-w-0">
         <span class="inline-block max-w-full px-2.5 py-0.5 rounded-full bg-emeraldpro-soft text-emeraldpro text-xs font-bold uppercase break-words">
@@ -80,14 +83,13 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
           <Shield class="w-4 h-4 text-emeraldpro" />
           Ajustar Tática
         </button>
-        <button
-          type="button"
+        <BaseButton
           @click="startLiveMatch"
-          class="px-6 py-3 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-white text-sm font-bold shadow-sm flex items-center justify-center gap-2"
+          class="px-6 py-3 text-sm shadow-sm flex items-center justify-center gap-2"
         >
           <Play class="w-4 h-4 fill-current" />
           Iniciar Partida
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -97,7 +99,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <div class="min-w-0 p-3.5 rounded-xl bg-subtle border border-borderline break-words">
+      <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
         <span class="text-[10px] font-bold uppercase text-ink-muted block">Mando de Campo</span>
         <strong class="font-score text-lg text-emeraldpro block mt-0.5">
           {{ !homeBonus ? 'Sem bônus de mando' : activeMatchIsHome ? '+' + MATCH_SIM.homeAdvantage + ' OVER (Mandante)' : 'Visitante (+0)' }}
@@ -105,33 +107,33 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
         <span class="text-[11px] text-ink-muted">
           OVER Efetivo: {{ effectiveUserPower }} vs {{ effectiveOpponentPower }}
         </span>
-      </div>
+      </ListRow>
 
-      <div class="min-w-0 p-3.5 rounded-xl bg-subtle border border-borderline break-words">
+      <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
         <span class="text-[10px] font-bold uppercase text-ink-muted block">Bônus Tático</span>
         <strong class="font-score text-lg text-ink block mt-0.5">{{ mentalityInfo.label }}</strong>
         <span class="text-[11px] text-ink-muted">
           ATQ x{{ mentalityInfo.atkMod.toFixed(2) }} • DEF x{{ mentalityInfo.defMod.toFixed(2) }}
         </span>
-      </div>
+      </ListRow>
 
-      <div class="min-w-0 p-3.5 rounded-xl bg-subtle border border-borderline break-words">
+      <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
         <span class="text-[10px] font-bold uppercase text-ink-muted block">Bilheteria Estimada</span>
         <strong class="font-score text-lg text-emeraldpro block mt-0.5">
           +{{ formatCurrency(activeMatchIsHome ? club.projectedStadiumIncome : Math.round(club.projectedStadiumIncome * ECONOMY.awayTicketShare)) }}
         </strong>
         <span class="text-[11px] text-ink-muted">Estádio Nível {{ club.upgrades.stadiumLevel }}</span>
-      </div>
+      </ListRow>
 
-      <div class="min-w-0 p-3.5 rounded-xl bg-subtle border border-borderline break-words">
+      <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
         <span class="text-[10px] font-bold uppercase text-ink-muted block">Cota Patrocínio</span>
         <strong class="font-score text-lg text-emeraldpro block mt-0.5">
           +{{ formatCurrency(club.projectedSponsorIncome) }}
         </strong>
         <span class="text-[11px] text-ink-muted">Finanças Nível {{ club.upgrades.financeLevel }}</span>
-      </div>
+      </ListRow>
     </div>
-    <div class="min-w-0 p-3.5 rounded-xl bg-subtle border border-borderline space-y-2.5 break-words">
+    <ListRow padding="p-3.5" layout="block" class="min-w-0 space-y-2.5 break-words">
       <span class="text-[10px] font-bold uppercase text-ink-muted block">Chance estimada*</span>
       <OutcomeBar
         :win="winPct"
@@ -145,6 +147,6 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
       <p class="text-[11px] leading-snug text-ink-muted break-words [overflow-wrap:anywhere]">
         *Estimativa pela diferença de OVER, mentalidade e mando. Zebras podem acontecer.
       </p>
-    </div>
-  </div>
+    </ListRow>
+  </BaseCard>
 </template>

@@ -2,6 +2,7 @@
 import { useMatchStore } from '@/stores/match'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
 import { formatCurrency } from '@/utils/formatCurrency'
+import Badge from '@/components/ui/Badge.vue'
 
 const match = useMatchStore()
 const { finishMatchAndReturn } = useMatchSimulation()
@@ -60,21 +61,25 @@ const { finishMatchAndReturn } = useMatchSimulation()
       class="flex flex-wrap gap-1.5 min-w-0"
       aria-label="Evolução da partida"
     >
-      <span
+      <Badge
         v-for="(e, i) in match.lastMatchSummary.evolutions ?? []"
         :key="'ev' + i"
-        class="max-w-full min-w-0 truncate px-2 py-0.5 rounded-full bg-emeraldpro-soft text-emeraldpro-hover text-[11px] font-bold"
+        tone="success-strong"
+        size="sm"
+        class="max-w-full min-w-0 truncate"
         :title="'+1 OVER: ' + e.name + ' (' + e.overall + ')'"
       >
         +1 OVER: {{ e.name }}
-      </span>
-      <span
+      </Badge>
+      <Badge
         v-for="(m, i) in match.lastMatchSummary.milestones ?? []"
         :key="'ms' + i"
-        class="max-w-full min-w-0 break-words px-2 py-0.5 rounded-full border border-emeraldpro text-emeraldpro-hover text-[11px] font-bold"
+        tone="success-outline"
+        size="sm"
+        class="max-w-full min-w-0 break-words"
       >
         Marco: {{ m }}
-      </span>
+      </Badge>
     </div>
 
     <p

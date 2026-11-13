@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { useClub } from '@/composables/useClub'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
 
 const { managerLeaderboard } = useClub()
 </script>
 
 <template>
-  <div class="bg-surface rounded-2xl p-5 border border-borderline shadow-sm space-y-3">
-    <h3 class="font-bold text-base text-ink">Ranking Nacional de Treinadores</h3>
+  <BaseCard class="space-y-3">
+    <SectionTitle>Ranking Nacional de Treinadores</SectionTitle>
     <div class="space-y-2 text-xs">
       <div
         v-for="(mgr, idx) in managerLeaderboard"
@@ -23,5 +25,5 @@ const { managerLeaderboard } = useClub()
         <span class="font-score font-bold text-sm text-emeraldpro shrink-0">{{ mgr.rep }} pts</span>
       </div>
     </div>
-  </div>
+  </BaseCard>
 </template>

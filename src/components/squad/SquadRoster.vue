@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 import { computed } from 'vue'
 import { Bandage } from 'lucide-vue-next'
 import { useSquadStore } from '@/stores/squad'
@@ -30,10 +33,10 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
 </script>
 
 <template>
-  <div class="lg:col-span-5 bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm space-y-4">
+  <BaseCard padding="p-4 sm:p-5" class="lg:col-span-5 space-y-4">
     <div class="flex items-center justify-between gap-2">
       <div class="min-w-0">
-        <h3 class="font-bold text-base text-ink">Elenco ({{ squad.players.length }}/{{ club.maxSquadCapacity }})</h3>
+        <SectionTitle>Elenco ({{ squad.players.length }}/{{ club.maxSquadCapacity }})</SectionTitle>
         <span v-if="squad.overLimit" class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[10px] font-bold break-words">
           Elenco acima do limite: venda atletas para voltar a contratar.
         </span>
@@ -46,14 +49,14 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
         </p>
       </div>
       <div class="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
-        <button
-          type="button"
+        <BaseButton
+          variant="soft"
           @click="recoverSquadStamina"
-          class="px-2.5 py-1.5 rounded-xl bg-emeraldpro-soft hover:bg-emeraldpro hover:text-white text-emeraldpro text-[11px] font-bold transition-colors"
+          class="px-2.5 py-1.5 text-[11px] transition-colors"
           :title="restTitle"
         >
           Descansar ({{ restCostLabel }})
-        </button>
+        </BaseButton>
         <button
           type="button"
           @click="openLoanMarketModal"
@@ -156,5 +159,5 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
         </div>
       </div>
     </div>
-  </div>
+  </BaseCard>
 </template>

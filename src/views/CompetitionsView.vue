@@ -7,6 +7,7 @@ import ContinentalPanel from '@/components/competitions/ContinentalPanel.vue'
 import SupercupsPanel from '@/components/competitions/SupercupsPanel.vue'
 import PodiumArchiveCard from '@/components/bracket/PodiumArchiveCard.vue'
 import { useClubStore } from '@/stores/club'
+import BaseCard from '@/components/ui/BaseCard.vue'
 
 const ui = useUiStore()
 const club = useClubStore()
@@ -28,7 +29,7 @@ const tabs = [
       :season="club.season - 1"
       @close="ui.hiddenPodiumSeason = club.season - 1"
     />
-    <div class="bg-surface rounded-2xl p-4 sm:p-5 border border-borderline shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <BaseCard padding="p-4 sm:p-5" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div class="min-w-0">
         <h2 class="text-lg sm:text-xl font-bold text-ink break-words">Competições Paralelas & Supercopas</h2>
         <p class="text-xs text-ink-muted mt-0.5 break-words">Dispute a Taça Cacique, torneios continentais e decisões em jogo único.</p>
@@ -52,7 +53,7 @@ const tabs = [
           ></span>
         </button>
       </div>
-    </div>
+    </BaseCard>
 
     <CupPanel v-if="compSubTab === 'cup'" />
     <ContinentalPanel v-if="compSubTab === 'continental'" />
