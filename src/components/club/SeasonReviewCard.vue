@@ -3,7 +3,7 @@ import Badge from '@/components/ui/Badge.vue'
 import { computed } from 'vue'
 import { TrendingUp } from 'lucide-vue-next'
 import { useClubStore } from '@/stores/club'
-import { fmtDelta, fmtOver } from '@/utils/formatOver'
+import { fmtDelta, fmtOver } from '@/utils/format/formatOver'
 
 const club = useClubStore()
 const review = computed(() => {

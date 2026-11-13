@@ -16,7 +16,7 @@ import {
   normalizeCrestShape,
   orientationAngle,
   patternRects
-} from '@/utils/crest'
+} from '@/utils/identity/crest'
 
 const props = withDefaults(
   defineProps<{

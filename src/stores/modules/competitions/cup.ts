@@ -13,9 +13,9 @@ import {
   simulateTie,
   userFinalPosition,
   userPendingTie
-} from '@/utils/bracket'
-import { seedCup } from '@/utils/bracketSeeding'
-import { formatCurrency } from '@/utils/formatCurrency'
+} from '@/utils/bracket/bracket'
+import { seedCup } from '@/utils/bracket/bracketSeeding'
+import { formatCurrency } from '@/utils/format/formatCurrency'
 import { migrateLegacyCup } from '@/migrations/legacyCompetitions'
 import type { CompetitionToast, CompetitionsClub } from './types'
 

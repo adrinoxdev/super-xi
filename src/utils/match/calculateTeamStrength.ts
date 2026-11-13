@@ -1,7 +1,7 @@
-import type { Player, PlayerPosition } from '../types/player'
-import type { FormationName } from '../types/match'
+import type { Player, PlayerPosition } from '@/types/player'
+import type { FormationName } from '@/types/match'
 import { FORMATIONS, INJURY } from '@/config'
-import { clamp } from './random'
+import { clamp } from '@/utils/core/random'
 
 export interface TeamStrengthBreakdown {
   attack: number

@@ -11,8 +11,8 @@ import {
   SCOUT_REPORT_COUNT,
   STAFF_BONUS
 } from '@/config'
-import { generatePlayer } from '@/utils/generatePlayer'
-import { clamp, randInt } from '@/utils/random'
+import { generatePlayer } from '@/utils/player/generatePlayer'
+import { clamp, randInt } from '@/utils/core/random'
 import { useClubStore } from './club'
 import { useSquadStore } from './squad'
 

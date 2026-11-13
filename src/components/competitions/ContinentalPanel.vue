@@ -11,7 +11,7 @@ import TeamCrest from '@/components/ui/TeamCrest.vue'
 import BracketView from '@/components/bracket/BracketView.vue'
 import PodiumCard from '@/components/bracket/PodiumCard.vue'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
-import { formatCurrency } from '@/utils/formatCurrency'
+import { formatCurrency } from '@/utils/format/formatCurrency'
 import { PRIZES } from '@/config'
 import type { ContinentalTeam } from '@/types/competitions'
 

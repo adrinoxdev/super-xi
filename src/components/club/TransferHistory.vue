@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useClubStore } from '@/stores/club'
-import { formatCurrency, formatPosBR, formatTransferLabel } from '@/utils/formatCurrency'
+import { formatCurrency, formatPosBR, formatTransferLabel } from '@/utils/format/formatCurrency'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import SectionTitle from '@/components/ui/SectionTitle.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'

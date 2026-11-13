@@ -2,9 +2,9 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { IncomingOffer, LoanCandidate } from '../types'
 import { useSquadStore } from './squad'
-import { generatePlayer, saleCap } from '../utils/generatePlayer'
+import { generatePlayer, saleCap } from '@/utils/player/generatePlayer'
 import { useClubStore } from './club'
-import { pickRandom } from '../utils/random'
+import { pickRandom } from '@/utils/core/random'
 import { OFFER_RIVAL_CLUBS, TRANSFER } from '@/config'
 
 export interface MarketSave {

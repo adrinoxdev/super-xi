@@ -6,7 +6,7 @@ import { useClub } from '@/composables/useClub'
 import { CREST_SHAPES, CREST_COLORS, CREST_PATTERNS, CREST_ORIENTATIONS, CREST_STRIPE_OPTIONS } from '@/config'
 import ClubCrest from '@/components/ui/ClubCrest.vue'
 import CustomColorPicker from '@/components/ui/CustomColorPicker.vue'
-import { contrastRatio, mixHex } from '@/utils/crest'
+import { contrastRatio, mixHex } from '@/utils/identity/crest'
 
 const club = useClubStore()
 const {

@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { Wrench, Landmark, TrendingUp, Users } from 'lucide-vue-next'
 import { useClubStore } from '@/stores/club'
 import { useSquadStore } from '@/stores/squad'
-import { formatCurrency } from '@/utils/formatCurrency'
+import { formatCurrency } from '@/utils/format/formatCurrency'
 
 const club = useClubStore()
 const squad = useSquadStore()

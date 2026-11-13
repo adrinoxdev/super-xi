@@ -1,10 +1,10 @@
 import type { ContinentalTeam } from '@/types/competitions'
 import type { Player } from '@/types/player'
 import { CONTINENTAL_RIVALS, SERIE_TYPICAL_OVER } from '@/config'
-import { EXTRA_D_CLUBS } from '@/utils/extraClubs'
-import { refreshPlayerEconomy, retireAgeFor, wageForOverall } from '@/utils/generatePlayer'
+import { EXTRA_D_CLUBS } from '@/utils/league/extraClubs'
+import { refreshPlayerEconomy, retireAgeFor, wageForOverall } from '@/utils/player/generatePlayer'
 import { CONTRACT } from '@/config'
-import { LEAGUE_CLUBS_POOL } from '@/utils/leagueScheduler'
+import { LEAGUE_CLUBS_POOL } from '@/utils/league/leagueScheduler'
 
 /** Versão do balanceamento gravada em club.balanceVersion. Saves sem o campo são anteriores ao v2. */
 export const BALANCE_VERSION = 2

@@ -16,11 +16,11 @@ import {
   SERIE_META,
   STAGE_NAMES,
   zoneBadgeClass
-} from '@/utils/leagueScheduler'
+} from '@/utils/league/leagueScheduler'
 import { PRIZES, SERIE_TYPICAL_OVER } from '@/config'
-import { simulateMatchScore } from '@/utils/bracket'
-import { seedSerieDR64 } from '@/utils/bracketSeeding'
-import { EXTRA_D_CLUBS } from '@/utils/extraClubs'
+import { simulateMatchScore } from '@/utils/bracket/bracket'
+import { seedSerieDR64 } from '@/utils/bracket/bracketSeeding'
+import { EXTRA_D_CLUBS } from '@/utils/league/extraClubs'
 import {
   PARALLEL_STAGES,
   SINGLE_LEG_STAGES,
@@ -29,8 +29,8 @@ import {
   buildLeagueBracketView,
   resolveStageTies,
   stageTieResults
-} from '@/utils/leagueKnockout'
-import { shuffle } from '@/utils/random'
+} from '@/utils/league/leagueKnockout'
+import { shuffle } from '@/utils/core/random'
 import { useClubStore } from './club'
 
 export const useLeagueStore = defineStore('league', () => {

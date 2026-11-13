@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Award } from 'lucide-vue-next'
 import { useClubStore } from '@/stores/club'
-import { formatCurrency } from '@/utils/formatCurrency'
+import { formatCurrency } from '@/utils/format/formatCurrency'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import SectionTitle from '@/components/ui/SectionTitle.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'

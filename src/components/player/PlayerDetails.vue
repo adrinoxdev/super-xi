@@ -9,10 +9,10 @@ import { useUiStore } from '@/stores/ui'
 import { useClubStore } from '@/stores/club'
 import { useSquad, sellPriceFor, loanOutFeeFor } from '@/composables/useSquad'
 import { usePersistence } from '@/composables/usePersistence'
-import { retireAgeFor, agingDrop } from '@/utils/generatePlayer'
+import { retireAgeFor, agingDrop } from '@/utils/player/generatePlayer'
 import { MARKET_STATUS_OPTIONS, TRAINING_FOCUS_OPTIONS } from '@/config'
 import ProgressBar from '@/components/ui/ProgressBar.vue'
-import { formatCurrency } from '@/utils/formatCurrency'
+import { formatCurrency } from '@/utils/format/formatCurrency'
 
 const ui = useUiStore()
 const squad = useSquadStore()

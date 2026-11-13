@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import ClubCrest from '@/components/ui/ClubCrest.vue'
 import { useClubStore } from '@/stores/club'
-import { getTeamIdentity } from '@/utils/teamIdentities'
+import { getTeamIdentity } from '@/utils/identity/teamIdentities'
 
 // Escudo de qualquer time: usuario (store club, editavel) ou outro time (identidade configurada).
 const props = withDefaults(

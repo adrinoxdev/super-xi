@@ -4,7 +4,7 @@ import { Bandage } from 'lucide-vue-next'
 import type { Player } from '@/types/player'
 import { useClubStore } from '@/stores/club'
 import PlayerAvatar from '@/components/player/PlayerAvatar.vue'
-import { formatPosBR } from '@/utils/formatCurrency'
+import { formatPosBR } from '@/utils/format/formatCurrency'
 
 const props = withDefaults(
   defineProps<{

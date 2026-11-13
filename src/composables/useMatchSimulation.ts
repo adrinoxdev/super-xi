@@ -9,10 +9,10 @@ import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
 import type { MatchCompetition, MatchEventType, MatchOpponent } from '@/types/match'
 import type { PlayerAttributes } from '@/types/player'
-import { getEffectiveOvr } from '@/utils/calculateTeamStrength'
+import { getEffectiveOvr } from '@/utils/match/calculateTeamStrength'
 import { evolutionFactor, FORMATIONS, INJURY, MATCH_SIM, POSITION_KEY_FOCUS, PROGRESSION, progressionAgeFactor, STAFF_BONUS } from '@/config'
-import { refreshPlayerEconomy } from '@/utils/generatePlayer'
-import { checkMilestones } from '@/utils/progression'
+import { refreshPlayerEconomy } from '@/utils/player/generatePlayer'
+import { checkMilestones } from '@/utils/club/progression'
 import {
   commentLine,
   cornerLine,
@@ -23,8 +23,8 @@ import {
   offTargetLine,
   resetNarration,
   savedLine
-} from '@/utils/narration'
-import { clamp, pickRandom, randInt } from '@/utils/random'
+} from '@/utils/match/narration'
+import { clamp, pickRandom, randInt } from '@/utils/core/random'
 import { usePersistence } from './usePersistence'
 import { useEconomy } from './useEconomy'
 import { useSeason } from './useSeason'

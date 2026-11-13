@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { formatPosBR } from '@/utils/formatCurrency'
+import { formatPosBR } from '@/utils/format/formatCurrency'
 
 const props = withDefaults(defineProps<{
   overall: number

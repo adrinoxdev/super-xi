@@ -2,8 +2,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useCompetitionsStore } from '@/stores/competitions'
 import { useClubStore } from '@/stores/club'
 import { CONTINENTAL_RIVALS } from '@/config'
-import { TEAM_ID_BY_NAME } from '@/utils/teamIdentities'
-import { mulberry32 } from '@/utils/random'
+import { TEAM_ID_BY_NAME } from '@/utils/identity/teamIdentities'
+import { mulberry32 } from '@/utils/core/random'
 import type { MatchCompetition } from '@/types/match'
 
 type Comp = ReturnType<typeof useCompetitionsStore>

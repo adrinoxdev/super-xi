@@ -1,7 +1,7 @@
 import type { Bracket, BracketTie, ContinentalState, ContinentalTeam, ContinentalTier, CupState } from '@/types'
-import { completeBracket, propagate, userFinalPosition, userPendingTie } from '@/utils/bracket'
-import { seedContinentalGroups } from '@/utils/bracketSeeding'
-import { shuffle } from '@/utils/random'
+import { completeBracket, propagate, userFinalPosition, userPendingTie } from '@/utils/bracket/bracket'
+import { seedContinentalGroups } from '@/utils/bracket/bracketSeeding'
+import { shuffle } from '@/utils/core/random'
 import { CONTINENTAL_ROUND_LABELS, OLD_CUP_NAMES, legacyRivalId, legacyUserResult, renameBracketTeam, scoreFromText } from './legacyBracket'
 
 export interface LegacyCupDeps {

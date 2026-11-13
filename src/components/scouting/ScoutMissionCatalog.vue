@@ -8,8 +8,8 @@ import { useScouting } from '@/composables/useScouting'
 import { blockedMsg } from '@/composables/useClub'
 import { ALL_POSITIONS, SCOUT_MISSIONS, SCOUT_OVR_OFFSETS, SCOUT_REPORT_COUNT } from '@/config'
 import type { ScoutMissionType } from '@/types/scouting'
-import { formatCurrency, formatPosBR } from '@/utils/formatCurrency'
-import { formatDuration } from '@/utils/formatDuration'
+import { formatCurrency, formatPosBR } from '@/utils/format/formatCurrency'
+import { formatDuration } from '@/utils/format/formatDuration'
 
 const club = useClubStore()
 const scouting = useScoutingStore()

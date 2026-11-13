@@ -9,7 +9,7 @@ import { useSquadStore } from '@/stores/squad'
 import { useClubStore } from '@/stores/club'
 import { squadFullTitle } from '@/composables/useClub'
 import { useScouting } from '@/composables/useScouting'
-import { formatCurrency, formatPosBR } from '@/utils/formatCurrency'
+import { formatCurrency, formatPosBR } from '@/utils/format/formatCurrency'
 
 const ui = useUiStore()
 const scouting = useScoutingStore()

@@ -6,7 +6,7 @@ import { Briefcase } from 'lucide-vue-next'
 import { useMarketStore } from '@/stores/market'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
 import { useSquad } from '@/composables/useSquad'
-import { formatCurrency, formatPosBR } from '@/utils/formatCurrency'
+import { formatCurrency, formatPosBR } from '@/utils/format/formatCurrency'
 
 const market = useMarketStore()
 const { acceptIncomingOffer, counterIncomingOffer, rejectIncomingOffer } = useSquad()

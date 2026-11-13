@@ -10,7 +10,7 @@ import TeamCrest from '@/components/ui/TeamCrest.vue'
 import { useCompetitionsStore } from '@/stores/competitions'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
 import { PRIZES } from '@/config'
-import { formatCurrency } from '@/utils/formatCurrency'
+import { formatCurrency } from '@/utils/format/formatCurrency'
 
 const club = useClubStore()
 const { supercupState, recopaState } = storeToRefs(useCompetitionsStore())

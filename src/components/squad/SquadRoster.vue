@@ -8,8 +8,8 @@ import { useSquadStore } from '@/stores/squad'
 import { useClubStore } from '@/stores/club'
 import { useUiStore } from '@/stores/ui'
 import { useSquad } from '@/composables/useSquad'
-import { retireAgeFor } from '@/utils/generatePlayer'
-import { formatPosBR } from '@/utils/formatCurrency'
+import { retireAgeFor } from '@/utils/player/generatePlayer'
+import { formatPosBR } from '@/utils/format/formatCurrency'
 
 const squad = useSquadStore()
 const club = useClubStore()

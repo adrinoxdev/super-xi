@@ -40,7 +40,7 @@ import {
   normalizeCrestShape,
   normalizeCrestStripes,
   normalizeHex
-} from '@/utils/crest'
+} from '@/utils/identity/crest'
 
 const PODIUM_ARCHIVE_MAX = 12
 

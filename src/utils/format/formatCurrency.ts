@@ -1,6 +1,6 @@
-import type { Player } from '../types'
+import type { Player } from '@/types'
 import { POS_BR_MAP, TRANSFER_LABELS } from '@/config'
-import { clamp } from './random'
+import { clamp } from '@/utils/core/random'
 
 export function formatCurrency(val: number | null | undefined): string {
   return 'R$ ' + (val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

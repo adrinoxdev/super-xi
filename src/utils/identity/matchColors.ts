@@ -1,5 +1,5 @@
 import type { TeamIdentity } from '@/types/team'
-import { colorDistance, contrastRatio } from '@/utils/crest'
+import { colorDistance, contrastRatio } from '@/utils/identity/crest'
 
 const INK = '#0F172A'
 const CARD = '#FFFFFF'

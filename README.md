@@ -9,7 +9,7 @@ super-xi/
 ├── src/
 │   ├── assets/
 │   ├── components/
-│   │   ├── ui/                  # Design System: AppToast, BaseModal, ClubCrest, ProgressBar, StatTile...
+│   │   ├── ui/                  # Design System: BaseCard, SectionTitle, ListRow, Badge, BaseButton, EmptyState, AppToast, BaseModal, ClubCrest...
 │   │   ├── layout/              # Sidebar.vue, BottomNav.vue, Header.vue
 │   │   ├── player/              # PlayerDetails.vue, PlayerCompare.vue, LoanMarketModal.vue
 │   │   ├── scouting/            # ScoutMissionCard.vue, ScoutReportCard.vue, YouthAcademyPanel.vue...
@@ -26,12 +26,15 @@ super-xi/
 │   │   ├── useSeason.ts
 │   │   ├── usePersistence.ts
 │   │   └── useNavigation.ts
+│   ├── config/                  # Balanceamento e constantes por domínio (economy, match, squad, scouting, staff...); import via '@/config'
+│   ├── migrations/              # Migrações de save antigo (legacyBracket, legacyCompetitions, balanceMigration)
 │   ├── stores/
 │   │   ├── club.ts
 │   │   ├── squad.ts
 │   │   ├── scouting.ts
 │   │   ├── league.ts
-│   │   ├── competitions.ts
+│   │   ├── competitions.ts      # Fachada: compõe os módulos abaixo, API pública estável
+│   │   ├── modules/competitions/  # cup, continental, finals, groups, save, defaults, types
 │   │   ├── market.ts
 │   │   ├── match.ts
 │   │   └── ui.ts
@@ -44,13 +47,15 @@ super-xi/
 │   │   ├── market.ts
 │   │   ├── match.ts
 │   │   └── index.ts
-│   ├── utils/
-│   │   ├── generatePlayer.ts
-│   │   ├── calculateTeamStrength.ts
-│   │   ├── leagueScheduler.ts
-│   │   ├── random.ts
-│   │   ├── formatCurrency.ts
-│   │   └── constants.ts
+│   ├── utils/                   # Funções puras por domínio, imports diretos (sem barrels)
+│   │   ├── core/                # random
+│   │   ├── format/              # formatCurrency, formatDuration, formatOver
+│   │   ├── identity/            # crest, teamIdentities, matchColors
+│   │   ├── player/              # generatePlayer
+│   │   ├── match/               # calculateTeamStrength, winChance, narration
+│   │   ├── club/                # progression
+│   │   ├── bracket/             # bracket, bracketSeeding
+│   │   └── league/              # leagueScheduler, leagueKnockout, extraClubs
 │   ├── views/
 │   │   ├── DashboardView.vue
 │   │   ├── ScoutingView.vue

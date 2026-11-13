@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
-import { contrastRatio } from '@/utils/crest'
+import { contrastRatio } from '@/utils/identity/crest'
 
 // Barra de chances (Vitoria/Empate/Derrota). Percentuais ja calculados pelo pai.
 const props = defineProps<{

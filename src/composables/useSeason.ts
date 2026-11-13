@@ -8,7 +8,7 @@ import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
 import type { Podium } from '@/types/bracket'
 import type { StageOutcome, StageToastType } from '@/types/league'
-import { checkMilestones } from '@/utils/progression'
+import { checkMilestones } from '@/utils/club/progression'
 import { usePersistence } from './usePersistence'
 
 export function useSeason() {

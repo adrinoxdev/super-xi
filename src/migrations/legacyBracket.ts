@@ -1,7 +1,7 @@
 import type { Bracket, BracketTeam, BracketTie } from '@/types'
-import { playLeg, propagate, simulatePhaseExceptUser } from '@/utils/bracket'
-import { LEAGUE_CLUBS_POOL } from '@/utils/leagueScheduler'
-import { TEAM_ID_BY_NAME } from '@/utils/teamIdentities'
+import { playLeg, propagate, simulatePhaseExceptUser } from '@/utils/bracket/bracket'
+import { LEAGUE_CLUBS_POOL } from '@/utils/league/leagueScheduler'
+import { TEAM_ID_BY_NAME } from '@/utils/identity/teamIdentities'
 
 export const OLD_CUP_NAMES = ['Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final da Taça Cacique']
 export const CONTINENTAL_ROUND_LABELS = ['Quartas de Final Continental', 'Semifinal Continental', 'Final Continental']

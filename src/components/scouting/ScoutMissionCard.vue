@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ScoutMission } from '@/types/scouting'
 import { useScouting } from '@/composables/useScouting'
-import { formatDuration } from '@/utils/formatDuration'
+import { formatDuration } from '@/utils/format/formatDuration'
 
 defineProps<{ mission: ScoutMission }>()
 const { getMissionProgress, getMissionRemainingSec } = useScouting()

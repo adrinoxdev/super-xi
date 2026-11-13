@@ -8,8 +8,8 @@ import { useUiStore } from '@/stores/ui'
 import { useSquad } from '@/composables/useSquad'
 import MentalitySelector from '@/components/ui/MentalitySelector.vue'
 import PlayerCard from '@/components/player/PlayerCard.vue'
-import { getEffectiveOvr } from '@/utils/calculateTeamStrength'
-import { formatPosBR } from '@/utils/formatCurrency'
+import { getEffectiveOvr } from '@/utils/match/calculateTeamStrength'
+import { formatPosBR } from '@/utils/format/formatCurrency'
 
 const squad = useSquadStore()
 const match = useMatchStore()

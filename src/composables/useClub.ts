@@ -5,7 +5,7 @@ import { useLeagueStore } from '@/stores/league'
 import { useUiStore } from '@/stores/ui'
 import type { ClubUpgrades, CrestOrientation, CrestPattern, CrestShape, StaffKey } from '@/types/club'
 import { FACILITY_MAX_LEVEL, SQUAD_MAX_SIZE } from '@/config'
-import { formatCurrency } from '@/utils/formatCurrency'
+import { formatCurrency } from '@/utils/format/formatCurrency'
 import { usePersistence } from './usePersistence'
 
 export interface ManagerLeaderboardEntry {

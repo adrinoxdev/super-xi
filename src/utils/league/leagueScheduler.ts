@@ -1,5 +1,5 @@
 import { PRIZES } from '@/config'
-import type { CompetitionStageType, LeagueFixture, LeagueStandingRow, LeagueTeam } from '../types/league'
+import type { CompetitionStageType, LeagueFixture, LeagueStandingRow, LeagueTeam } from '@/types/league'
 
 export type SerieCode = 'D' | 'C' | 'B' | 'A'
 

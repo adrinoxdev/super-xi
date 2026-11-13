@@ -2,8 +2,8 @@
 import type {
   Bracket, BracketCompetition, BracketLeg, BracketRound, BracketTeam, BracketTie,
   PenaltyShootout, Podium, PodiumEntry,
-} from '../types/bracket'
-import { clamp, type Rng } from './random'
+} from '@/types/bracket'
+import { clamp, type Rng } from '@/utils/core/random'
 import { MATCH_SIM } from '@/config'
 
 export const SIM_TICKS = MATCH_SIM.ticks

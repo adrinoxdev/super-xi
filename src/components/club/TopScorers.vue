@@ -2,7 +2,7 @@
 import { Goal } from 'lucide-vue-next'
 import { useClubStore } from '@/stores/club'
 import { useClub } from '@/composables/useClub'
-import { formatPosBR } from '@/utils/formatCurrency'
+import { formatPosBR } from '@/utils/format/formatCurrency'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import SectionTitle from '@/components/ui/SectionTitle.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'

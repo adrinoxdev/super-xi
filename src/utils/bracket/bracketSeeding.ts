@@ -1,8 +1,8 @@
 import type { BracketTeam, ContinentalGroup, ContinentalTeam } from '@/types'
 import { CONTINENTAL_RIVALS, MATCH_SIM, SERIE_TYPICAL_OVER } from '@/config'
-import { LEAGUE_CLUBS_POOL } from '@/utils/leagueScheduler'
-import { mulberry32, shuffle } from '@/utils/random'
-import type { Rng } from '@/utils/random'
+import { LEAGUE_CLUBS_POOL } from '@/utils/league/leagueScheduler'
+import { mulberry32, shuffle } from '@/utils/core/random'
+import type { Rng } from '@/utils/core/random'
 
 /** Taça Cacique: sorteio por potes (A=4, B=4, C=4, D=3). Primeiro par: ['user', D1]. */
 export function seedCup(rng: Rng): { teams: BracketTeam[]; firstRound: Array<[string, string]> } {

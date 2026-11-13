@@ -1,8 +1,8 @@
 // Adaptador puro entre os jogos do mata-mata da liga (leagueFixtures) e a chave (Bracket).
 import type { Bracket, BracketTeam, PenaltyShootout, BracketTie, CompetitionStageType, LeagueFixture, LeagueTeam } from '@/types'
-import { createBracket, createTie, fillTieTeams, playLeg, propagate, resolveTie } from '@/utils/bracket'
-import { SERIE_C_FINAL_TEMPLATE, serieDDrawTemplate } from '@/utils/bracketSeeding'
-import type { Rng } from '@/utils/random'
+import { createBracket, createTie, fillTieTeams, playLeg, propagate, resolveTie } from '@/utils/bracket/bracket'
+import { SERIE_C_FINAL_TEMPLATE, serieDDrawTemplate } from '@/utils/bracket/bracketSeeding'
+import type { Rng } from '@/utils/core/random'
 
 const USER_ID = 'user'
 

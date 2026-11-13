@@ -6,7 +6,7 @@ import { useLeagueStore } from '@/stores/league'
 import { useSquadStore } from '@/stores/squad'
 import { useNavigation } from '@/composables/useNavigation'
 import { useSeason } from '@/composables/useSeason'
-import { formatCurrency } from '@/utils/formatCurrency'
+import { formatCurrency } from '@/utils/format/formatCurrency'
 import ClubCrest from '@/components/ui/ClubCrest.vue'
 
 const base = import.meta.env.BASE_URL

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMatchStore } from '@/stores/match'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
-import { formatCurrency } from '@/utils/formatCurrency'
+import { formatCurrency } from '@/utils/format/formatCurrency'
 import Badge from '@/components/ui/Badge.vue'
 
 const match = useMatchStore()

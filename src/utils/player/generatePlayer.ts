@@ -1,6 +1,6 @@
-import type { Player, PlayerAttributes, PlayerPosition } from '../types/player'
+import type { Player, PlayerAttributes, PlayerPosition } from '@/types/player'
 import { AGING, ALL_POSITIONS, ATHLETE_MAX_OVERALL, OVER_TAIL, STAR, VALUE, VALUE_AGE, WAGE } from '@/config'
-import { clamp, pickRandom, randInt } from './random'
+import { clamp, pickRandom, randInt } from '@/utils/core/random'
 
 const FIRST_NAMES = [
   'Lucas', 'Mateus', 'Gabriel', 'Rafael', 'Thiago', 'Enzo', 'Bruno', 'Caio',

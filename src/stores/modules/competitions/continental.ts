@@ -15,8 +15,8 @@ import {
   simulateTie,
   userFinalPosition,
   userPendingTie
-} from '@/utils/bracket'
-import { CONTINENTAL_QF_TEMPLATE, seedContinentalGroups, seedContinentalQuarterFinals } from '@/utils/bracketSeeding'
+} from '@/utils/bracket/bracket'
+import { CONTINENTAL_QF_TEMPLATE, seedContinentalGroups, seedContinentalQuarterFinals } from '@/utils/bracket/bracketSeeding'
 import { migrateLegacyContinental } from '@/migrations/legacyCompetitions'
 import { sortGroup, GROUP_SCHEDULE, applyGroupMatch } from './groups'
 import { emptyContinental } from './defaults'

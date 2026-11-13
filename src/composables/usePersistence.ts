@@ -6,9 +6,9 @@ import { useMatchStore } from '@/stores/match'
 import { useScoutingStore } from '@/stores/scouting'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
-import { ATHLETE_ECONOMY_VERSION, BALANCE_VERSION, PROGRESSION_VERSION, migrateAthleteEconomyV1, migrateBalanceV2, migrateProgressionV3 } from '@/utils/balanceMigration'
+import { ATHLETE_ECONOMY_VERSION, BALANCE_VERSION, PROGRESSION_VERSION, migrateAthleteEconomyV1, migrateBalanceV2, migrateProgressionV3 } from '@/migrations/balanceMigration'
 import { STORAGE_KEY } from '@/config'
-import { checkMilestones } from '@/utils/progression'
+import { checkMilestones } from '@/utils/club/progression'
 
 // Definição única em constants.ts; reexportada por compatibilidade com quem importava daqui.
 export { STORAGE_KEY }
