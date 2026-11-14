@@ -14,7 +14,7 @@ import { formatPosBR } from '@/utils/format/formatCurrency'
 const squad = useSquadStore()
 const match = useMatchStore()
 const ui = useUiStore()
-const { formatStarterName, selectPitchSlot, changeFormation, autoPickBestLineup } = useSquad()
+const { formatStarterName, selectPitchSlot, changeFormation, autoPickBestLineup, autoPickBestFormation } = useSquad()
 
 function pct(mod: number): string {
   const v = Math.round((mod - 1) * 100)
@@ -29,13 +29,24 @@ function pct(mod: number): string {
         <SectionTitle>Prancheta Tática ({{ squad.formation }})</SectionTitle>
         <p class="text-xs text-ink-muted break-words">Toque em um titular para substituir ou alternar posição.</p>
       </div>
-      <BaseButton
-        variant="soft"
-        @click="autoPickBestLineup"
-        class="shrink-0 px-3.5 py-2 text-xs transition-colors self-start sm:self-auto"
-      >
-        Melhor Escalação
-      </BaseButton>
+      <div class="flex flex-wrap gap-2 shrink-0 self-start sm:self-auto">
+        <BaseButton
+          variant="soft"
+          @click="autoPickBestLineup"
+          title="Mantém a formação atual e escolhe, para cada posição, o atleta com melhor desempenho."
+          class="px-3.5 py-2 text-xs transition-colors"
+        >
+          Melhor Escalação
+        </BaseButton>
+        <BaseButton
+          variant="soft"
+          @click="autoPickBestFormation"
+          title="Compara todas as formações com o elenco atual e adota a que dá o maior OVER, já escalando os melhores titulares nela."
+          class="px-3.5 py-2 text-xs transition-colors"
+        >
+          Melhor Tática
+        </BaseButton>
+      </div>
     </div>
 
     <div class="flex flex-wrap gap-1.5">

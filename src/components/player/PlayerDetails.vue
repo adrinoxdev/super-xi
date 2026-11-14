@@ -7,9 +7,9 @@ import PlayerCard from '@/components/player/PlayerCard.vue'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
 import { useClubStore } from '@/stores/club'
-import { useSquad, sellPriceFor, loanOutFeeFor } from '@/composables/useSquad'
+import { useSquad, sellPriceFor, loanOutFeeFor, treatmentFor } from '@/composables/useSquad'
 import { usePersistence } from '@/composables/usePersistence'
-import { retireAgeFor, agingDrop } from '@/utils/player/generatePlayer'
+import { retireAgeFor, agingDrop, isYouthSaleLocked, youthUnlockSeason } from '@/utils/player/generatePlayer'
 import { MARKET_STATUS_OPTIONS, TRAINING_FOCUS_OPTIONS } from '@/config'
 import ProgressBar from '@/components/ui/ProgressBar.vue'
 import { formatCurrency } from '@/utils/format/formatCurrency'
@@ -19,7 +19,7 @@ const ui = useUiStore()
 const squad = useSquadStore()
 const club = useClubStore()
 const { saveGame } = usePersistence()
-const { getRenewalCost, renewYearsFor, canRenew, renewPlayerContract, loanOutPlayer, sellSquadPlayer } = useSquad()
+const { getRenewalCost, renewYearsFor, canRenew, renewPlayerContract, loanOutPlayer, sellSquadPlayer, treatInjury } = useSquad()
 
 const player = computed(() =>
   ui.playerModal.playerId ? squad.players.find((p) => p.id === ui.playerModal.playerId) ?? null : null
@@ -49,6 +49,10 @@ const historyStats = computed(() => {
 const atPeak = computed(() => !!player.value && player.value.overall >= player.value.potential)
 const overPercent = computed(() => (player.value && player.value.potential > 0 ? (player.value.overall / player.value.potential) * 100 : 0))
 const sellBlocked = computed(() => !!player.value && sellPriceFor(player.value) <= 0)
+const injured = computed(() => !!player.value?.injury)
+const treatment = computed(() => (player.value ? treatmentFor(player.value) : null))
+const youthLocked = computed(() => !!player.value && isYouthSaleLocked(player.value, club.season))
+const youthUnlock = computed(() => (player.value ? youthUnlockSeason(player.value) : null))
 const justArrived = computed(() => !!player.value && player.value.acquiredSeason === club.season)
 const renewBlockedReason = computed(() => {
   const p = player.value
@@ -138,6 +142,29 @@ const renewBlockedReason = computed(() => {
 
     <p v-if="renewBlockedReason && !player.isLoanedIn" class="text-[11px] text-ink-muted text-center break-words">{{ renewBlockedReason }}</p>
     <div
+      v-if="injured && player.injury && !player.isLoanedIn"
+      class="p-3 rounded-xl bg-dangerpro-soft/60 border border-dangerpro/40 flex flex-wrap items-center justify-between gap-2"
+    >
+      <p class="text-xs text-ink min-w-0 break-words">
+        <strong class="text-dangerpro">Lesionado:</strong> fora por {{ player.injury.matchesLeft }} {{ player.injury.matchesLeft === 1 ? 'jogo' : 'jogos' }}.
+        Para vender ou emprestar, aguarde a recuperação ou pague o tratamento.
+        <span v-if="treatment && treatment.discount > 0" class="text-emeraldpro font-semibold">
+          Departamento Médico nível {{ club.upgrades.medicalCenterLevel }}: -{{ Math.round(treatment.discount * 100) }}% no custo.
+        </span>
+      </p>
+      <button
+        v-if="treatment"
+        type="button"
+        :disabled="club.budget < treatment.cost"
+        :title="club.budget < treatment.cost ? 'Saldo insuficiente para o tratamento.' : undefined"
+        class="shrink-0 px-3 py-1.5 rounded-lg bg-dangerpro hover:opacity-90 disabled:opacity-50 text-white text-[11px] font-bold"
+        @click="treatInjury(player)"
+      >
+        Tratar (-{{ treatment.removed }} {{ treatment.removed === 1 ? 'jogo' : 'jogos' }} • {{ formatCurrency(treatment.cost) }})
+      </button>
+      <span v-else-if="player.injury.treated" class="shrink-0 text-[11px] font-semibold text-ink-muted">Tratamento já realizado</span>
+    </div>
+    <div
       v-if="suspensionsOf(player).length && !player.isLoanedIn"
       class="p-3 rounded-xl bg-dangerpro-soft/60 border border-dangerpro/40 text-xs text-ink break-words"
     >
@@ -149,7 +176,10 @@ const renewBlockedReason = computed(() => {
       <span v-for="(y, i) in yellowsOf(player)" :key="y.comp">{{ i ? ' • ' : ' ' }}{{ y.label }} {{ y.count }}/3</span>
       (o terceiro gera suspensão de 1 jogo na competição).
     </p>
-    <p v-if="justArrived && !player.isLoanedIn" class="text-[11px] text-ink-muted text-center break-words">
+    <p v-if="youthLocked && !player.isLoanedIn" class="text-[11px] text-ink-muted text-center break-words">
+      Promovido da base: venda e empréstimo liberados na temporada {{ youthUnlock }}
+    </p>
+    <p v-else-if="justArrived && !player.isLoanedIn" class="text-[11px] text-ink-muted text-center break-words">
       Venda limitada ao valor pago nesta temporada ({{ formatCurrency(player.acquiredFee ?? 0) }})
     </p>
     <p v-if="player.isLoanedIn" class="pt-2 text-xs text-ink-muted text-center">Atleta emprestado: aguarde o fim do empréstimo</p>
@@ -166,7 +196,9 @@ const renewBlockedReason = computed(() => {
       <button
         v-if="!player.isLoanedOut"
         type="button"
-        class="py-2.5 px-3 rounded-xl bg-subtle hover:bg-borderline border border-borderline text-ink text-xs font-bold transition-colors"
+        :disabled="youthLocked || injured"
+        :title="injured ? 'Atleta lesionado: aguarde a recuperação ou pague o tratamento.' : youthLocked ? `Promovido da base: empréstimo liberado na temporada ${youthUnlock}.` : undefined"
+        class="py-2.5 px-3 rounded-xl bg-subtle hover:bg-borderline border border-borderline text-ink text-xs font-bold transition-colors disabled:opacity-50 disabled:hover:bg-subtle"
         @click="loanOutPlayer(player)"
       >
         Emprestar Saída (+{{ formatCurrency(loanOutFeeFor(player)) }})
@@ -174,11 +206,11 @@ const renewBlockedReason = computed(() => {
       <button
         type="button"
         :disabled="sellBlocked"
-        :title="sellBlocked ? 'Promovido nesta temporada: venda liberada na próxima.' : undefined"
+        :title="sellBlocked ? (injured ? 'Atleta lesionado: aguarde a recuperação ou pague o tratamento.' : youthLocked ? `Promovido da base: venda liberada na temporada ${youthUnlock}.` : 'Promovido nesta temporada: venda liberada na próxima.') : undefined"
         class="py-2.5 px-3 rounded-xl bg-dangerpro-soft hover:bg-dangerpro hover:text-white disabled:opacity-50 disabled:hover:bg-dangerpro-soft disabled:hover:text-dangerpro text-dangerpro text-xs font-bold transition-colors break-words min-w-0"
         @click="sellSquadPlayer(player)"
       >
-        Vender (+{{ formatCurrency(sellPriceFor(player)) }})
+        {{ injured ? 'Lesionado' : `Vender (+${formatCurrency(sellPriceFor(player))})` }}
       </button>
     </div>
   </BaseModal>
