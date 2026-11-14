@@ -103,6 +103,10 @@ export const useClubStore = defineStore('club', () => {
   const trophyGallery = ref<TrophyRecord[]>([])
   const podiumArchive = ref<Podium[]>([])
   const seasonGoals = ref<Record<string, number>>({})
+  const seasonAssists = ref<Record<string, number>>({})
+  const seasonApps = ref<Record<string, number>>({})
+  const seasonYellows = ref<Record<string, number>>({})
+  const seasonReds = ref<Record<string, number>>({})
   const careerStats = ref<Record<string, CareerStatEntry>>({})
   const tryoutsThisSeason = ref(0)
   const progress = ref<ClubProgress>(defaultProgress())
@@ -214,12 +218,45 @@ export const useClubStore = defineStore('club', () => {
     if (ce && ce.goals > 0) ce.goals -= 1
   }
 
+  function recordAssist(player: Player) {
+    seasonAssists.value[player.id] = (seasonAssists.value[player.id] || 0) + 1
+    const e = ensureCareerEntry(player)
+    e.assists = (e.assists ?? 0) + 1
+  }
+
+  function revertAssist(playerId: string) {
+    const sa = seasonAssists.value[playerId]
+    if (sa) {
+      if (sa <= 1) delete seasonAssists.value[playerId]
+      else seasonAssists.value[playerId] = sa - 1
+    }
+    const ce = careerStats.value[playerId]
+    if (ce && (ce.assists ?? 0) > 0) ce.assists = (ce.assists ?? 0) - 1
+  }
+
   function recordAppearance(player: Player) {
     ensureCareerEntry(player).apps += 1
+    seasonApps.value[player.id] = (seasonApps.value[player.id] || 0) + 1
+  }
+
+  function recordYellow(player: Player) {
+    seasonYellows.value[player.id] = (seasonYellows.value[player.id] || 0) + 1
+    const e = ensureCareerEntry(player)
+    e.yellows = (e.yellows ?? 0) + 1
+  }
+
+  function recordRed(player: Player) {
+    seasonReds.value[player.id] = (seasonReds.value[player.id] || 0) + 1
+    const e = ensureCareerEntry(player)
+    e.reds = (e.reds ?? 0) + 1
   }
 
   function resetSeasonGoals() {
     seasonGoals.value = {}
+    seasonAssists.value = {}
+    seasonApps.value = {}
+    seasonYellows.value = {}
+    seasonReds.value = {}
   }
 
   /** Soma 1 de OVER ao ganho do atleta na temporada. */
@@ -384,6 +421,10 @@ export const useClubStore = defineStore('club', () => {
     trophyGallery.value = []
     podiumArchive.value = []
     seasonGoals.value = {}
+    seasonAssists.value = {}
+    seasonApps.value = {}
+    seasonYellows.value = {}
+    seasonReds.value = {}
     careerStats.value = {}
     progress.value = defaultProgress()
     staffContracts.value = defaultStaffContracts()
@@ -414,6 +455,12 @@ export const useClubStore = defineStore('club', () => {
     transferHistory,
     trophyGallery,
     seasonGoals,
+    seasonAssists,
+    seasonApps,
+    seasonYellows,
+    seasonReds,
+    recordYellow,
+    recordRed,
     careerStats,
     tryoutsThisSeason,
     progress,
@@ -441,6 +488,8 @@ export const useClubStore = defineStore('club', () => {
     archivePodiums,
     recordTrophy,
     recordGoal,
+    recordAssist,
+    revertAssist,
     recordAppearance,
     revertGoal,
     resetSeasonGoals,

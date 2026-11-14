@@ -83,6 +83,9 @@ export interface CareerStatEntry {
   position: string
   apps: number
   goals: number
+  assists?: number
+  yellows?: number
+  reds?: number
 }
 
 export interface SeasonReview {
