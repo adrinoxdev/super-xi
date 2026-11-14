@@ -37,7 +37,7 @@ const rows = computed(() =>
 
     <p v-if="rows.length === 0" class="text-sm text-ink-muted">Nenhum cartão recebido nesta temporada.</p>
     <template v-else>
-      <div class="flex items-center gap-2 px-3 text-[10px] font-semibold text-ink-muted uppercase tracking-wider">
+      <div class="flex items-center gap-2 px-3 text-[11px] font-semibold text-ink-muted uppercase tracking-wider">
         <span class="w-5 shrink-0"></span>
         <span class="flex-1 min-w-0">Atleta</span>
         <span class="w-9 flex justify-center shrink-0" title="Amarelos">
@@ -57,10 +57,10 @@ const rows = computed(() =>
         <span class="font-bold text-ink-muted w-5 shrink-0">{{ idx + 1 }}º</span>
         <div class="flex items-center gap-1 flex-1 min-w-0">
           <span class="font-bold text-ink truncate" :title="r.name">{{ r.name }}</span>
-          <span class="text-[10px] font-bold text-ink-muted shrink-0">({{ formatPosBR(r.position) }})</span>
+          <span class="text-[11px] md:text-[10px] font-bold text-ink-muted shrink-0">({{ formatPosBR(r.position) }})</span>
           <span
             v-if="r.suspended"
-            class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-dangerpro/15 text-dangerpro shrink-0"
+            class="text-[11px] md:text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-dangerpro/15 text-dangerpro shrink-0"
             :title="r.suspText"
             :aria-label="`Suspenso: ${r.suspText}`"
           >Suspenso</span>
