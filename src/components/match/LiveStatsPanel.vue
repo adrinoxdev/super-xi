@@ -38,7 +38,11 @@ const rows = computed(() => {
     { label: 'Finalizações', user: s.userShots, opp: s.oppShots, pct: getStatBarPct(s.userShots, s.oppShots) },
     { label: 'Chutes no Gol', user: s.userShotsOnTarget, opp: s.oppShotsOnTarget, pct: getStatBarPct(s.userShotsOnTarget, s.oppShotsOnTarget) },
     { label: 'Escanteios', user: s.userCorners, opp: s.oppCorners, pct: getStatBarPct(s.userCorners, s.oppCorners) },
-    { label: 'Faltas', user: s.userFouls, opp: s.oppFouls, pct: getStatBarPct(s.userFouls, s.oppFouls) }
+    { label: 'Faltas', user: s.userFouls, opp: s.oppFouls, pct: getStatBarPct(s.userFouls, s.oppFouls) },
+    { label: 'Cartões Amarelos', user: s.userYellows ?? 0, opp: s.oppYellows ?? 0, pct: getStatBarPct(s.userYellows ?? 0, s.oppYellows ?? 0) },
+    { label: 'Cartões Vermelhos', user: s.userReds ?? 0, opp: s.oppReds ?? 0, pct: getStatBarPct(s.userReds ?? 0, s.oppReds ?? 0) },
+    { label: 'Impedimentos', user: s.userOffsides ?? 0, opp: s.oppOffsides ?? 0, pct: getStatBarPct(s.userOffsides ?? 0, s.oppOffsides ?? 0) },
+    { label: 'Laterais', user: s.userThrowIns ?? 0, opp: s.oppThrowIns ?? 0, pct: getStatBarPct(s.userThrowIns ?? 0, s.oppThrowIns ?? 0) }
   ]
   return raw.map(r => ({
     label: r.label,

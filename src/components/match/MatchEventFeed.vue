@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Bandage, Radio, Repeat } from 'lucide-vue-next'
+import { Radio, Repeat } from 'lucide-vue-next'
 import { useMatchStore } from '@/stores/match'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
+import MatchEventRow from '@/components/match/MatchEventRow.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import SectionTitle from '@/components/ui/SectionTitle.vue'
 
@@ -18,6 +19,7 @@ const { toggleMatchSpeed, openInMatchSubDrawer } = useMatchSimulation()
       </SectionTitle>
       <div v-if="!match.matchState.isFinished" class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
         <button
+          v-if="!match.matchState.shootout"
           type="button"
           @click.prevent.stop="openInMatchSubDrawer"
           title="Substituições e postura tática"
@@ -36,23 +38,7 @@ const { toggleMatchSpeed, openInMatchSubDrawer } = useMatchSimulation()
       </div>
     </div>
     <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-      <div
-        v-for="(ev, idx) in match.matchState.events"
-        :key="idx"
-        :class="[
-          'p-3 rounded-xl border text-xs flex items-start gap-2.5',
-          ev.type === 'goal' ? 'bg-emeraldpro-soft/60 border-emeraldpro font-bold' :
-          ev.type === 'opp_goal' ? 'bg-dangerpro-soft/60 border-dangerpro font-bold' :
-          ev.type === 'sub' ? 'bg-amberpro-soft/60 border-amberpro font-semibold' :
-          ev.type === 'injury' ? 'bg-dangerpro-soft/60 border-dangerpro font-semibold' :
-          ev.type === 'comment' ? 'bg-transparent border-dashed border-borderline text-ink-muted italic' :
-          'bg-subtle border-borderline'
-        ]"
-      >
-        <span class="font-score font-bold text-sm text-ink shrink-0 w-8">{{ ev.minute }}'</span>
-        <Bandage v-if="ev.type === 'injury'" class="w-4 h-4 text-dangerpro shrink-0 mt-0.5" aria-label="Lesão" />
-        <span class="text-ink leading-relaxed min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{{ ev.description }}</span>
-      </div>
+      <MatchEventRow v-for="(ev, idx) in match.matchState.events" :key="idx" :ev="ev" />
     </div>
   </BaseCard>
 </template>

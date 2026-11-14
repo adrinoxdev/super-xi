@@ -15,6 +15,7 @@ import { formatCurrency } from '@/utils/format/formatCurrency'
 import { estimateOutcome } from '@/utils/match/winChance'
 import { ECONOMY, MATCH_SIM } from '@/config'
 import { useSquadStore } from '@/stores/squad'
+import { COMP_SHORT } from '@/utils/player/suspension'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import ListRow from '@/components/ui/ListRow.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -29,10 +30,13 @@ const {
   activeMatchCompetitionLabel,
   effectiveUserPower,
   effectiveOpponentPower,
+  lineupBlockers,
   startLiveMatch
 } = useMatchSimulation()
 
 const squad = useSquadStore()
+// Titulares suspensos na competição que ainda dá para trocar: a partida só começa depois de escalar outro.
+const blockers = computed(() => lineupBlockers(match.activeMatchCompetition))
 const homeBonus = computed(() => homeBonusApplies(match.activeMatchCompetition))
 const estimate = computed(() =>
   estimateOutcome(squad.teamStrength.rating, activeMatchOpponent.value.power, {
@@ -85,12 +89,20 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
         </button>
         <BaseButton
           @click="startLiveMatch"
-          class="px-6 py-3 text-sm shadow-sm flex items-center justify-center gap-2"
+          :disabled="blockers.length > 0"
+          :title="blockers.length ? 'Escalação irregular: substitua o suspenso em Ajustar Tática.' : undefined"
+          class="px-6 py-3 text-sm shadow-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed"
         >
           <Play class="w-4 h-4 fill-current" />
           Iniciar Partida
         </BaseButton>
       </div>
+    </div>
+
+    <div v-if="blockers.length" class="p-3 rounded-xl bg-dangerpro-soft/60 border border-dangerpro/40 text-xs text-ink break-words" role="alert">
+      <strong class="text-dangerpro">Escalação irregular:</strong>
+      {{ blockers.map((p) => p.name).join(', ') }} {{ blockers.length === 1 ? 'está suspenso' : 'estão suspensos' }} na {{ COMP_SHORT[match.activeMatchCompetition] }}.
+      Troque em <strong>Ajustar Tática</strong> antes de iniciar a partida.
     </div>
 
     <div class="space-y-2">
