@@ -63,7 +63,28 @@ export function useSquad() {
   }
 
   function selectPitchSlot(idx: number): void {
+    // Com um atleta da lista escolhido, tocar na vaga o posiciona ali.
+    const pid = ui.selectedRosterPlayerId
+    if (pid) {
+      squad.swapStarterSlot(idx, pid)
+      ui.selectedRosterPlayerId = null
+      ui.selectedPitchSlotIndex = null
+      saveGame()
+      return
+    }
     ui.selectedPitchSlotIndex = ui.selectedPitchSlotIndex === idx ? null : idx
+  }
+
+  /** Escolhe (ou desmarca) um atleta da lista para ver no campo onde ele rende mais. */
+  function selectRosterPlayer(playerId: string): void {
+    ui.selectedPitchSlotIndex = null
+    ui.selectedRosterPlayerId = ui.selectedRosterPlayerId === playerId ? null : playerId
+    if (ui.selectedRosterPlayerId) document.getElementById('prancheta-tatica')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function cancelSelection(): void {
+    ui.selectedPitchSlotIndex = null
+    ui.selectedRosterPlayerId = null
   }
 
   function assignPlayerToSlot(playerId: string): void {
@@ -84,6 +105,7 @@ export function useSquad() {
   function autoPickBestLineup(): void {
     squad.setStarters(pickBestLineup(squad.players, squad.formation, suspendedNow))
     ui.selectedPitchSlotIndex = null
+    ui.selectedRosterPlayerId = null
     saveGame()
     ui.showToast('Melhor escalação titular definida!', 'success')
   }
@@ -351,6 +373,8 @@ export function useSquad() {
     filteredSquadPlayers,
     formatStarterName,
     selectPitchSlot,
+    selectRosterPlayer,
+    cancelSelection,
     assignPlayerToSlot,
     changeFormation,
     autoPickBestLineup,
