@@ -142,8 +142,14 @@ export function useSeason() {
     )
   }
 
-  function resetCareer(): void {
-    if (!confirm('Deseja reiniciar sua carreira do zero?')) return
+  async function resetCareer(): Promise<void> {
+    const ok = await ui.askConfirm({
+      title: 'Reiniciar carreira?',
+      message: 'Todo o progresso atual será apagado e uma nova carreira começa do zero. Essa ação não pode ser desfeita.',
+      confirmLabel: 'Reiniciar',
+      danger: true
+    })
+    if (!ok) return
     clearSave()
     initializeFreshCareer()
     router.push('/')

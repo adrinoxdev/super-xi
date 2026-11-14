@@ -4,6 +4,7 @@ import Sidebar from '@/components/layout/Sidebar.vue'
 import Header from '@/components/layout/Header.vue'
 import BottomNav from '@/components/layout/BottomNav.vue'
 import AppToast from '@/components/ui/AppToast.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import OfflineRewardModal from '@/components/club/OfflineRewardModal.vue'
 import PlayerCompare from '@/components/player/PlayerCompare.vue'
 import PlayerDetails from '@/components/player/PlayerDetails.vue'
@@ -53,6 +54,7 @@ onBeforeUnmount(() => {
     <PlayerCompare />
     <PlayerDetails />
     <LoanMarketModal />
+    <ConfirmDialog />
     <OfflineRewardModal />
   </div>
 </template>
