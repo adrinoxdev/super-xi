@@ -77,7 +77,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
       <button
         type="button"
         @click="router.push('/squad')"
-        class="px-3.5 py-1.5 rounded-xl bg-amberpro text-white text-xs font-bold hover:opacity-90 self-start sm:self-auto shrink-0"
+        class="px-3.5 py-2.5 md:py-1.5 rounded-xl bg-amberpro text-white text-xs font-bold hover:opacity-90 self-start sm:self-auto shrink-0"
       >
         Ver Propostas
       </button>
@@ -137,7 +137,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
       <BaseCard v-if="!upcomingCompetitionGames.length" padding="p-4 sm:p-5" class="flex flex-col items-center justify-center gap-2 text-center">
         <CalendarClock class="w-6 h-6 text-ink-muted" />
         <p class="text-xs text-ink-muted">Nenhum jogo de copa pendente no momento.</p>
-        <button type="button" @click="router.push('/competitions')" class="text-xs font-bold text-emeraldpro hover:underline">
+        <button type="button" @click="router.push('/competitions')" class="min-h-11 md:min-h-0 px-3 md:px-0 text-xs font-bold text-emeraldpro hover:underline">
           Ver competições
         </button>
       </BaseCard>
@@ -165,7 +165,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
             <Trophy class="w-4 h-4 text-emeraldpro shrink-0" />
             <span class="min-w-0 break-words">Classificação Atual ({{ league.serieMeta.name }})</span>
           </h4>
-          <button type="button" @click="router.push('/league')" class="shrink-0 text-xs font-bold text-emeraldpro hover:underline">
+          <button type="button" @click="router.push('/league')" class="shrink-0 -my-2.5 -mr-2 py-2.5 px-2 md:m-0 md:p-0 text-xs font-bold text-emeraldpro hover:underline">
             Tabela Completa
           </button>
         </div>
@@ -195,7 +195,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
             <Radar class="w-4 h-4 text-emeraldpro shrink-0" />
             <span class="min-w-0 break-words">Departamento de Scouting & Base</span>
           </h4>
-          <button type="button" @click="router.push('/scouting')" class="shrink-0 text-xs font-bold text-emeraldpro hover:underline">
+          <button type="button" @click="router.push('/scouting')" class="shrink-0 -my-2.5 -mr-2 py-2.5 px-2 md:m-0 md:p-0 text-xs font-bold text-emeraldpro hover:underline">
             Abrir Scouting
           </button>
         </div>

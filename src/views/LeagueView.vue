@@ -116,7 +116,7 @@ const tables = computed(() => {
         <h3 class="text-base sm:text-lg font-extrabold text-ink mt-0.5 break-words">{{ currentStageLabel }}</h3>
       </div>
       <div v-if="!isSingleLeg" class="min-w-0 max-w-full bg-subtle px-4 py-2.5 rounded-xl border border-borderline text-center">
-        <span class="text-[10px] uppercase font-bold text-ink-muted block">Placar Agregado</span>
+        <span class="text-[11px] md:text-[10px] uppercase font-bold text-ink-muted block">Placar Agregado</span>
         <span class="font-score font-extrabold text-xl text-ink break-words">
           <span class="inline-flex max-w-full items-center gap-1.5 align-middle"><TeamCrest class="shrink-0" size="xs" is-user /><span class="min-w-0 break-words [overflow-wrap:anywhere]">{{ club.name }}</span></span>
           {{ knockoutAggregateScore.user }} x {{ knockoutAggregateScore.opp }}
@@ -132,7 +132,7 @@ const tables = computed(() => {
         v-for="t in tabOptions"
         :key="t.key"
         type="button"
-        :class="['px-4 py-2 rounded-lg text-xs font-bold', shownTab === t.key ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted hover:text-ink']"
+        :class="['px-4 py-2.5 md:py-2 rounded-lg text-xs font-bold', shownTab === t.key ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted hover:text-ink']"
         @click="activeTab = t.key"
       >
         {{ t.label }}
@@ -155,18 +155,18 @@ const tables = computed(() => {
 
         <div v-for="tb in tables" :key="tb.key" class="overflow-x-auto">
           <p v-if="tb.caption" class="text-[11px] font-bold uppercase tracking-wide text-ink-muted mb-1">{{ tb.caption }}</p>
-          <table class="w-full text-xs text-left border-collapse">
+          <table class="w-full min-w-[460px] md:min-w-0 text-xs text-left border-collapse">
             <thead>
               <tr class="border-b border-borderline text-[11px] uppercase text-ink-muted">
                 <th class="py-2.5 px-2 w-9">#</th>
-                <th class="py-2.5 px-2">Clube</th>
+                <th class="py-2.5 px-2 sticky left-0 z-10 bg-surface md:static md:bg-transparent">Clube</th>
                 <th class="py-2.5 px-2 text-center font-bold text-ink">P</th>
                 <th class="py-2.5 px-2 text-center">J</th>
                 <th class="py-2.5 px-2 text-center">V</th>
                 <th class="py-2.5 px-2 text-center">E</th>
                 <th class="py-2.5 px-2 text-center">D</th>
-                <th class="py-2.5 px-2 text-center hidden sm:table-cell">GP</th>
-                <th class="py-2.5 px-2 text-center hidden sm:table-cell">GC</th>
+                <th class="py-2.5 px-2 text-center">GP</th>
+                <th class="py-2.5 px-2 text-center">GC</th>
                 <th class="py-2.5 px-2 pr-3 text-center">SG</th>
               </tr>
             </thead>
@@ -186,7 +186,7 @@ const tables = computed(() => {
                     {{ row.rank }}
                   </span>
                 </td>
-                <td class="py-2.5 px-2 text-ink max-w-[140px] sm:max-w-[190px]">
+                <td :class="['py-2.5 px-2 text-ink max-w-[140px] sm:max-w-[190px] sticky left-0 z-10 md:static md:bg-transparent', row.isUser ? 'bg-emeraldpro-soft' : 'bg-surface']">
                   <span class="flex items-center gap-2 min-w-0">
                     <TeamCrest class="shrink-0" size="xs" :team="row.teamId" :name="row.name" :is-user="row.isUser" />
                     <span class="truncate" :title="row.name">{{ row.name }}</span>
@@ -197,8 +197,8 @@ const tables = computed(() => {
                 <td class="py-2.5 px-2 text-center text-ink-muted">{{ row.won }}</td>
                 <td class="py-2.5 px-2 text-center text-ink-muted">{{ row.drawn }}</td>
                 <td class="py-2.5 px-2 text-center text-ink-muted">{{ row.lost }}</td>
-                <td class="py-2.5 px-2 text-center text-ink-muted hidden sm:table-cell">{{ row.gf }}</td>
-                <td class="py-2.5 px-2 text-center text-ink-muted hidden sm:table-cell">{{ row.ga }}</td>
+                <td class="py-2.5 px-2 text-center text-ink-muted">{{ row.gf }}</td>
+                <td class="py-2.5 px-2 text-center text-ink-muted">{{ row.ga }}</td>
                 <td class="py-2.5 px-2 pr-3 text-center font-semibold" :class="row.gd >= 0 ? 'text-emeraldpro' : 'text-dangerpro'">
                   {{ row.gd > 0 ? '+' + row.gd : row.gd }}
                 </td>
@@ -214,7 +214,7 @@ const tables = computed(() => {
           <div class="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              class="p-1.5 rounded-lg bg-subtle hover:bg-borderline text-ink"
+              class="p-2.5 md:p-1.5 rounded-lg bg-subtle hover:bg-borderline text-ink"
               @click="selectedRound = Math.max(1, selectedRound - 1)"
             >
               <ChevronLeft class="w-4 h-4" />
@@ -222,7 +222,7 @@ const tables = computed(() => {
             <span class="text-xs font-bold px-2 text-ink">R{{ selectedRound }} / {{ maxStageRounds }}</span>
             <button
               type="button"
-              class="p-1.5 rounded-lg bg-subtle hover:bg-borderline text-ink"
+              class="p-2.5 md:p-1.5 rounded-lg bg-subtle hover:bg-borderline text-ink"
               @click="selectedRound = Math.min(maxStageRounds, selectedRound + 1)"
             >
               <ChevronRight class="w-4 h-4" />
