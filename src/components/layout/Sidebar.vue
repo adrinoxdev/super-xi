@@ -1,30 +1,21 @@
 <script setup lang="ts">
-import { useClubStore } from '@/stores/club'
-import { useLeagueStore } from '@/stores/league'
-import { useSquadStore } from '@/stores/squad'
 import { useNavigation } from '@/composables/useNavigation'
-import ClubCrest from '@/components/ui/ClubCrest.vue'
+import { usePageSubtitle } from '@/composables/usePageSubtitle'
+import { version as appVersion } from '../../../package.json'
 
 const base = import.meta.env.BASE_URL
-const club = useClubStore()
-const league = useLeagueStore()
-const squad = useSquadStore()
-const { navItems, goTo } = useNavigation()
+const { navItems, goTo, currentPageTitle } = useNavigation()
+const { subtitle } = usePageSubtitle()
 </script>
 
 <template>
   <aside class="hidden md:flex md:w-64 bg-surface border-r border-borderline flex-col justify-between shrink-0 sticky top-0 h-screen overflow-y-auto z-20 self-start">
     <div>
-      <div class="px-5 pt-4 pb-3 border-b border-borderline flex justify-center">
-        <img :src="`${base}logo.png`" alt="Super XI" class="h-20 w-auto select-none" draggable="false" />
-      </div>
-      <div class="px-5 md:h-20 py-5 md:py-0 border-b border-borderline flex items-center gap-3">
-        <ClubCrest size="md" />
+      <div class="px-4 h-20 border-b border-borderline flex items-center gap-1.5">
+        <img :src="`${base}logo.png`" alt="Super XI" class="h-11 w-auto shrink-0 select-none" draggable="false" />
         <div class="min-w-0">
-          <h1 class="font-bold text-base leading-tight text-ink truncate">{{ club.name }}</h1>
-          <p class="text-xs text-ink-muted font-medium truncate">
-            Série {{ league.serieMeta.code }} • Temp. {{ club.season }}
-          </p>
+          <h2 class="font-bold text-base text-ink leading-tight truncate">{{ currentPageTitle }}</h2>
+          <p class="text-xs text-ink-muted truncate">{{ subtitle }}</p>
         </div>
       </div>
 
@@ -71,21 +62,9 @@ const { navItems, goTo } = useNavigation()
       </nav>
     </div>
 
-    <div class="p-4 border-t border-borderline space-y-3">
-      <div class="bg-subtle rounded-xl p-3 space-y-1.5">
-        <div class="flex items-center justify-between text-xs text-ink-muted">
-          <span>OVER</span>
-          <span class="font-score font-bold text-base text-ink">{{ squad.teamStrength.total }}</span>
-        </div>
-        <div class="flex items-center justify-between text-xs text-ink-muted">
-          <span>Posição na Liga</span>
-          <span class="font-bold text-emeraldpro">{{ league.userLeagueRank }}º ({{ league.userLeaguePoints }} pts)</span>
-        </div>
-        <div class="flex items-center justify-between text-xs text-ink-muted">
-          <span>Elenco</span>
-          <span class="font-semibold text-ink">{{ squad.players.length }} / {{ club.maxSquadCapacity }}</span>
-        </div>
-      </div>
+    <div class="px-4 py-3 border-t border-borderline flex items-center justify-between text-[11px] text-ink-muted">
+      <span class="font-semibold tracking-wide">Super XI</span>
+      <span class="font-score font-bold bg-subtle border border-borderline rounded-full px-2 py-0.5 text-ink">v{{ appVersion }}</span>
     </div>
   </aside>
 </template>
