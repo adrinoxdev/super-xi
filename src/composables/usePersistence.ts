@@ -7,7 +7,7 @@ import { useScoutingStore } from '@/stores/scouting'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
 import { ATHLETE_ECONOMY_VERSION, BALANCE_VERSION, PROGRESSION_VERSION, migrateAthleteEconomyV1, migrateBalanceV2, migrateProgressionV3 } from '@/migrations/balanceMigration'
-import { STORAGE_KEY } from '@/config'
+import { LIVE_MATCH_KEY, STORAGE_KEY } from '@/config'
 import { checkMilestones } from '@/utils/club/progression'
 
 // Definição única em constants.ts; reexportada por compatibilidade com quem importava daqui.
@@ -51,7 +51,12 @@ export function usePersistence() {
           transferHistory: club.transferHistory,
           trophyGallery: club.trophyGallery,
           seasonGoals: club.seasonGoals,
+          seasonAssists: club.seasonAssists,
+          seasonApps: club.seasonApps,
+          seasonYellows: club.seasonYellows,
+          seasonReds: club.seasonReds,
           careerStats: club.careerStats,
+          matchHistory: match.matchHistory,
           incomingOffers: market.toSave().incomingOffers,
           youthAcademyProspects: sc.youthAcademyProspects,
           staffContracts: club.staffContracts,
@@ -80,7 +85,12 @@ export function usePersistence() {
         club.transferHistory = p.transferHistory || []
         club.trophyGallery = p.trophyGallery || []
         club.seasonGoals = p.seasonGoals || {}
+        club.seasonAssists = p.seasonAssists || {}
+        club.seasonApps = p.seasonApps || {}
+        club.seasonYellows = p.seasonYellows || {}
+        club.seasonReds = p.seasonReds || {}
         club.careerStats = p.careerStats || {}
+        match.matchHistory = p.matchHistory || []
         club.loadStaff(p)
         market.fromSave({ incomingOffers: p.incomingOffers || [] })
         competitions.fromSave({
@@ -155,6 +165,7 @@ export function usePersistence() {
   function clearSave(): void {
     try {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(LIVE_MATCH_KEY)
     } catch {
       /* ignora */
     }
@@ -196,6 +207,8 @@ export function usePersistence() {
         }
         throw new Error('invalid')
       }
+      // A partida ao vivo salva pertence à carreira anterior: não pode ser retomada sobre a importada.
+      try { localStorage.removeItem(LIVE_MATCH_KEY) } catch { /* ignora */ }
       ui.showToast('Carreira importada com sucesso!', 'success')
     } catch {
       ui.showToast('Código inválido.', 'danger')

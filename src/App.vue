@@ -10,13 +10,17 @@ import LoanMarketModal from '@/components/player/LoanMarketModal.vue'
 import { usePersistence } from '@/composables/usePersistence'
 import { useSeason } from '@/composables/useSeason'
 import { useScouting } from '@/composables/useScouting'
+import { useMatchSimulation } from '@/composables/useMatchSimulation'
 
 const { loadGame } = usePersistence()
 const { initializeFreshCareer } = useSeason()
 const { startMissionTicker } = useScouting()
+const { restoreLiveMatches } = useMatchSimulation()
 
 onMounted(() => {
-  loadGame() || initializeFreshCareer()
+  // Partida que estava ao vivo antes de recarregar volta do mesmo minuto (só com save principal carregado).
+  if (loadGame()) restoreLiveMatches()
+  else initializeFreshCareer()
   startMissionTicker()
 })
 </script>
