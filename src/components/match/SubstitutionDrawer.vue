@@ -41,7 +41,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
 </script>
 
 <template>
-  <div class="bg-surface rounded-2xl p-5 border-2 border-amberpro shadow-md space-y-4 animate-pop">
+  <div class="bg-surface rounded-2xl p-4 sm:p-5 max-h-[90dvh] overflow-y-auto overscroll-contain md:max-h-none md:overflow-visible border-2 border-amberpro shadow-md space-y-4 animate-pop">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="min-w-0 flex-1 basis-60">
         <h3 class="font-bold text-base text-ink break-words">Substituições & Postura ao Vivo ({{ match.matchState.subsUsed }}/5 usadas)</h3>
@@ -52,7 +52,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
         @click.prevent.stop="closeInMatchSubDrawer"
         :disabled="pending.length > 0"
         :title="pending.length ? 'Substitua o lesionado antes de retomar.' : undefined"
-        class="shrink-0 px-4 py-2 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-xs font-bold"
+        class="shrink-0 px-4 py-2 min-h-11 md:min-h-0 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-xs font-bold"
       >
         Retomar Jogo
       </button>
@@ -73,7 +73,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
       <button
         type="button"
         @click.prevent.stop="reorganizeTeam"
-        class="shrink-0 px-4 py-2 rounded-xl bg-subtle hover:bg-borderline border border-borderline text-ink text-xs font-bold flex items-center gap-2"
+        class="shrink-0 px-4 py-2 min-h-11 md:min-h-0 rounded-xl bg-subtle hover:bg-borderline border border-borderline text-ink text-xs font-bold flex items-center gap-2"
       >
         <LayoutGrid class="w-4 h-4 text-emeraldpro" />
         Reorganizar time
@@ -85,7 +85,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="min-w-0">
         <label class="text-xs font-bold text-ink block mb-1.5">1. Quem sai (Titular em campo):</label>
-        <select v-model="subOutId" class="w-full p-2.5 rounded-xl bg-subtle border border-borderline text-xs font-bold text-ink">
+        <select v-model="subOutId" class="w-full p-2.5 min-h-11 md:min-h-0 rounded-xl bg-subtle border border-borderline text-xs font-bold text-ink">
           <option value="">-- Selecione o titular --</option>
           <option v-for="st in outCandidates" :key="st.id" :value="st.id">
             {{ formatPosBR(st.position) }} • {{ st.name }} {{ st.injury ? '🩹 ' : '' }}(OVER {{ st.overall }} • Energia {{ Math.round(st.stamina ?? 100) }}%)
@@ -94,7 +94,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
       </div>
       <div class="min-w-0">
         <label class="text-xs font-bold text-ink block mb-1.5">2. Quem entra (Banco de Reservas):</label>
-        <select v-model="subInId" class="w-full p-2.5 rounded-xl bg-subtle border border-borderline text-xs font-bold text-ink">
+        <select v-model="subInId" class="w-full p-2.5 min-h-11 md:min-h-0 rounded-xl bg-subtle border border-borderline text-xs font-bold text-ink">
           <option value="">-- Selecione o reserva --</option>
           <option v-for="bn in benchCandidates" :key="bn.id" :value="bn.id">
             {{ formatPosBR(bn.position) }} • {{ bn.name }} {{ bn.injury ? '🩹 ' : '' }}({{ effectiveLabel(bn) }} • Energia {{ Math.round(bn.stamina ?? 100) }}%)
@@ -103,11 +103,11 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
       </div>
     </div>
 
-    <div class="flex flex-wrap justify-end gap-2">
+    <div class="flex flex-wrap justify-end gap-2 sticky bottom-0 md:static bg-surface pt-2 md:pt-0 [&>button]:flex-1 sm:[&>button]:flex-none">
       <button
         type="button"
         @click.prevent.stop="recommendSubstitution"
-        class="px-5 py-2.5 rounded-xl bg-subtle hover:bg-borderline text-ink text-xs font-bold transition-colors flex items-center gap-2"
+        class="px-5 py-2.5 min-h-11 md:min-h-0 rounded-xl bg-subtle hover:bg-borderline text-ink text-xs font-bold transition-colors flex items-center justify-center gap-2"
       >
         <Sparkles class="w-4 h-4 text-emeraldpro" />
         Substituição Recomendada
@@ -116,7 +116,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
         type="button"
         @click.prevent.stop="confirmInMatchSubstitution"
         :disabled="!subOutId || !subInId || (!forcedSub && match.matchState.subsUsed >= 5)"
-        class="px-5 py-2.5 rounded-xl bg-amberpro disabled:opacity-40 text-white text-xs font-bold"
+        class="px-5 py-2.5 min-h-11 md:min-h-0 rounded-xl bg-amberpro disabled:opacity-40 text-white text-xs font-bold"
       >
         Confirmar Substituição
       </button>

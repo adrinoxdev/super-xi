@@ -80,11 +80,11 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2.5 shrink-0 self-start sm:self-auto">
-        <MatchBackButton class="px-4 py-3 rounded-xl border border-borderline hover:bg-subtle text-ink-muted hover:text-ink text-sm font-bold transition-colors flex items-center justify-center gap-2" />
+        <MatchBackButton class="px-4 py-3 min-h-11 rounded-xl border border-borderline hover:bg-subtle text-ink-muted hover:text-ink text-sm font-bold transition-colors flex items-center justify-center gap-2" />
         <button
           type="button"
           @click="router.push('/squad')"
-          class="px-4 py-3 rounded-xl bg-subtle hover:bg-borderline text-ink text-sm font-bold transition-colors flex items-center justify-center gap-2"
+          class="px-4 py-3 min-h-11 rounded-xl bg-subtle hover:bg-borderline text-ink text-sm font-bold transition-colors flex items-center justify-center gap-2"
         >
           <Shield class="w-4 h-4 text-emeraldpro" />
           Ajustar Tática
@@ -114,7 +114,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
-        <span class="text-[10px] font-bold uppercase text-ink-muted block">Mando de Campo</span>
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Mando de Campo</span>
         <strong class="font-score text-lg text-emeraldpro block mt-0.5">
           {{ !homeBonus ? 'Sem bônus de mando' : activeMatchIsHome ? '+' + MATCH_SIM.homeAdvantage + ' OVER (Mandante)' : 'Visitante (+0)' }}
         </strong>
@@ -124,7 +124,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
       </ListRow>
 
       <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
-        <span class="text-[10px] font-bold uppercase text-ink-muted block">Bônus Tático</span>
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Bônus Tático</span>
         <strong class="font-score text-lg text-ink block mt-0.5">{{ mentalityInfo.label }}</strong>
         <span class="text-[11px] text-ink-muted">
           ATQ x{{ mentalityInfo.atkMod.toFixed(2) }} • DEF x{{ mentalityInfo.defMod.toFixed(2) }}
@@ -132,7 +132,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
       </ListRow>
 
       <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
-        <span class="text-[10px] font-bold uppercase text-ink-muted block">Bilheteria Estimada</span>
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Bilheteria Estimada</span>
         <strong class="font-score text-lg text-emeraldpro block mt-0.5">
           +{{ formatCurrency(activeMatchIsHome ? club.projectedStadiumIncome : Math.round(club.projectedStadiumIncome * ECONOMY.awayTicketShare)) }}
         </strong>
@@ -140,7 +140,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
       </ListRow>
 
       <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
-        <span class="text-[10px] font-bold uppercase text-ink-muted block">Cota Patrocínio</span>
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Cota Patrocínio</span>
         <strong class="font-score text-lg text-emeraldpro block mt-0.5">
           +{{ formatCurrency(club.projectedSponsorIncome) }}
         </strong>
@@ -148,7 +148,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
       </ListRow>
     </div>
     <ListRow padding="p-3.5" layout="block" class="min-w-0 space-y-2.5 break-words">
-      <span class="text-[10px] font-bold uppercase text-ink-muted block">Chance estimada*</span>
+      <span class="text-[11px] font-bold uppercase text-ink-muted block">Chance estimada*</span>
       <OutcomeBar
         :win="winPct"
         :draw="drawPct"

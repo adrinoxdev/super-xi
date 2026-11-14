@@ -77,13 +77,13 @@ const treeHeight = computed(() => (visibleRounds.value[0]?.ties.length ?? 1) * S
 
     <!-- Celular: fases em abas -->
     <div v-if="currentTab" class="md:hidden space-y-3">
-      <div class="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
+      <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1 snap-x">
         <button
           v-for="(t, i) in tabs"
           :key="t.key"
           type="button"
           :class="[
-            'shrink-0 snap-start px-3 py-1.5 rounded-lg text-xs font-bold',
+            'shrink-0 snap-start px-3.5 py-2.5 min-h-11 rounded-lg text-xs font-bold',
             i === activeTab ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted'
           ]"
           @click="activeTab = i"
@@ -111,7 +111,7 @@ const treeHeight = computed(() => (visibleRounds.value[0]?.ties.length ?? 1) * S
           :key="r.key"
           type="button"
           :class="[
-            'px-2.5 py-1 rounded-lg text-[11px] font-bold',
+            'px-2.5 py-2 md:py-1 rounded-lg text-[11px] font-bold',
             i === effectiveStart ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted'
           ]"
           @click="startRound = i"
@@ -119,7 +119,7 @@ const treeHeight = computed(() => (visibleRounds.value[0]?.ties.length ?? 1) * S
           {{ r.shortLabel }}
         </button>
       </div>
-      <div class="overflow-auto max-h-[70vh] -mx-1 px-1">
+      <div class="overflow-auto max-h-[70dvh] -mx-1 px-1">
         <div class="flex gap-6 min-w-max pb-1" data-bracket-tree>
           <div v-for="(round, ri) in visibleRounds" :key="round.key" class="flex flex-col w-56" data-bracket-round>
             <div class="h-5 mb-1 text-[11px] font-bold uppercase tracking-wide text-ink-muted truncate" :title="round.label">{{ round.label }}</div>

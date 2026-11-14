@@ -9,7 +9,7 @@ const { finishMatchAndReturn } = useMatchSimulation()
 </script>
 
 <template>
-  <div v-if="match.lastMatchSummary" class="bg-surface rounded-2xl p-5 border-2 border-emeraldpro shadow-sm space-y-4 animate-pop">
+  <div v-if="match.lastMatchSummary" class="bg-surface rounded-2xl p-4 sm:p-5 border-2 border-emeraldpro shadow-sm space-y-4 animate-pop">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div class="min-w-0">
         <span class="text-xs font-bold uppercase text-emeraldpro">Relatório Financeiro da Partida</span>
@@ -23,7 +23,7 @@ const { finishMatchAndReturn } = useMatchSimulation()
       <button
         type="button"
         @click="finishMatchAndReturn"
-        class="shrink-0 px-5 py-2.5 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-white text-xs sm:text-sm font-bold"
+        class="shrink-0 px-5 py-2.5 min-h-11 md:min-h-0 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-white text-xs sm:text-sm font-bold"
       >
         Continuar Temporada
       </button>

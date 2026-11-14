@@ -16,16 +16,16 @@ const { toggleMatchSpeed, openInMatchSubDrawer } = useMatchSimulation()
     <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
       <SectionTitle size="responsive" class="min-w-0">
         <template #icon><Radio class="w-4 h-4 text-emeraldpro shrink-0" /></template>
-        <span class="truncate">Lance a Lance em Tempo Real</span>
+        <span class="break-words">Lance a Lance em Tempo Real</span>
       </SectionTitle>
       <div v-if="!match.matchState.isFinished" class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-        <MatchBackButton class="px-3 py-1.5 rounded-lg border border-borderline hover:bg-subtle text-ink-muted hover:text-ink font-bold text-xs flex items-center gap-1" />
+        <MatchBackButton class="px-3 py-2 min-h-11 md:min-h-0 md:py-1.5 rounded-lg border border-borderline hover:bg-subtle text-ink-muted hover:text-ink font-bold text-xs flex items-center gap-1" />
         <button
           v-if="!match.matchState.shootout"
           type="button"
           @click.prevent.stop="openInMatchSubDrawer"
           title="Substituições e postura tática"
-          class="px-3 py-1.5 rounded-lg bg-amberpro hover:opacity-90 text-white font-bold text-xs flex items-center gap-1"
+          class="px-3 py-2 min-h-10 md:min-h-0 md:py-1.5 rounded-lg bg-amberpro hover:opacity-90 text-white font-bold text-xs flex items-center gap-1"
         >
           <Repeat class="w-3.5 h-3.5" />
           Time & Tática (Trocas: {{ 5 - match.matchState.subsUsed }})
@@ -33,13 +33,13 @@ const { toggleMatchSpeed, openInMatchSubDrawer } = useMatchSimulation()
         <button
           type="button"
           @click.prevent.stop="toggleMatchSpeed"
-          class="px-3 py-1.5 rounded-lg bg-subtle hover:bg-borderline border border-borderline text-ink font-score font-bold text-xs"
+          class="px-3 py-2 min-h-10 md:min-h-0 md:py-1.5 rounded-lg bg-subtle hover:bg-borderline border border-borderline text-ink font-score font-bold text-xs"
         >
           Velocidade {{ match.matchState.speed === 1 ? '1x' : '2x' }}
         </button>
       </div>
     </div>
-    <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+    <div class="space-y-2 max-h-[50dvh] md:max-h-[380px] overflow-y-auto pr-1">
       <MatchEventRow v-for="(ev, idx) in match.matchState.events" :key="idx" :ev="ev" />
     </div>
   </BaseCard>

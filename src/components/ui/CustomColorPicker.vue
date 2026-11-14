@@ -22,7 +22,7 @@ const pickerValue = computed(() => (HEX.test(props.modelValue) ? props.modelValu
     :title="`Outra cor (${label})`"
     :class="isCustom ? 'ring-2 ring-offset-2 ring-ink scale-110' : ''"
     :style="{ background: isCustom ? modelValue : 'conic-gradient(#ef4444, #f59e0b, #22c55e, #06b6d4, #6366f1, #d946ef, #ef4444)' }"
-    class="relative w-6 h-6 rounded-full border border-borderline transition-transform cursor-pointer flex items-center justify-center overflow-hidden"
+    class="relative w-8 h-8 md:w-6 md:h-6 rounded-full border border-borderline transition-transform cursor-pointer flex items-center justify-center overflow-hidden"
   >
     <span v-if="!isCustom" class="text-[13px] leading-none font-black text-white drop-shadow" aria-hidden="true">+</span>
     <input

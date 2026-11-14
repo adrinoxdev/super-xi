@@ -54,7 +54,7 @@ const colClass = (k: SortKey) => (sortKey.value === k ? 'text-emeraldpro' : 'tex
           :aria-pressed="sortKey === o.key"
           @click="sortKey = o.key"
           :class="[
-            'px-2 py-1 rounded-lg text-[11px] font-bold transition-colors',
+            'px-3 py-2 sm:px-2 sm:py-1 rounded-lg text-[11px] font-bold transition-colors',
             sortKey === o.key ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted hover:text-ink'
           ]"
         >
@@ -65,7 +65,7 @@ const colClass = (k: SortKey) => (sortKey.value === k ? 'text-emeraldpro' : 'tex
 
     <p v-if="rows.length === 0" class="text-sm text-ink-muted">Ninguém pontuou ainda nesta temporada.</p>
     <template v-else>
-      <div class="flex items-center gap-2 px-3 text-[10px] font-semibold text-ink-muted uppercase tracking-wider">
+      <div class="flex items-center gap-2 px-3 text-[11px] font-semibold text-ink-muted uppercase tracking-wider">
         <span class="w-5 shrink-0"></span>
         <span class="flex-1 min-w-0">Atleta</span>
         <span class="w-9 text-center shrink-0" title="Jogos">J</span>
@@ -82,7 +82,7 @@ const colClass = (k: SortKey) => (sortKey.value === k ? 'text-emeraldpro' : 'tex
         <span class="font-bold text-ink-muted w-5 shrink-0">{{ idx + 1 }}º</span>
         <div class="flex items-center gap-1 flex-1 min-w-0">
           <span class="font-bold text-ink truncate" :title="r.name">{{ r.name }}</span>
-          <span class="text-[10px] font-bold text-ink-muted shrink-0">({{ formatPosBR(r.position) }})</span>
+          <span class="text-[11px] md:text-[10px] font-bold text-ink-muted shrink-0">({{ formatPosBR(r.position) }})</span>
         </div>
         <span class="w-9 text-center font-score text-sm shrink-0" :class="'text-ink'"><span class="sr-only">Jogos: </span>{{ r.apps }}</span>
         <span class="w-9 text-center font-score text-sm shrink-0" :class="colClass('goals')"><span class="sr-only">Gols: </span>{{ r.goals }}</span>

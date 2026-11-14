@@ -9,7 +9,7 @@ const { subtitle } = usePageSubtitle()
 </script>
 
 <template>
-  <aside class="hidden md:flex md:w-64 bg-surface border-r border-borderline flex-col justify-between shrink-0 sticky top-0 h-screen overflow-y-auto z-20 self-start">
+  <aside class="hidden md:flex md:w-64 bg-surface border-r border-borderline flex-col justify-between shrink-0 sticky top-0 h-dvh overflow-y-auto z-20 self-start">
     <div>
       <div class="px-4 h-20 border-b border-borderline flex items-center gap-1.5">
         <img :src="`${base}logo.png`" alt="Super XI" class="h-11 w-auto shrink-0 select-none" draggable="false" />

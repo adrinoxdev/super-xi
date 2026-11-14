@@ -81,7 +81,7 @@ const footer = computed(() => {
         :title="side.name"
         >{{ side.name }}</span
       >
-      <span v-if="side.power && !compact" class="hidden lg:inline text-[10px] font-score text-ink-muted"
+      <span v-if="side.power && !compact" class="shrink-0 text-[11px] lg:text-[10px] font-score text-ink-muted"
         >OVER {{ side.power }}</span
       >
       <template v-if="tie.legCount === 2">
@@ -98,8 +98,8 @@ const footer = computed(() => {
         class="w-5 text-center font-score font-extrabold tabular-nums text-ink"
         >{{ side.legGoals[0] ?? '–' }}</span
       >
-      <span v-if="side.pens !== null" class="shrink-0 text-[10px] font-score text-ink-muted">({{ side.pens }})</span>
+      <span v-if="side.pens !== null" class="shrink-0 text-[11px] font-score text-ink-muted">({{ side.pens }})</span>
     </div>
-    <div v-if="!compact && footer" class="px-2.5 py-1 bg-subtle text-[10px] text-ink-muted break-words">{{ footer }}</div>
+    <div v-if="!compact && footer" class="px-2.5 py-1 bg-subtle text-[11px] text-ink-muted break-words">{{ footer }}</div>
   </div>
 </template>

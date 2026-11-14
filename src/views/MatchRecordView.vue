@@ -44,7 +44,7 @@ const rows = computed(() => {
     <button
       type="button"
       @click="router.push('/matches')"
-      class="px-3 py-1.5 rounded-lg border border-borderline hover:bg-subtle text-ink-muted hover:text-ink font-bold text-xs flex items-center gap-1"
+      class="px-3 py-2 min-h-10 md:min-h-0 md:py-1.5 rounded-lg border border-borderline hover:bg-subtle text-ink-muted hover:text-ink font-bold text-xs flex items-center gap-1"
     >
       <ArrowLeft class="w-3.5 h-3.5" />
       Voltar às partidas
@@ -63,14 +63,14 @@ const rows = computed(() => {
         <div class="grid grid-cols-3 items-center text-center py-2">
           <div class="flex flex-col items-center gap-1 min-w-0">
             <TeamCrest size="md" :name="left" :is-user="m.isHome" />
-            <div class="font-bold text-sm sm:text-lg truncate max-w-full">{{ left }}</div>
+            <div class="font-bold text-sm sm:text-lg truncate max-w-full" :title="left">{{ left }}</div>
           </div>
-          <div class="font-score font-extrabold text-4xl sm:text-5xl tracking-wider text-emerald-400">
+          <div class="font-score font-extrabold text-3xl min-[400px]:text-4xl sm:text-5xl tracking-wider whitespace-nowrap text-emerald-400">
             {{ leftScore }} <span class="text-slate-500 text-2xl">x</span> {{ rightScore }}
           </div>
           <div class="flex flex-col items-center gap-1 min-w-0">
             <TeamCrest size="md" :name="right" :is-user="!m.isHome" />
-            <div class="font-bold text-sm sm:text-lg truncate max-w-full">{{ right }}</div>
+            <div class="font-bold text-sm sm:text-lg truncate max-w-full" :title="right">{{ right }}</div>
           </div>
         </div>
         <p v-if="m.penalties" class="text-center text-sm font-bold text-amber-300">
@@ -87,7 +87,7 @@ const rows = computed(() => {
             <template #icon><Radio class="w-4 h-4 text-emeraldpro shrink-0" /></template>
             Lance a Lance
           </SectionTitle>
-          <div class="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+          <div class="space-y-2 max-h-[50dvh] md:max-h-[420px] overflow-y-auto pr-1">
             <MatchEventRow v-for="(ev, idx) in m.events" :key="idx" :ev="ev" />
           </div>
         </BaseCard>
@@ -95,9 +95,9 @@ const rows = computed(() => {
         <div class="lg:col-span-5 space-y-6">
           <BaseCard padding="p-4 sm:p-5" class="space-y-3">
             <SectionTitle size="responsive">Estatísticas</SectionTitle>
-            <div class="flex justify-between text-xs font-bold text-ink">
-              <span class="truncate">{{ m.userName }}</span>
-              <span class="truncate">{{ m.opponentName }}</span>
+            <div class="flex justify-between gap-3 text-xs font-bold text-ink min-w-0">
+              <span class="min-w-0 break-words sm:truncate" :title="m.userName">{{ m.userName }}</span>
+              <span class="min-w-0 break-words sm:truncate" :title="m.opponentName">{{ m.opponentName }}</span>
             </div>
             <div v-for="r in rows" :key="r.label" class="space-y-1">
               <div class="flex items-center justify-between text-xs">

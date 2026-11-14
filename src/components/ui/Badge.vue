@@ -16,7 +16,7 @@ const shapeClasses = {
 } as const
 
 const sizeClasses = {
-  xs: 'text-[10px]',
+  xs: 'text-[11px]',
   sm: 'text-[11px]',
 } as const
 

@@ -36,13 +36,13 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
 
 <template>
   <BaseCard padding="p-4 sm:p-5" class="lg:col-span-5 space-y-4">
-    <div class="flex items-center justify-between gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="min-w-0">
         <SectionTitle>Elenco ({{ squad.players.length }}/{{ club.maxSquadCapacity }})</SectionTitle>
-        <span v-if="squad.overLimit" class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[10px] font-bold break-words">
+        <span v-if="squad.overLimit" class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[11px] md:text-[10px] font-bold break-words">
           Elenco acima do limite: venda atletas para voltar a contratar.
         </span>
-        <span v-else-if="squad.isFull" class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[10px] font-bold">Elenco cheio</span>
+        <span v-else-if="squad.isFull" class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[11px] md:text-[10px] font-bold">Elenco cheio</span>
         <p v-if="club.restUsesToday > 0" class="text-[11px] text-ink-muted break-words">
           Descansos hoje: {{ club.restUsesToday }} • custo reinicia em {{ restResetLabel }}
         </p>
@@ -50,11 +50,11 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
           Selecione um reserva abaixo para entrar na vaga #{{ ui.selectedPitchSlotIndex + 1 }}
         </p>
       </div>
-      <div class="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+      <div class="flex flex-wrap items-center gap-1.5 sm:justify-end sm:shrink-0">
         <BaseButton
           variant="soft"
           @click="recoverSquadStamina"
-          class="px-2.5 py-1.5 text-[11px] transition-colors"
+          class="min-h-[40px] sm:min-h-0 px-2.5 py-1.5 text-[11px] transition-colors"
           :title="restTitle"
         >
           Descansar ({{ restCostLabel }})
@@ -62,7 +62,7 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
         <button
           type="button"
           @click="openLoanMarketModal"
-          class="px-2.5 py-1.5 rounded-xl bg-subtle hover:bg-borderline border border-borderline text-ink text-[11px] font-bold transition-colors"
+          class="min-h-[40px] sm:min-h-0 px-2.5 py-1.5 rounded-xl bg-subtle hover:bg-borderline border border-borderline text-ink text-[11px] font-bold transition-colors"
         >
           Empréstimos
         </button>
@@ -76,7 +76,7 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
         type="button"
         @click="ui.squadPositionFilter = f"
         :class="[
-          'px-2.5 py-1 rounded-lg text-xs font-bold transition-colors shrink-0',
+          'px-3 py-2 sm:py-1 rounded-lg text-xs font-bold transition-colors shrink-0',
           ui.squadPositionFilter === f ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted hover:text-ink'
         ]"
       >
@@ -89,39 +89,39 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
         v-for="player in filteredSquadPlayers"
         :key="player.id"
         :class="[
-          'p-3 rounded-xl border flex items-center justify-between gap-2 transition-colors',
+          'p-3 rounded-xl border flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 transition-colors',
           squad.isStarter(player.id) ? 'bg-emeraldpro-soft/40 border-emeraldpro/40' : 'bg-subtle border-borderline'
         ]"
       >
-        <div class="flex items-center gap-2.5 min-w-0">
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
           <div class="w-10 h-10 rounded-xl bg-surface border border-borderline flex flex-col items-center justify-center shrink-0">
             <span class="font-score font-extrabold text-sm text-emeraldpro leading-none">{{ player.overall }}</span>
-            <span class="text-[9px] font-bold text-ink-muted">{{ formatPosBR(player.position) }}</span>
+            <span class="text-[11px] md:text-[10px] font-bold text-ink-muted">{{ formatPosBR(player.position) }}</span>
           </div>
           <div class="min-w-0">
-            <div class="flex items-center gap-1.5 min-w-0">
+            <div class="flex flex-wrap items-center gap-1.5 min-w-0">
               <span class="font-bold text-xs text-ink truncate" :title="player.name">{{ player.name }}</span>
               <span
                 v-if="player.marketStatus === 'transfer_listed'"
-                class="px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[9px] font-bold shrink-0"
+                class="px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[11px] md:text-[10px] font-bold shrink-0"
               >
                 À Venda
               </span>
               <span
                 v-if="player.isLoanedOut"
-                class="px-1.5 py-0.5 rounded bg-surface border border-borderline text-ink-muted text-[9px] font-bold shrink-0"
+                class="px-1.5 py-0.5 rounded bg-surface border border-borderline text-ink-muted text-[11px] md:text-[10px] font-bold shrink-0"
               >
                 Emprestado
               </span>
               <span
                 v-if="player.contractYears === 1 && !player.isLoanedIn"
-                class="px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[9px] font-bold shrink-0"
+                class="px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[11px] md:text-[10px] font-bold shrink-0"
               >
                 Último ano
               </span>
               <span
                 v-if="player.age + 1 >= retireAgeFor(player.position)"
-                class="px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[9px] font-bold shrink-0"
+                class="px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[11px] md:text-[10px] font-bold shrink-0"
               >
                 Aposenta
               </span>
@@ -147,21 +147,21 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
             </div>
             <div class="mt-0.5 flex flex-wrap items-center gap-1">
               <span
-                class="inline-flex items-center gap-0.5 text-[10px] font-bold text-ink-muted"
+                class="inline-flex items-center gap-0.5 text-[11px] md:text-[10px] font-bold text-ink-muted"
                 :aria-label="`Jogos na temporada: ${club.seasonApps[player.id] || 0}`"
                 title="Jogos na temporada"
               >
                 <Shirt class="w-3 h-3" aria-hidden="true" />{{ club.seasonApps[player.id] || 0 }}
               </span>
               <span
-                class="inline-flex items-center gap-0.5 text-[10px] font-bold text-ink-muted"
+                class="inline-flex items-center gap-0.5 text-[11px] md:text-[10px] font-bold text-ink-muted"
                 :aria-label="`Gols na temporada: ${club.seasonGoals[player.id] || 0}`"
                 title="Gols na temporada"
               >
                 <Goal class="w-3 h-3" aria-hidden="true" />{{ club.seasonGoals[player.id] || 0 }}
               </span>
               <span
-                class="inline-flex items-center gap-0.5 text-[10px] font-bold text-ink-muted"
+                class="inline-flex items-center gap-0.5 text-[11px] md:text-[10px] font-bold text-ink-muted"
                 :aria-label="`Assistências na temporada: ${club.seasonAssists[player.id] || 0}`"
                 title="Assistências na temporada"
               >
@@ -171,19 +171,19 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
           </div>
         </div>
 
-        <div class="flex items-center gap-1.5 shrink-0">
+        <div class="flex items-center gap-1.5 shrink-0 w-full sm:w-auto">
           <button
             v-if="ui.selectedPitchSlotIndex !== null && !player.isLoanedOut"
             type="button"
             @click="assignPlayerToSlot(player.id)"
-            class="px-2.5 py-1.5 rounded-lg bg-amberpro text-white text-[11px] font-bold"
+            class="flex-1 sm:flex-none min-h-[40px] sm:min-h-0 px-2.5 py-1.5 rounded-lg bg-amberpro text-white text-[11px] font-bold"
           >
             Escalar
           </button>
           <button
             type="button"
             @click="openPlayerModal(player)"
-            class="px-2.5 py-1.5 rounded-lg bg-surface hover:bg-borderline border border-borderline text-ink text-[11px] font-bold"
+            class="flex-1 sm:flex-none min-h-[40px] sm:min-h-0 px-2.5 py-1.5 rounded-lg bg-surface hover:bg-borderline border border-borderline text-ink text-[11px] font-bold"
           >
             Gerenciar
           </button>

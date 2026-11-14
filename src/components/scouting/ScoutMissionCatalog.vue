@@ -40,7 +40,7 @@ function reportsLabel(type: ScoutMissionType): string {
         <div class="space-y-1">
           <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
             <span class="font-bold text-xs text-ink min-w-0 break-words [overflow-wrap:anywhere]">{{ m.title }}</span>
-            <span class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface border border-borderline text-ink-muted">
+            <span class="shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface border border-borderline text-ink-muted">
               {{ formatDuration(m.durationSec * club.scoutingSpec.timeMult) }}
             </span>
           </div>
@@ -53,7 +53,7 @@ function reportsLabel(type: ScoutMissionType): string {
             Posição
             <select
               v-model="scouting.selectedScoutPosition"
-              class="flex-1 min-w-0 bg-surface border border-borderline rounded-lg px-2 py-1 font-bold text-ink focus:outline-none"
+              class="flex-1 min-w-0 bg-surface border border-borderline rounded-lg px-2 py-2 sm:py-1 min-h-[40px] sm:min-h-0 font-bold text-ink focus:outline-none"
             >
               <option v-for="pos in ALL_POSITIONS" :key="pos" :value="pos">{{ formatPosBR(pos) }}</option>
             </select>
@@ -64,7 +64,7 @@ function reportsLabel(type: ScoutMissionType): string {
           @click="startScoutMission(m.type)"
           :disabled="club.upgrades.scoutingLevel < m.minLevel || scouting.activeMissions.length >= club.scoutingSpec.slots || club.budget < m.cost"
           :title="club.budget < m.cost ? blockedMsg(m.cost) : undefined"
-          class="w-full px-3 py-2 text-xs transition-colors"
+          class="w-full min-h-[40px] sm:min-h-0 px-3 py-2 text-xs transition-colors"
         >
           <template v-if="club.upgrades.scoutingLevel < m.minLevel">Requer Scout Nv.{{ m.minLevel }}</template>
           <template v-else>{{ formatCurrency(m.cost) }}</template>

@@ -41,7 +41,7 @@ const { acceptIncomingOffer, counterIncomingOffer, rejectIncomingOffer } = useSq
             </div>
           </div>
           <div class="text-right shrink-0">
-            <span class="text-[10px] text-ink-muted block">Oferta</span>
+            <span class="text-[11px] text-ink-muted block">Oferta</span>
             <span class="font-score font-extrabold text-lg text-emeraldpro whitespace-nowrap">{{ formatCurrency(offer.amount) }}</span>
           </div>
         </div>
@@ -50,7 +50,7 @@ const { acceptIncomingOffer, counterIncomingOffer, rejectIncomingOffer } = useSq
           <button
             type="button"
             @click="acceptIncomingOffer(offer)"
-            class="flex-1 py-1.5 rounded-lg bg-emeraldpro hover:bg-emeraldpro-hover text-white font-bold"
+            class="flex-1 min-h-[40px] sm:min-h-0 py-1.5 rounded-lg bg-emeraldpro hover:bg-emeraldpro-hover text-white font-bold"
           >
             Aceitar
           </button>
@@ -58,14 +58,14 @@ const { acceptIncomingOffer, counterIncomingOffer, rejectIncomingOffer } = useSq
             v-if="!offer.countered"
             type="button"
             @click="counterIncomingOffer(offer)"
-            class="flex-1 py-1.5 rounded-lg bg-surface hover:bg-borderline border border-borderline text-ink font-bold"
+            class="flex-1 min-h-[40px] sm:min-h-0 py-1.5 rounded-lg bg-surface hover:bg-borderline border border-borderline text-ink font-bold"
           >
             Pedir +20%
           </button>
           <button
             type="button"
             @click="rejectIncomingOffer(offer.id)"
-            class="shrink-0 px-3 py-1.5 rounded-lg bg-dangerpro-soft text-dangerpro font-bold"
+            class="shrink-0 px-3 min-h-[40px] sm:min-h-0 py-1.5 rounded-lg bg-dangerpro-soft text-dangerpro font-bold"
           >
             Recusar
           </button>

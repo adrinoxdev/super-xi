@@ -66,11 +66,11 @@ const { openCompareModal, signScoutedPlayer, dismissReport } = useScouting()
 
     <p v-if="hireWarning" class="text-[11px] text-amberpro font-semibold break-words">{{ hireWarning }}</p>
 
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <button
         type="button"
         @click="openCompareModal(rep)"
-        class="flex-1 min-w-0 py-2 rounded-xl bg-surface hover:bg-borderline border border-borderline text-ink text-xs font-bold transition-colors"
+        class="flex-1 min-w-0 min-h-[40px] sm:min-h-0 py-2 rounded-xl bg-surface hover:bg-borderline border border-borderline text-ink text-xs font-bold transition-colors"
       >
         Comparar
       </button>
@@ -78,7 +78,7 @@ const { openCompareModal, signScoutedPlayer, dismissReport } = useScouting()
         @click="signScoutedPlayer(rep)"
         :disabled="squad.isFull"
         :title="fullTitle"
-        class="flex-1 min-w-0 py-2 disabled:cursor-not-allowed text-xs transition-colors"
+        class="flex-1 min-w-0 min-h-[40px] sm:min-h-0 py-2 disabled:cursor-not-allowed text-xs transition-colors"
       >
         Contratar
       </BaseButton>
@@ -86,7 +86,7 @@ const { openCompareModal, signScoutedPlayer, dismissReport } = useScouting()
         type="button"
         @click="dismissReport(rep.id)"
         title="Dispensar Relatório"
-        class="shrink-0 p-2 rounded-xl bg-surface hover:bg-dangerpro-soft border border-borderline text-ink-muted hover:text-dangerpro transition-colors"
+        class="shrink-0 p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 inline-flex items-center justify-center rounded-xl bg-surface hover:bg-dangerpro-soft border border-borderline text-ink-muted hover:text-dangerpro transition-colors"
       >
         <X class="w-4 h-4" />
       </button>

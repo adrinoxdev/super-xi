@@ -13,17 +13,17 @@ const scouting = useScoutingStore()
       <h2 class="text-lg sm:text-xl font-bold text-ink">Central de Scouting & Mercado</h2>
       <p class="text-xs text-ink-muted">Envie olheiros para descobrir reforços ou promova jovens talentos da sua base.</p>
     </div>
-    <div class="flex flex-wrap items-center gap-2.5">
-      <div class="bg-subtle px-3 py-2 rounded-xl border border-borderline text-center">
-        <span class="text-[10px] uppercase text-ink-muted block">Slots</span>
+    <div class="grid grid-cols-3 sm:flex sm:flex-wrap items-center gap-2.5">
+      <div class="bg-subtle px-2 sm:px-3 py-2 rounded-xl border border-borderline text-center min-w-0">
+        <span class="text-[11px] uppercase text-ink-muted block">Slots</span>
         <span class="font-score font-bold text-base text-ink">{{ scouting.activeMissions.length }} / {{ club.scoutingSpec.slots }}</span>
       </div>
-      <div class="bg-subtle px-3 py-2 rounded-xl border border-borderline text-center">
-        <span class="text-[10px] uppercase text-ink-muted block">Precisão</span>
+      <div class="bg-subtle px-2 sm:px-3 py-2 rounded-xl border border-borderline text-center min-w-0">
+        <span class="text-[11px] uppercase text-ink-muted block">Precisão</span>
         <span class="font-score font-bold text-base text-emeraldpro">{{ Math.round(club.accuracyWithStaff * 100) }}%</span>
       </div>
-      <div class="bg-subtle px-3 py-2 rounded-xl border border-borderline text-center">
-        <span class="text-[10px] uppercase text-ink-muted block">Joia Rara</span>
+      <div class="bg-subtle px-2 sm:px-3 py-2 rounded-xl border border-borderline text-center min-w-0">
+        <span class="text-[11px] uppercase text-ink-muted block">Joia Rara</span>
         <span class="font-score font-bold text-base text-amberpro">
           {{ Math.round(club.gemChanceWithStaff * 100) }}%
         </span>

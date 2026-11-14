@@ -47,7 +47,7 @@ function dateLabel(ts: number): string {
             type="button"
             @click="filter = f.id"
             :class="[
-              'px-3 py-1 rounded-full text-xs font-bold border transition-colors',
+              'px-3.5 py-2 min-h-10 md:min-h-0 md:py-1 rounded-full text-xs font-bold border transition-colors',
               filter === f.id
                 ? 'bg-emeraldpro-soft border-emeraldpro text-emeraldpro'
                 : 'bg-surface border-borderline text-ink-muted hover:bg-subtle hover:text-ink'
@@ -79,12 +79,12 @@ function dateLabel(ts: number): string {
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 text-sm font-bold text-ink min-w-0">
               <TeamCrest size="sm" is-user class="shrink-0" />
-              <span class="truncate">{{ m.userName }}</span>
+              <span class="min-w-0 break-words sm:truncate" :title="m.userName">{{ m.userName }}</span>
               <span class="font-score shrink-0">{{ scoreText(m) }}</span>
               <TeamCrest size="sm" :name="m.opponentName" class="shrink-0" />
-              <span class="truncate">{{ m.opponentName }}</span>
+              <span class="min-w-0 break-words sm:truncate" :title="m.opponentName">{{ m.opponentName }}</span>
             </div>
-            <p class="text-[11px] text-ink-muted truncate mt-0.5">
+            <p class="text-[11px] text-ink-muted break-words sm:truncate mt-0.5">
               {{ m.label.replace(' — ', ' • ') }} • Temp. {{ m.season }} • {{ m.isHome ? 'Em casa' : 'Fora' }} • {{ dateLabel(m.playedAt) }}
             </p>
           </div>
