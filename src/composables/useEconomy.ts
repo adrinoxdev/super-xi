@@ -47,19 +47,27 @@ export function useEconomy() {
     return { name: target.name, price }
   }
 
-  function settleMatch(uGoals: number, oGoals: number, isHome: boolean): LastMatchSummary {
+  /** `pens`: disputa de pênaltis do mata-mata empatado; quem vence nos pênaltis conta como vencedor. */
+  function settleMatch(
+    uGoals: number,
+    oGoals: number,
+    isHome: boolean,
+    pens?: { user: number; opp: number } | null
+  ): LastMatchSummary {
+    const won = uGoals > oGoals || (uGoals === oGoals && !!pens && pens.user > pens.opp)
+    const lost = uGoals < oGoals || (uGoals === oGoals && !!pens && pens.user < pens.opp)
     const eco = club.serieEconomy
     const ticket = ticketIncome(isHome)
     const sponsor = club.projectedSponsorIncome
     const winBonus =
-      uGoals > oGoals ? Math.round(eco.sponsorBase * ECONOMY.winBonusShare) : uGoals === oGoals ? Math.round(eco.sponsorBase * ECONOMY.drawBonusShare) : 0
+      won ? Math.round(eco.sponsorBase * ECONOMY.winBonusShare) : lost ? 0 : Math.round(eco.sponsorBase * ECONOMY.drawBonusShare)
     const wages = squad.totalWageBill
     // Saldo negativo é permitido (dívida): paga juros por partida e bloqueia gastos (spend exige saldo).
     const interest = club.budget < 0 ? Math.round(-club.budget * ECONOMY.debtInterestPerMatch) : 0
     const maintenance = club.maintenanceCost
     const net = ticket + sponsor + winBonus - wages - interest - maintenance
     club.budget += net
-    club.reputation += uGoals > oGoals ? 3 : uGoals === oGoals ? 1 : 0
+    club.reputation += won ? 3 : lost ? 0 : 1
     const sale = club.budget < -eco.debtLimit ? forcedSale() : null
     return { ticket, sponsor, winBonus, wages, net, interest, maintenance, forcedSale: sale }
   }

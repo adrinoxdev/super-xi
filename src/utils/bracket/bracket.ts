@@ -156,6 +156,8 @@ const hasUser = (t: BracketTie) => t.homeId === USER_ID || t.awayId === USER_ID
 /** Joga os jogos pendentes (se houver) e decide o vencedor; empate no agregado vai a pênaltis. */
 export function resolveTie(
   tie: BracketTie, teams: Record<string, BracketTeam>, rng: Rng = Math.random, userDrawWinProb = 0.55,
+  /** Pênaltis já disputados ao vivo pelo usuário: valem no lugar do sorteio. */
+  userPens?: { user: number; opp: number } | null,
 ): void {
   if (tie.winnerId || !tie.homeId || !tie.awayId) return
   for (const leg of tie.legs) {
@@ -168,7 +170,10 @@ export function resolveTie(
   const agg = tieAggregate(tie)
   if (!agg) return
   if (agg.home !== agg.away) { setWinner(tie, agg.home > agg.away ? 'home' : 'away'); return }
-  if (hasUser(tie)) {
+  if (hasUser(tie) && userPens) {
+    const userIsHome = tie.homeId === USER_ID
+    tie.penalties = userIsHome ? { home: userPens.user, away: userPens.opp } : { home: userPens.opp, away: userPens.user }
+  } else if (hasUser(tie)) {
     const userIsHome = tie.homeId === USER_ID
     const userWins = rng() < userDrawWinProb
     tie.penalties = shootoutWithWinner(userWins === userIsHome ? 'home' : 'away', rng)

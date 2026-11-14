@@ -53,7 +53,8 @@ export function createFinals(ctx: {
   function applyFinalResult(
     kind: 'supercup' | 'recopa',
     uGoals: number,
-    oGoals: number
+    oGoals: number,
+    userPens?: { user: number; opp: number } | null
   ): CompetitionToast {
     const isSuper = kind === 'supercup'
     const state = isSuper ? supercupState : recopaState
@@ -62,7 +63,10 @@ export function createFinals(ctx: {
     const titleName = isSuper ? 'Campeão da Supercopa Soberana' : 'Campeão da Recopa Condor'
     let userWon = uGoals > oGoals
     let scoreText = `${uGoals} x ${oGoals}`
-    if (uGoals === oGoals) {
+    if (uGoals === oGoals && userPens) {
+      userWon = userPens.user > userPens.opp
+      scoreText += ` (${userPens.user}x${userPens.opp} pên.)`
+    } else if (uGoals === oGoals) {
       const uPen = 4 + randInt(0, 1)
       userWon = Math.random() < 0.56
       const oPen = userWon ? uPen - 1 : uPen + 1
