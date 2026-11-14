@@ -41,7 +41,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="w-full min-h-screen flex flex-col md:flex-row overflow-x-clip">
+  <div class="w-full min-h-dvh flex flex-col md:flex-row overflow-x-clip">
     <AppToast />
     <Sidebar />
     <div class="flex-1 flex flex-col min-w-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">

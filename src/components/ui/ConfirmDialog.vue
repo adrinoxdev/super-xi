@@ -36,7 +36,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
       <button
         type="button"
-        class="px-4 py-2.5 rounded-xl bg-subtle hover:bg-borderline text-ink text-sm font-bold transition-colors"
+        class="px-4 py-2.5 min-h-11 rounded-xl bg-subtle hover:bg-borderline text-ink text-sm font-bold transition-colors"
         @click="ui.resolveConfirm(false)"
       >
         {{ ui.confirmDialog.cancelLabel }}
@@ -44,7 +44,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <button
         type="button"
         :class="[
-          'px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-colors',
+          'px-4 py-2.5 min-h-11 rounded-xl text-white text-sm font-bold transition-colors',
           ui.confirmDialog.danger ? 'bg-dangerpro hover:opacity-90' : 'bg-emeraldpro hover:bg-emeraldpro-hover'
         ]"
         @click="ui.resolveConfirm(true)"

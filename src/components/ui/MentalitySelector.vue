@@ -19,7 +19,7 @@ function pct(mod: number): string {
 
 <template>
   <div
-    :class="variant === 'compact' ? 'grid grid-cols-5 gap-1.5'
+    :class="variant === 'compact' ? 'grid grid-cols-3 sm:grid-cols-5 gap-1.5'
       : variant === 'cards' ? 'grid grid-cols-2 sm:grid-cols-5 gap-2'
       : 'flex flex-wrap gap-1.5'"
   >
@@ -29,7 +29,7 @@ function pct(mod: number): string {
       type="button"
       @click="$emit('update:modelValue', key)"
       :class="variant === 'compact' ? [
-        'py-2 px-1 rounded-xl text-[10px] sm:text-xs font-bold border text-center transition-all truncate',
+        'min-h-10 py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border text-center transition-all truncate',
         modelValue === key
           ? 'bg-emeraldpro text-white border-emeraldpro shadow-sm'
           : 'bg-subtle text-ink-muted border-borderline hover:text-ink'
@@ -39,7 +39,7 @@ function pct(mod: number): string {
           ? 'bg-emeraldpro-soft border-emeraldpro text-ink ring-1 ring-emeraldpro'
           : 'bg-subtle border-borderline text-ink-muted hover:text-ink'
       ] : [
-        'px-3 py-1.5 rounded-lg text-xs font-bold border',
+        'px-3 py-2 min-h-10 md:min-h-0 md:py-1.5 rounded-lg text-xs font-bold border',
         modelValue === key ? 'bg-emeraldpro text-white border-emeraldpro' : 'bg-subtle text-ink-muted border-borderline'
       ]"
     >
