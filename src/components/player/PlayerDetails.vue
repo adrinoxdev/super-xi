@@ -31,6 +31,21 @@ const lastYear = computed(() => !!player.value && player.value.contractYears ===
 // Queda de OVER que o atleta sofre na próxima virada (idade que terá depois dela).
 const dropNext = computed(() => (player.value ? agingDrop(player.value.age + 1, player.value.position) : 0))
 const seasonGain = computed(() => (player.value ? club.progress.seasonGains[player.value.id] || 0 : 0))
+const historyStats = computed(() => {
+  const p = player.value
+  if (!p) return []
+  const apps = club.careerStats[p.id]?.apps ?? 0
+  const goals = club.careerStats[p.id]?.goals ?? 0
+  return [
+    { label: 'Jogos na carreira', value: apps },
+    { label: 'Gols na carreira', value: goals },
+    { label: 'Assistências na carreira', value: club.careerStats[p.id]?.assists ?? 0 },
+    { label: 'Jogos na temporada', value: club.seasonApps[p.id] ?? 0 },
+    { label: 'Gols na temporada', value: club.seasonGoals[p.id] ?? 0 },
+    { label: 'Assistências na temporada', value: club.seasonAssists[p.id] ?? 0 },
+    { label: 'Gols por jogo', value: apps > 0 ? (goals / apps).toFixed(2) : '—' },
+  ]
+})
 const atPeak = computed(() => !!player.value && player.value.overall >= player.value.potential)
 const overPercent = computed(() => (player.value && player.value.potential > 0 ? (player.value.overall / player.value.potential) * 100 : 0))
 const sellBlocked = computed(() => !!player.value && sellPriceFor(player.value) <= 0)
@@ -81,6 +96,16 @@ const renewBlockedReason = computed(() => {
         <span v-else class="text-ink-muted">+0 nesta temporada</span>
       </div>
       <ProgressBar :percent="overPercent" />
+    </div>
+
+    <div class="space-y-1.5 text-xs">
+      <div class="font-bold text-ink">Histórico</div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div v-for="s in historyStats" :key="s.label" class="p-2.5 rounded-xl bg-subtle border border-borderline">
+          <div class="text-[10px] font-bold uppercase text-ink-muted">{{ s.label }}</div>
+          <div class="font-bold text-ink">{{ s.value }}</div>
+        </div>
+      </div>
     </div>
 
     <div class="space-y-1.5 text-xs">

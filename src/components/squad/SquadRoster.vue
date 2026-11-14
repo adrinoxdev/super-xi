@@ -5,7 +5,7 @@ import EventIcon from '@/components/match/EventIcon.vue'
 import { suspensionText } from '@/utils/player/suspension'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { computed } from 'vue'
-import { Bandage } from 'lucide-vue-next'
+import { Bandage, Goal, HandHelping, Shirt } from 'lucide-vue-next'
 import { useSquadStore } from '@/stores/squad'
 import { useClubStore } from '@/stores/club'
 import { useUiStore } from '@/stores/ui'
@@ -143,8 +143,30 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
               </span>
             </div>
             <div class="text-[11px] text-ink-muted flex flex-wrap items-center gap-x-2">
-              <span>{{ player.age }}a • Pot {{ player.potential }}</span>
-              <span>• Energia {{ Math.round(player.stamina ?? 100) }}%</span>
+              <span>{{ player.age }}a • Energia {{ Math.round(player.stamina ?? 100) }}%</span>
+            </div>
+            <div class="mt-0.5 flex flex-wrap items-center gap-1">
+              <span
+                class="inline-flex items-center gap-0.5 text-[10px] font-bold text-ink-muted"
+                :aria-label="`Jogos na temporada: ${club.seasonApps[player.id] || 0}`"
+                title="Jogos na temporada"
+              >
+                <Shirt class="w-3 h-3" aria-hidden="true" />{{ club.seasonApps[player.id] || 0 }}
+              </span>
+              <span
+                class="inline-flex items-center gap-0.5 text-[10px] font-bold text-ink-muted"
+                :aria-label="`Gols na temporada: ${club.seasonGoals[player.id] || 0}`"
+                title="Gols na temporada"
+              >
+                <Goal class="w-3 h-3" aria-hidden="true" />{{ club.seasonGoals[player.id] || 0 }}
+              </span>
+              <span
+                class="inline-flex items-center gap-0.5 text-[10px] font-bold text-ink-muted"
+                :aria-label="`Assistências na temporada: ${club.seasonAssists[player.id] || 0}`"
+                title="Assistências na temporada"
+              >
+                <HandHelping class="w-3 h-3" aria-hidden="true" />{{ club.seasonAssists[player.id] || 0 }}
+              </span>
             </div>
           </div>
         </div>
