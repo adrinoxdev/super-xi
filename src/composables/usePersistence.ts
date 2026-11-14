@@ -8,6 +8,7 @@ import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
 import { ATHLETE_ECONOMY_VERSION, BALANCE_VERSION, PROGRESSION_VERSION, migrateAthleteEconomyV1, migrateBalanceV2, migrateProgressionV3 } from '@/migrations/balanceMigration'
 import { LIVE_MATCH_KEY, STORAGE_KEY } from '@/config'
+import { useEconomy } from './useEconomy'
 import { checkMilestones } from '@/utils/club/progression'
 
 // Definição única em constants.ts; reexportada por compatibilidade com quem importava daqui.
@@ -37,9 +38,13 @@ export function usePersistence() {
   const competitions = useCompetitionsStore()
   const match = useMatchStore()
   const ui = useUiStore()
+  const { computeOfflineReward } = useEconomy()
+  // Durante o carregamento o saveGame não pode sobrescrever lastActiveAt antes da recompensa ser calculada.
+  let loading = false
 
   function saveGame(): void {
     try {
+      if (!loading) club.touchActive()
       const sc = scouting.toSave()
       localStorage.setItem(
         STORAGE_KEY,
@@ -74,6 +79,7 @@ export function usePersistence() {
       if (!raw) return false
       const p = JSON.parse(raw)
       if (p?.club && p?.squad?.players?.length) {
+        loading = true
         club.fromSave(p.club)
         squad.fromSave(p.squad)
         scouting.fromSave({
@@ -149,10 +155,14 @@ export function usePersistence() {
         if (!league.leagueFixtures.length) league.initLeagueSeason(club.division, club.season)
         league.ensureKnockoutTies()
         league.selectedRound = league.currentRound
+        loading = false
+        applyOfflineReward()
         return true
       }
     } catch {
       club.resetClub()
+    } finally {
+      loading = false
     }
     return false
   }
@@ -174,7 +184,17 @@ export function usePersistence() {
     match.resetMatchState()
   }
 
+  function applyOfflineReward(): void {
+    const reward = computeOfflineReward()
+    if (reward) {
+      club.offlinePending = { amount: reward.amount, hours: reward.hours, capped: reward.capped, ...reward.text }
+    } else {
+      club.touchActive()
+    }
+  }
+
   function exportCareerCode(): void {
+    saveGame()
     try {
       ui.backupCodeText = utf8ToBase64(localStorage.getItem(STORAGE_KEY) || '')
       ui.showToast('Código de carreira gerado!', 'success')
@@ -189,6 +209,7 @@ export function usePersistence() {
       const json = base64ToUtf8(ui.backupCodeText.trim())
       const p = JSON.parse(json)
       if (!(p?.club && p?.squad?.players?.length)) throw new Error('invalid')
+      saveGame()
       const previous = localStorage.getItem(STORAGE_KEY)
       let ok = false
       try {
@@ -215,5 +236,5 @@ export function usePersistence() {
     }
   }
 
-  return { saveGame, loadGame, clearSave, exportCareerCode, importCareerCode }
+  return { saveGame, loadGame, clearSave, applyOfflineReward, exportCareerCode, importCareerCode }
 }

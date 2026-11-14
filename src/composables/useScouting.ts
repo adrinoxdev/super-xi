@@ -14,6 +14,7 @@ import { usePersistence } from './usePersistence'
 // Estado de módulo: um único relógio compartilhado por todas as telas.
 export const nowTick = ref(Date.now())
 let missionTickTimer: ReturnType<typeof setInterval> | null = null
+let lastActiveTouch = 0
 
 export function useScouting() {
   const club = useClubStore()
@@ -27,6 +28,10 @@ export function useScouting() {
     missionTickTimer = setInterval(() => {
       nowTick.value = Date.now()
       club.clubNow = nowTick.value
+      if (nowTick.value - lastActiveTouch >= 30000 && document.visibilityState === 'visible') {
+        lastActiveTouch = nowTick.value
+        club.touchActive()
+      }
       scouting.missions.forEach((m) => {
         if (m.status === 'active' && Date.now() >= m.startTime + m.duration) {
           completeMissionNow(m.id)

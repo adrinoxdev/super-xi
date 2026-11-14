@@ -4,7 +4,8 @@ import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
 import type { LastMatchSummary } from '@/types/match'
 import type { Player } from '@/types/player'
-import { ECONOMY, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE } from '@/config'
+import { ECONOMY, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE, calcOfflineReward } from '@/config'
+import { offlineRewardText } from '@/utils/club/offlineRewardText'
 import { formatCurrency } from '@/utils/format/formatCurrency'
 import { generatePlayer, saleCap } from '@/utils/player/generatePlayer'
 
@@ -74,5 +75,26 @@ export function useEconomy() {
 
   const projectedTotalIncome = computed(() => club.projectedStadiumIncome + club.projectedSponsorIncome)
 
-  return { ticketIncome, settleMatch, projectedTotalIncome }
+  /** Recompensa offline pela ausência desde lastActiveAt; null se abaixo do mínimo. */
+  function computeOfflineReward(now = Date.now()) {
+    const r = calcOfflineReward(
+      now - club.lastActiveAt,
+      club.projectedStadiumIncome + club.projectedSponsorIncome,
+      club.upgrades.financeLevel
+    )
+    if (!r || r.amount <= 0) return null
+    return { ...r, text: offlineRewardText({ clubName: club.name, hours: r.hours, seed: club.lastActiveAt }) }
+  }
+
+  /** Paga a recompensa pendente uma única vez e reinicia a contagem. */
+  function claimOfflineReward() {
+    const pending = club.offlinePending
+    if (!pending) return
+    club.offlinePending = null
+    club.earn(pending.amount)
+    club.lastActiveAt = Date.now()
+    ui.showToast(`Renda offline coletada: ${formatCurrency(pending.amount)}.`, 'success')
+  }
+
+  return { ticketIncome, settleMatch, projectedTotalIncome, computeOfflineReward, claimOfflineReward }
 }

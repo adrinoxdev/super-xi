@@ -4,10 +4,12 @@ import { computed } from 'vue'
 import { Wrench, Landmark, TrendingUp, Users } from 'lucide-vue-next'
 import { useClubStore } from '@/stores/club'
 import { useSquadStore } from '@/stores/squad'
+import { OFFLINE, offlineCapHours } from '@/config'
 import { formatCurrency } from '@/utils/format/formatCurrency'
 
 const club = useClubStore()
 const squad = useSquadStore()
+const offlinePerHour = computed(() => Math.round((club.projectedStadiumIncome + club.projectedSponsorIncome) * OFFLINE.ratioPerHour))
 const levelCap = computed(() => club.serieEconomy.levelCap)
 const aboveCap = computed(() => club.upgrades.stadiumLevel > levelCap.value || club.upgrades.financeLevel > levelCap.value)
 </script>
@@ -54,6 +56,9 @@ const aboveCap = computed(() => club.upgrades.stadiumLevel > levelCap.value || c
       </div>
       <p class="mt-1 text-xs text-ink-muted">Bilheteria ({{ formatCurrency(club.projectedStadiumIncome) }}) + Patrocínio ({{ formatCurrency(club.projectedSponsorIncome) }}).</p>
     </BaseCard>
+    <p class="sm:col-span-2 lg:col-span-4 text-xs text-ink-muted">
+      Renda offline: {{ formatCurrency(offlinePerHour) }}/h (cap {{ offlineCapHours(club.upgrades.financeLevel) }}h)
+    </p>
     <p v-if="aboveCap" class="sm:col-span-2 lg:col-span-4 text-xs text-ink-muted break-words">
       Estádio ou finanças acima do teto da série atual (nível {{ levelCap }}): os níveis excedentes não rendem receita, mas pagam manutenção.
     </p>

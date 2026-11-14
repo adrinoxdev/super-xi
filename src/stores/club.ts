@@ -113,6 +113,13 @@ export const useClubStore = defineStore('club', () => {
   // Descanso do elenco: usos contados no dia de restDayStart; vira 0 sozinho quando o dia muda.
   const restDayStart = ref(0)
   const restUses = ref(0)
+  // Renda offline: instante da última atividade e recompensa pendente (esta não é salva).
+  const lastActiveAt = ref(Date.now())
+  const offlinePending = ref<{ amount: number; hours: number; capped: boolean; title: string; message: string } | null>(null)
+  /** Marca atividade agora; congelado enquanto houver recompensa pendente para ela não se perder. */
+  function touchActive() {
+    if (!offlinePending.value) lastActiveAt.value = Date.now()
+  }
   const restUsesToday = computed(() => (restDayStart.value === dayStart(clubNow.value) ? restUses.value : 0))
   const restCostNow = computed(() => restCost(restUsesToday.value, division.value))
   const restResetsInMs = computed(() => Math.max(0, nextDayStart(clubNow.value) - clubNow.value))
@@ -341,6 +348,7 @@ export const useClubStore = defineStore('club', () => {
       tryoutsThisSeason: tryoutsThisSeason.value,
       restDayStart: restDayStart.value,
       restUses: restUses.value,
+      lastActiveAt: lastActiveAt.value,
       progress: {
         seasonStartOver: progress.value.seasonStartOver,
         seasonStartPlayerOver: { ...progress.value.seasonStartPlayerOver },
@@ -399,6 +407,8 @@ export const useClubStore = defineStore('club', () => {
     tryoutsThisSeason.value = Number.isFinite(data.tryoutsThisSeason) ? Math.max(0, Math.floor(data.tryoutsThisSeason as number)) : 0
     restDayStart.value = Number.isFinite(data.restDayStart) ? (data.restDayStart as number) : 0
     restUses.value = Number.isFinite(data.restUses) ? Math.max(0, Math.floor(data.restUses as number)) : 0
+    lastActiveAt.value = Number.isFinite(data.lastActiveAt) ? Math.min(data.lastActiveAt as number, Date.now()) : Date.now()
+    offlinePending.value = null
     const pr = data.progress
     const base = defaultProgress()
     progress.value = pr && typeof pr === 'object'
@@ -470,6 +480,9 @@ export const useClubStore = defineStore('club', () => {
     restUsesToday,
     restCostNow,
     restResetsInMs,
+    lastActiveAt,
+    offlinePending,
+    touchActive,
     registerRest,
     maxSquadCapacity,
     serieEconomy,
