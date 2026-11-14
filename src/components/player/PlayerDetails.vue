@@ -67,7 +67,7 @@ const renewBlockedReason = computed(() => {
     <div class="relative flex flex-col items-center gap-2 border-b border-borderline pb-4">
       <button
         type="button"
-        class="absolute right-0 top-0 p-1.5 rounded-lg bg-subtle text-ink-muted"
+        class="absolute right-0 top-0 p-2.5 md:p-1.5 rounded-lg bg-subtle text-ink-muted"
         aria-label="Fechar"
         @click="ui.closePlayer()"
       >
@@ -106,7 +106,7 @@ const renewBlockedReason = computed(() => {
       <div class="font-bold text-ink">Histórico</div>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <div v-for="s in historyStats" :key="s.label" class="p-2.5 rounded-xl bg-subtle border border-borderline">
-          <div class="text-[10px] font-bold uppercase text-ink-muted">{{ s.label }}</div>
+          <div class="text-[11px] font-bold uppercase text-ink-muted">{{ s.label }}</div>
           <div class="font-bold text-ink">{{ s.value }}</div>
         </div>
       </div>
@@ -116,7 +116,7 @@ const renewBlockedReason = computed(() => {
       <label class="font-bold text-ink block">Foco de Treinamento Individual</label>
       <select
         v-model="player.trainingFocus"
-        class="w-full p-2.5 rounded-xl bg-subtle border border-borderline font-semibold text-ink"
+        class="w-full p-2.5 min-h-11 rounded-xl bg-subtle border border-borderline font-semibold text-ink"
         @change="saveGame()"
       >
         <option v-for="o in TRAINING_FOCUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
@@ -128,14 +128,14 @@ const renewBlockedReason = computed(() => {
         <label class="font-bold text-ink block mb-1">Status no Mercado</label>
         <select
           v-model="player.marketStatus"
-          class="w-full p-2.5 rounded-xl bg-subtle border border-borderline font-semibold text-ink"
+          class="w-full p-2.5 min-h-11 rounded-xl bg-subtle border border-borderline font-semibold text-ink"
           @change="saveGame()"
         >
           <option v-for="o in MARKET_STATUS_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
         </select>
       </div>
       <div class="p-2.5 rounded-xl bg-subtle border border-borderline flex flex-col justify-center min-w-0">
-        <span class="text-[10px] font-bold uppercase text-ink-muted">Valor de mercado</span>
+        <span class="text-[11px] font-bold uppercase text-ink-muted">Valor de mercado</span>
         <strong class="font-score text-base text-ink truncate">{{ formatCurrency(player.value) }}</strong>
       </div>
     </div>
@@ -157,7 +157,7 @@ const renewBlockedReason = computed(() => {
         type="button"
         :disabled="club.budget < treatment.cost"
         :title="club.budget < treatment.cost ? 'Saldo insuficiente para o tratamento.' : undefined"
-        class="shrink-0 px-3 py-1.5 rounded-lg bg-dangerpro hover:opacity-90 disabled:opacity-50 text-white text-[11px] font-bold"
+        class="shrink-0 px-3 py-2 min-h-10 rounded-lg bg-dangerpro hover:opacity-90 disabled:opacity-50 text-white text-[11px] font-bold"
         @click="treatInjury(player)"
       >
         Tratar (-{{ treatment.removed }} {{ treatment.removed === 1 ? 'jogo' : 'jogos' }} • {{ formatCurrency(treatment.cost) }})
@@ -188,7 +188,7 @@ const renewBlockedReason = computed(() => {
         type="button"
         :disabled="!canRenew(player)"
         :title="renewBlockedReason || undefined"
-        class="py-2.5 px-3 rounded-xl bg-emeraldpro-soft hover:bg-emeraldpro hover:text-white disabled:opacity-50 disabled:hover:bg-emeraldpro-soft disabled:hover:text-emeraldpro text-emeraldpro text-xs font-bold transition-colors break-words min-w-0"
+        class="py-2.5 px-3 min-h-11 rounded-xl bg-emeraldpro-soft hover:bg-emeraldpro hover:text-white disabled:opacity-50 disabled:hover:bg-emeraldpro-soft disabled:hover:text-emeraldpro text-emeraldpro text-xs font-bold transition-colors break-words min-w-0"
         @click="renewPlayerContract(player)"
       >
         Renovar (+{{ renewYearsFor(player) }} temp. • luvas {{ formatCurrency(getRenewalCost(player)) }})
@@ -198,7 +198,7 @@ const renewBlockedReason = computed(() => {
         type="button"
         :disabled="youthLocked || injured"
         :title="injured ? 'Atleta lesionado: aguarde a recuperação ou pague o tratamento.' : youthLocked ? `Promovido da base: empréstimo liberado na temporada ${youthUnlock}.` : undefined"
-        class="py-2.5 px-3 rounded-xl bg-subtle hover:bg-borderline border border-borderline text-ink text-xs font-bold transition-colors disabled:opacity-50 disabled:hover:bg-subtle"
+        class="py-2.5 px-3 min-h-11 rounded-xl bg-subtle hover:bg-borderline border border-borderline text-ink text-xs font-bold transition-colors disabled:opacity-50 disabled:hover:bg-subtle"
         @click="loanOutPlayer(player)"
       >
         Emprestar Saída (+{{ formatCurrency(loanOutFeeFor(player)) }})
@@ -207,7 +207,7 @@ const renewBlockedReason = computed(() => {
         type="button"
         :disabled="sellBlocked"
         :title="sellBlocked ? (injured ? 'Atleta lesionado: aguarde a recuperação ou pague o tratamento.' : youthLocked ? `Promovido da base: venda liberada na temporada ${youthUnlock}.` : 'Promovido nesta temporada: venda liberada na próxima.') : undefined"
-        class="py-2.5 px-3 rounded-xl bg-dangerpro-soft hover:bg-dangerpro hover:text-white disabled:opacity-50 disabled:hover:bg-dangerpro-soft disabled:hover:text-dangerpro text-dangerpro text-xs font-bold transition-colors break-words min-w-0"
+        class="py-2.5 px-3 min-h-11 rounded-xl bg-dangerpro-soft hover:bg-dangerpro hover:text-white disabled:opacity-50 disabled:hover:bg-dangerpro-soft disabled:hover:text-dangerpro text-dangerpro text-xs font-bold transition-colors break-words min-w-0"
         @click="sellSquadPlayer(player)"
       >
         {{ injured ? 'Lesionado' : `Vender (+${formatCurrency(sellPriceFor(player))})` }}

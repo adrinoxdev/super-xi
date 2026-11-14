@@ -37,16 +37,16 @@ function sign() {
     <div class="flex items-center justify-between gap-3 border-b border-borderline pb-3">
       <div class="min-w-0">
         <span class="text-[11px] font-bold uppercase text-emeraldpro">Análise Técnica Comparativa</span>
-        <h3 class="text-lg font-extrabold text-ink break-words [overflow-wrap:anywhere]">{{ report.player.name }}</h3>
+        <h3 class="text-base sm:text-lg font-extrabold text-ink break-words [overflow-wrap:anywhere]">{{ report.player.name }}</h3>
       </div>
-      <button type="button" class="p-1.5 rounded-lg bg-subtle text-ink-muted shrink-0" @click="close">
+      <button type="button" aria-label="Fechar" class="p-2.5 md:p-1.5 rounded-lg bg-subtle text-ink-muted shrink-0" @click="close">
         <X class="w-4 h-4" />
       </button>
     </div>
 
     <div class="grid grid-cols-2 gap-3 text-xs">
       <div class="min-w-0 p-2.5 sm:p-3.5 rounded-xl bg-emeraldpro-soft/50 border border-emeraldpro/40 space-y-1.5">
-        <span class="text-[10px] font-bold uppercase text-emeraldpro block">Alvo do Scouting</span>
+        <span class="text-[11px] font-bold uppercase text-emeraldpro block">Alvo do Scouting</span>
         <div class="flex justify-center py-1">
           <PlayerCard :player="report.player" size="sm" estimated mask-attrs :overall="report.estimatedOvr" />
         </div>
@@ -58,7 +58,7 @@ function sign() {
       </div>
 
       <div class="min-w-0 p-2.5 sm:p-3.5 rounded-xl bg-subtle border border-borderline space-y-1.5">
-        <span class="text-[10px] font-bold uppercase text-ink-muted block">Melhor Titular da Posição</span>
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Melhor Titular da Posição</span>
         <template v-if="incumbent">
           <div class="flex justify-center py-1">
             <PlayerCard :player="incumbent" size="sm" />
@@ -74,12 +74,12 @@ function sign() {
     </div>
 
     <div class="flex flex-wrap justify-end gap-2 pt-2">
-      <button type="button" class="px-4 py-2 rounded-xl bg-subtle text-ink text-xs font-bold" @click="close">
+      <button type="button" class="px-4 py-2 min-h-10 rounded-xl bg-subtle text-ink text-xs font-bold" @click="close">
         Fechar
       </button>
       <button
         type="button"
-        class="px-5 py-2 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-xs font-bold"
+        class="px-5 py-2 min-h-10 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-xs font-bold"
         :disabled="squad.isFull"
         :title="squad.isFull ? squadFullTitle(squad.players.length, club.maxSquadCapacity) : undefined"
         @click="sign"
