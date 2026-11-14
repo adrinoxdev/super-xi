@@ -131,7 +131,7 @@ const rays = Array.from({ length: 14 }, (_, i) => i)
         />
 
         <div class="absolute" :style="xs ? 'left: 34cqw; top: 8cqw; width: 60cqw; height: 60cqw' : 'left: 31cqw; top: 9cqw; width: 63cqw; height: 63cqw'">
-          <PlayerAvatar :seed="player.id + player.name" :shirt-color="club.primaryColor" />
+          <PlayerAvatar :seed="player.id + player.name" :shirt-color="club.primaryColor" :animated="tier === 'legend'" />
         </div>
 
         <div class="absolute flex flex-col items-center leading-none" :style="xs ? 'left: 5cqw; top: 24cqw; width: 28cqw' : 'left: 6cqw; top: 22cqw; width: 22cqw'">
@@ -183,6 +183,8 @@ const rays = Array.from({ length: 14 }, (_, i) => i)
             </div>
           </div>
         </div>
+
+        <div v-if="tier === 'legend'" class="legend-shimmer absolute inset-0 pointer-events-none" aria-hidden="true" />
       </div>
 
       <div
@@ -198,3 +200,20 @@ const rays = Array.from({ length: 14 }, (_, i) => i)
     </div>
   </component>
 </template>
+
+<style scoped>
+.legend-shimmer {
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 233, 168, 0.28) 50%, transparent 60%);
+  background-size: 250% 100%;
+  background-position: 150% 0;
+  mix-blend-mode: screen;
+  animation: legend-shimmer 3.6s ease-in-out infinite;
+}
+@keyframes legend-shimmer {
+  0%, 35% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .legend-shimmer { animation: none; opacity: 0; }
+}
+</style>
