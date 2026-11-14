@@ -20,7 +20,7 @@ const club = useClubStore()
 const ui = useUiStore()
 const squad = useSquadStore()
 const league = useLeagueStore()
-const { prepareMatch } = useMatchSimulation()
+const { prepareMatch, matchEntryLabel } = useMatchSimulation()
 const {
   serieMeta,
   currentRound,
@@ -103,7 +103,7 @@ const tables = computed(() => {
         @click="prepareMatch('league')"
       >
         <Play class="w-4 h-4 fill-current" />
-        {{ playLabel }}
+        {{ matchEntryLabel('league', playLabel) }}
       </BaseButton>
     </BaseCard>
 

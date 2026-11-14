@@ -5,6 +5,7 @@ import { Play, Shield } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import MentalitySelector from '@/components/ui/MentalitySelector.vue'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
+import MatchBackButton from '@/components/match/MatchBackButton.vue'
 import OutcomeBar from '@/components/match/OutcomeBar.vue'
 import { pickMatchColors } from '@/utils/identity/matchColors'
 import { getTeamIdentity } from '@/utils/identity/teamIdentities'
@@ -79,6 +80,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2.5 shrink-0 self-start sm:self-auto">
+        <MatchBackButton class="px-4 py-3 rounded-xl border border-borderline hover:bg-subtle text-ink-muted hover:text-ink text-sm font-bold transition-colors flex items-center justify-center gap-2" />
         <button
           type="button"
           @click="router.push('/squad')"

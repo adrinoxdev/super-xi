@@ -14,7 +14,7 @@ import { formatCurrency } from '@/utils/format/formatCurrency'
 
 const club = useClubStore()
 const { supercupState, recopaState } = storeToRefs(useCompetitionsStore())
-const { prepareMatch } = useMatchSimulation()
+const { prepareMatch, matchEntryLabel } = useMatchSimulation()
 </script>
 
 <template>
@@ -55,7 +55,7 @@ const { prepareMatch } = useMatchSimulation()
           class="w-full py-2.5 text-xs flex items-center justify-center gap-1.5 shadow-sm"
         >
           <Play class="w-3.5 h-3.5 fill-current" />
-          Disputar Final da Supercopa
+          {{ matchEntryLabel('supercup', 'Disputar Final da Supercopa') }}
         </BaseButton>
         <div
           v-else
@@ -103,7 +103,7 @@ const { prepareMatch } = useMatchSimulation()
           class="w-full py-2.5 text-xs flex items-center justify-center gap-1.5 shadow-sm"
         >
           <Play class="w-3.5 h-3.5 fill-current" />
-          Disputar Final da Recopa
+          {{ matchEntryLabel('recopa', 'Disputar Final da Recopa') }}
         </BaseButton>
         <div
           v-else

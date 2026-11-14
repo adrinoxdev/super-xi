@@ -1,11 +1,12 @@
 import { computed, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Award, Building2, LayoutDashboard, PlayCircle, Radar, Shield, Trophy } from 'lucide-vue-next'
+import { Award, Building2, History, LayoutDashboard, Radar, Shield, Trophy } from 'lucide-vue-next'
 import { useCompetitionsStore } from '@/stores/competitions'
 import { useLeagueStore } from '@/stores/league'
 import { useMarketStore } from '@/stores/market'
 import { useMatchStore } from '@/stores/match'
 import { useScoutingStore } from '@/stores/scouting'
+import { navIdForCompetition, sectionMemory, type MatchNavId } from '@/utils/navigation/sectionMemory'
 
 export interface NavItem {
   id: string
@@ -28,6 +29,7 @@ export function useNavigation() {
   const match = useMatchStore()
 
   const matchPath = computed(() => (match.isMatchActive ? '/match' : '/pre-match'))
+  const isMatchRoute = computed(() => route.path === '/match' || route.path === '/pre-match')
 
   const navItems = computed<NavItem[]>(() => {
     const base = [
@@ -57,19 +59,26 @@ export function useNavigation() {
         path: '/squad',
         badge: market.incomingOffers.length || null
       },
-      { id: 'match', label: 'Partidas', shortLabel: 'Jogar', icon: PlayCircle, path: matchPath.value, badge: null },
+      { id: 'matches', label: 'Partidas', shortLabel: 'Jogos', icon: History, path: '/matches', badge: null },
       { id: 'club', label: 'Clube', shortLabel: 'Clube', icon: Building2, path: '/club', badge: null }
     ]
     const p = route.path
+    const ownerId = isMatchRoute.value ? navIdForCompetition(match.activeMatchCompetition) : null
     return base.map((i) => ({
       ...i,
-      active: i.id === 'match' ? p === '/match' || p === '/pre-match' : p === i.path,
-      // Partida em andamento (rodando ou pausada para substituições, ainda não encerrada).
-      live: i.id === 'match' && match.liveCompetitions.length > 0
+      active: ownerId ? i.id === ownerId : i.id === 'matches' ? p.startsWith('/matches') : p === i.path,
+      // Partida em andamento (rodando ou pausada para substituições, ainda não encerrada) desta competição.
+      live: match.liveCompetitions.some((c) => navIdForCompetition(c) === i.id)
     }))
   })
 
-  const currentPageTitle = computed(() => navItems.value.find((i) => i.active)?.label ?? 'Super XI')
+  const currentPageTitle = computed(() => {
+    const label = navItems.value.find((i) => i.active)?.label ?? 'Super XI'
+    return isMatchRoute.value ? `${label} › Partida` : label
+  })
+
+  // Item de navegação da página-mãe da partida aberta (destino do botão "Voltar").
+  const matchOwner = computed(() => navItems.value.find((i) => i.id === navIdForCompetition(match.activeMatchCompetition)))
 
   function goToMatchTab(): void {
     // Competição guardada da última partida já encerrada: volta ao pré-jogo da liga (como no protótipo).
@@ -84,12 +93,25 @@ export function useNavigation() {
   }
 
   function goTo(item: NavItem): void {
-    if (item.id === 'match') {
-      goToMatchTab()
-      return
+    // Seção com partida: volta para onde o usuário estava (partida ao vivo ou pré-jogo), não para a página principal.
+    // Se ele já está na partida desta seção, o clique leva à página principal.
+    const mem = sectionMemory[item.id as MatchNavId]
+    const onThisMatch = isMatchRoute.value && navIdForCompetition(match.activeMatchCompetition) === item.id
+    if (mem?.comp && !onThisMatch) {
+      const comp = mem.comp
+      if (mem.path === '/match' && match.isCompetitionLive(comp)) {
+        match.activeMatchCompetition = comp
+        router.push('/match')
+        return
+      }
+      if (mem.path === '/pre-match' && !match.isCompetitionMatchActive(comp) && competitions.isCompetitionPlayable(comp)) {
+        match.activeMatchCompetition = comp
+        router.push('/pre-match')
+        return
+      }
     }
     router.push(item.path)
   }
 
-  return { navItems, currentPageTitle, goToMatchTab, goTo }
+  return { navItems, currentPageTitle, isMatchRoute, matchOwner, goToMatchTab, goTo }
 }

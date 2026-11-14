@@ -2,6 +2,7 @@
 import { Radio, Repeat } from 'lucide-vue-next'
 import { useMatchStore } from '@/stores/match'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
+import MatchBackButton from '@/components/match/MatchBackButton.vue'
 import MatchEventRow from '@/components/match/MatchEventRow.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import SectionTitle from '@/components/ui/SectionTitle.vue'
@@ -18,6 +19,7 @@ const { toggleMatchSpeed, openInMatchSubDrawer } = useMatchSimulation()
         <span class="truncate">Lance a Lance em Tempo Real</span>
       </SectionTitle>
       <div v-if="!match.matchState.isFinished" class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+        <MatchBackButton class="px-3 py-1.5 rounded-lg border border-borderline hover:bg-subtle text-ink-muted hover:text-ink font-bold text-xs flex items-center gap-1" />
         <button
           v-if="!match.matchState.shootout"
           type="button"
