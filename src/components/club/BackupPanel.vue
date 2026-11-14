@@ -16,14 +16,14 @@ const { exportCareerCode, importCareerCode } = usePersistence()
       <button
         type="button"
         @click="exportCareerCode"
-        class="px-4 py-2 rounded-xl bg-emeraldpro text-white text-xs font-bold"
+        class="flex-1 sm:flex-none min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl bg-emeraldpro text-white text-xs font-bold"
       >
         Gerar Código
       </button>
       <button
         type="button"
         @click="importCareerCode"
-        class="px-4 py-2 rounded-xl bg-subtle hover:bg-borderline border border-borderline text-ink text-xs font-bold"
+        class="flex-1 sm:flex-none min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl bg-subtle hover:bg-borderline border border-borderline text-ink text-xs font-bold"
       >
         Importar Código
       </button>
@@ -32,7 +32,7 @@ const { exportCareerCode, importCareerCode } = usePersistence()
       v-model="ui.backupCodeText"
       rows="2"
       placeholder="Cole aqui o código de carreira para importar ou clique em Gerar Código..."
-      class="w-full p-2.5 rounded-xl bg-subtle border border-borderline text-[11px] font-mono text-ink"
+      class="w-full p-2.5 rounded-xl bg-subtle border border-borderline text-xs font-mono text-ink"
     ></textarea>
   </BaseCard>
 </template>

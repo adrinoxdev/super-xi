@@ -61,7 +61,7 @@ const extraMaintenance = computed(() => Math.round((UPGRADE_COSTS[props.facility
       @click="upgradeFacility(facility.key)"
       :disabled="club.upgrades[facility.key] >= FACILITY_MAX_LEVEL[facility.key] || club.budget < club.getUpgradeCost(facility.key)"
       :title="club.upgrades[facility.key] < FACILITY_MAX_LEVEL[facility.key] && club.budget < club.getUpgradeCost(facility.key) ? blockedMsg(club.getUpgradeCost(facility.key)) : undefined"
-      class="w-full px-3 py-2.5 text-xs transition-colors"
+      class="w-full min-h-[44px] sm:min-h-0 px-3 py-2.5 text-xs transition-colors"
     >
       <template v-if="club.upgrades[facility.key] >= FACILITY_MAX_LEVEL[facility.key]">Nível Máximo Atingido</template>
       <template v-else>Expandir ({{ formatCurrency(club.getUpgradeCost(facility.key)) }})</template>

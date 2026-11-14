@@ -29,7 +29,7 @@ const isText = (c: string) => club.crestTextColor.toLowerCase() === c.toLowerCas
 const TEXT_COLORS = CREST_COLORS
 
 const chip = (on: boolean) => [
-  'px-2.5 py-1 rounded-lg text-xs font-bold border',
+  'px-3 py-2 sm:px-2.5 sm:py-1 rounded-lg text-xs font-bold border',
   on ? 'bg-emeraldpro text-white border-emeraldpro' : 'bg-subtle text-ink-muted border-borderline'
 ]
 </script>
@@ -109,7 +109,7 @@ const chip = (on: boolean) => [
                 ]"
               >
                 <ClubCrest size="sm" :shape="sh.id" />
-                <span class="text-[10px] font-bold text-ink-muted leading-tight text-center">{{ sh.label }}</span>
+                <span class="text-[11px] font-bold text-ink-muted leading-tight text-center">{{ sh.label }}</span>
               </button>
             </div>
           </div>
@@ -169,7 +169,7 @@ const chip = (on: boolean) => [
                 :aria-label="`Cor primária ${c}`"
                 :style="{ backgroundColor: c }"
                 :class="club.primaryColor.toLowerCase() === c.toLowerCase() ? 'ring-2 ring-offset-2 ring-ink scale-110' : ''"
-                class="w-7 h-7 rounded-full border border-borderline transition-transform"
+                class="w-9 h-9 sm:w-7 sm:h-7 rounded-full border border-borderline transition-transform"
               ></button>
               <CustomColorPicker :model-value="club.primaryColor" :presets="CREST_COLORS" label="cor primária" @pick="setPrimaryColor" />
             </div>
@@ -186,7 +186,7 @@ const chip = (on: boolean) => [
                 :aria-label="`Cor secundária ${c}`"
                 :style="{ backgroundColor: c }"
                 :class="club.secondaryColor.toLowerCase() === c.toLowerCase() ? 'ring-2 ring-offset-2 ring-ink scale-110' : ''"
-                class="w-7 h-7 rounded-full border border-borderline transition-transform"
+                class="w-9 h-9 sm:w-7 sm:h-7 rounded-full border border-borderline transition-transform"
               ></button>
               <CustomColorPicker :model-value="club.secondaryColor" :presets="CREST_COLORS" label="cor secundária" @pick="setSecondaryColor" />
             </div>
@@ -203,7 +203,7 @@ const chip = (on: boolean) => [
                 :aria-pressed="club.crestTextColor === 'auto'"
                 :style="{ background: 'linear-gradient(135deg, #ffffff 50%, #0F172A 50%)' }"
                 :class="club.crestTextColor === 'auto' ? 'ring-2 ring-offset-2 ring-ink scale-110' : ''"
-                class="w-7 h-7 rounded-full border border-borderline transition-transform"
+                class="w-9 h-9 sm:w-7 sm:h-7 rounded-full border border-borderline transition-transform"
               ></button>
               <button
                 type="button"
@@ -213,7 +213,7 @@ const chip = (on: boolean) => [
                 :aria-label="`Cor das iniciais ${c}`"
                 :style="{ backgroundColor: c }"
                 :class="isText(c) ? 'ring-2 ring-offset-2 ring-ink scale-110' : ''"
-                class="w-7 h-7 rounded-full border border-borderline transition-transform"
+                class="w-9 h-9 sm:w-7 sm:h-7 rounded-full border border-borderline transition-transform"
               ></button>
               <CustomColorPicker :model-value="club.crestTextColor" :presets="TEXT_COLORS" label="cor das iniciais" @pick="setCrestTextColor" />
             </div>
@@ -230,7 +230,7 @@ const chip = (on: boolean) => [
                 :aria-pressed="club.crestTextStroke === 'auto'"
                 :style="{ background: 'linear-gradient(135deg, #ffffff 50%, #0F172A 50%)' }"
                 :class="club.crestTextStroke === 'auto' ? 'ring-2 ring-offset-2 ring-ink scale-110' : ''"
-                class="w-7 h-7 rounded-full border border-borderline transition-transform"
+                class="w-9 h-9 sm:w-7 sm:h-7 rounded-full border border-borderline transition-transform"
               ></button>
               <button
                 type="button"
@@ -240,7 +240,7 @@ const chip = (on: boolean) => [
                 :aria-label="`Borda das iniciais ${c}`"
                 :style="{ backgroundColor: c }"
                 :class="club.crestTextStroke.toLowerCase() === c.toLowerCase() ? 'ring-2 ring-offset-2 ring-ink scale-110' : ''"
-                class="w-7 h-7 rounded-full border border-borderline transition-transform"
+                class="w-9 h-9 sm:w-7 sm:h-7 rounded-full border border-borderline transition-transform"
               ></button>
               <CustomColorPicker :model-value="club.crestTextStroke" :presets="TEXT_COLORS" label="borda das iniciais" @pick="setCrestTextStroke" />
             </div>
