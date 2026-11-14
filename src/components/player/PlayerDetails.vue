@@ -13,6 +13,7 @@ import { retireAgeFor, agingDrop } from '@/utils/player/generatePlayer'
 import { MARKET_STATUS_OPTIONS, TRAINING_FOCUS_OPTIONS } from '@/config'
 import ProgressBar from '@/components/ui/ProgressBar.vue'
 import { formatCurrency } from '@/utils/format/formatCurrency'
+import { suspensionText, suspensionsOf, yellowsOf } from '@/utils/player/suspension'
 
 const ui = useUiStore()
 const squad = useSquadStore()
@@ -111,6 +112,18 @@ const renewBlockedReason = computed(() => {
     </div>
 
     <p v-if="renewBlockedReason && !player.isLoanedIn" class="text-[11px] text-ink-muted text-center break-words">{{ renewBlockedReason }}</p>
+    <div
+      v-if="suspensionsOf(player).length && !player.isLoanedIn"
+      class="p-3 rounded-xl bg-dangerpro-soft/60 border border-dangerpro/40 text-xs text-ink break-words"
+    >
+      <strong class="text-dangerpro">Suspenso:</strong> {{ suspensionText(player) }}.
+      Fora só dessas competições; nas demais ele joga normalmente.
+    </div>
+    <p v-if="yellowsOf(player).length && !player.isLoanedIn" class="text-[11px] text-ink-muted text-center">
+      Amarelos na temporada:
+      <span v-for="(y, i) in yellowsOf(player)" :key="y.comp">{{ i ? ' • ' : ' ' }}{{ y.label }} {{ y.count }}/3</span>
+      (o terceiro gera suspensão de 1 jogo na competição).
+    </p>
     <p v-if="justArrived && !player.isLoanedIn" class="text-[11px] text-ink-muted text-center break-words">
       Venda limitada ao valor pago nesta temporada ({{ formatCurrency(player.acquiredFee ?? 0) }})
     </p>

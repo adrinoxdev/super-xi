@@ -1,3 +1,5 @@
+import type { MatchCompetition } from './match'
+
 export type PlayerPosition =
   | 'GK'
   | 'CB' | 'LB' | 'RB'
@@ -37,7 +39,11 @@ export interface Player {
   trainingFocus: TrainingFocus
   marketStatus: MarketStatus
   /** Presente enquanto o atleta está lesionado; cai 1 por partida do clube. */
-  injury?: { matchesLeft: number }
+  /** Jogos de suspensão por competição: expulso na Liga só desfalca a Liga (cumpre um jogo a cada partida dela). */
+  suspension?: Partial<Record<MatchCompetition, number>>
+  /** Amarelos acumulados na temporada, por competição (3 geram suspensão de 1 jogo naquela competição). */
+  yellowCards?: Partial<Record<MatchCompetition, number>>
+  injury?: { matchesLeft: number; /** Já passou por tratamento pago nesta lesão. */ treated?: boolean }
   /** Temporada em que o atleta chegou (contratação ou promoção) e quanto custou: teto de venda nessa temporada. */
   acquiredSeason?: number
   acquiredFee?: number

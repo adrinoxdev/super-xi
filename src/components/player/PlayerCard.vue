@@ -4,6 +4,8 @@ import { Bandage } from 'lucide-vue-next'
 import type { Player } from '@/types/player'
 import { useClubStore } from '@/stores/club'
 import PlayerAvatar from '@/components/player/PlayerAvatar.vue'
+import EventIcon from '@/components/match/EventIcon.vue'
+import { suspensionText } from '@/utils/player/suspension'
 import { formatPosBR } from '@/utils/format/formatCurrency'
 
 const props = withDefaults(
@@ -33,6 +35,8 @@ const shownPos = computed(() => props.posLabel ?? formatPosBR(props.player.posit
 
 // altura do card em cqw (largura = 100cqw): sem rodapé, termina na linha dos atributos
 const H = computed(() => (xs.value ? 106 : 132))
+
+const suspended = computed(() => suspensionText(props.player))
 
 const shownOver = computed(() => props.overall ?? props.player.overall)
 
@@ -187,6 +191,16 @@ const rays = Array.from({ length: 14 }, (_, i) => i)
         <div v-if="tier === 'legend'" class="legend-shimmer absolute inset-0 pointer-events-none" aria-hidden="true" />
       </div>
 
+      <div
+        v-if="suspended"
+        class="absolute"
+        :style="{ top: '0', left: '0', width: xs ? '22cqw' : '16cqw' }"
+        :title="`Suspenso: ${suspended}`"
+        role="img"
+        :aria-label="`Suspenso: ${suspended}`"
+      >
+        <EventIcon kind="red" :size="24" class="w-full h-auto drop-shadow" />
+      </div>
       <div
         v-if="player.injury"
         class="absolute flex items-center justify-center rounded-full text-white shadow"

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import BaseCard from '@/components/ui/BaseCard.vue'
 import SectionTitle from '@/components/ui/SectionTitle.vue'
+import EventIcon from '@/components/match/EventIcon.vue'
+import { suspensionText } from '@/utils/player/suspension'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { computed } from 'vue'
 import { Bandage } from 'lucide-vue-next'
@@ -122,6 +124,13 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
                 class="px-1.5 py-0.5 rounded bg-amberpro-soft text-amberpro text-[9px] font-bold shrink-0"
               >
                 Aposenta
+              </span>
+              <span
+                v-if="suspensionText(player)"
+                class="inline-flex items-center justify-center w-5 h-5 shrink-0"
+                :title="`Suspenso: ${suspensionText(player)}`"
+              >
+                <EventIcon kind="red" :size="18" />
               </span>
               <span
                 v-if="player.injury"
