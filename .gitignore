@@ -7,3 +7,4 @@ escada-results.json
 _origem
 docs
 scripts/verify-competitions/*.json
+scripts/verify-league/*.json
