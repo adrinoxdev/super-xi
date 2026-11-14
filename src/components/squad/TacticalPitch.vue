@@ -8,18 +8,29 @@ import { useUiStore } from '@/stores/ui'
 import { useSquad } from '@/composables/useSquad'
 import MentalitySelector from '@/components/ui/MentalitySelector.vue'
 import PlayerCard from '@/components/player/PlayerCard.vue'
+import { computed } from 'vue'
 import { getEffectiveOvr } from '@/utils/match/calculateTeamStrength'
 import { formatPosBR } from '@/utils/format/formatCurrency'
 
 const squad = useSquadStore()
 const match = useMatchStore()
 const ui = useUiStore()
-const { formatStarterName, selectPitchSlot, changeFormation, autoPickBestLineup, autoPickBestFormation } = useSquad()
+const { formatStarterName, selectPitchSlot, cancelSelection, changeFormation, autoPickBestLineup, autoPickBestFormation } = useSquad()
 
 function pct(mod: number): string {
   const v = Math.round((mod - 1) * 100)
   return (v >= 0 ? '+' : '') + v
 }
+
+// Atleta escolhido na lista: OVER dele em cada vaga e qual(is) vaga(s) rendem mais.
+const picked = computed(() => squad.players.find((p) => p.id === ui.selectedRosterPlayerId) ?? null)
+const fit = computed(() => {
+  const p = picked.value
+  if (!p) return null
+  const effs = squad.pitchSlots.map((s) => getEffectiveOvr(p, s.role))
+  const max = Math.max(...effs)
+  return effs.map((eff) => ({ eff, best: eff === max, penalty: eff < p.overall }))
+})
 </script>
 
 <template>
@@ -27,7 +38,11 @@ function pct(mod: number): string {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div class="min-w-0">
         <SectionTitle>Prancheta Tática ({{ squad.formation }})</SectionTitle>
-        <p class="text-xs text-ink-muted break-words">Toque em um titular para substituir ou alternar posição.</p>
+        <p v-if="picked" class="text-xs font-bold text-amberpro break-words">
+          {{ picked.name }} ({{ formatPosBR(picked.position) }}, OVER {{ picked.overall }}): toque na vaga destacada em verde, onde ele rende mais.
+          <button type="button" @click="cancelSelection" class="underline ml-1">Cancelar</button>
+        </p>
+        <p v-else class="text-xs text-ink-muted break-words">Toque em um titular para trocá-lo, ou escolha um atleta na lista e veja aqui onde ele rende mais.</p>
       </div>
       <div class="flex flex-wrap gap-2 shrink-0 self-start sm:self-auto">
         <BaseButton
@@ -67,7 +82,7 @@ function pct(mod: number): string {
     </div>
 
     <!-- Container query: no celular o card dos titulares escala com a largura do campo (cqw) para os 11 caberem sem sobrepor; md+ fixo em 76px como antes -->
-    <div class="relative w-full h-[430px] sm:h-[510px] max-w-full rounded-2xl pitch-bg border-2 border-emerald-800/30 overflow-hidden select-none shadow-inner [container-type:inline-size]">
+    <div id="prancheta-tatica" class="scroll-mt-16 relative w-full h-[430px] sm:h-[510px] max-w-full rounded-2xl pitch-bg border-2 border-emerald-800/30 overflow-hidden select-none shadow-inner [container-type:inline-size]">
       <div class="absolute inset-3 border-2 border-white/30 rounded-xl pointer-events-none"></div>
       <div class="absolute left-3 right-3 top-1/2 h-0.5 bg-white/30 pointer-events-none"></div>
       <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-2 border-white/30 pointer-events-none"></div>
@@ -83,6 +98,20 @@ function pct(mod: number): string {
           ui.selectedPitchSlotIndex === idx ? 'z-20 scale-105' : 'z-10'
         ]"
       >
+        <template v-if="fit">
+          <span
+            :class="[
+              'absolute -inset-1 rounded-2xl pointer-events-none border-2',
+              fit[idx].best ? 'border-emeraldpro ring-4 ring-emeraldpro/50 animate-pulse' : 'border-transparent'
+            ]"
+          ></span>
+          <span
+            :class="[
+              'absolute -top-2.5 left-1/2 -translate-x-1/2 z-30 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold leading-none whitespace-nowrap shadow pointer-events-none',
+              fit[idx].best ? 'bg-emeraldpro text-white' : fit[idx].penalty ? 'bg-amberpro text-white' : 'bg-surface text-ink border border-borderline'
+            ]"
+          >{{ fit[idx].best ? 'Melhor ' : '' }}{{ fit[idx].eff }}</span>
+        </template>
         <PlayerCard
           v-if="slot.player"
           class="!w-full"

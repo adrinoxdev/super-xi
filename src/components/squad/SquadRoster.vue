@@ -16,7 +16,7 @@ import { formatPosBR } from '@/utils/format/formatCurrency'
 const squad = useSquadStore()
 const club = useClubStore()
 const ui = useUiStore()
-const { filteredSquadPlayers, assignPlayerToSlot, recoverSquadStamina, openLoanMarketModal, openPlayerModal } = useSquad()
+const { filteredSquadPlayers, assignPlayerToSlot, selectRosterPlayer, cancelSelection, recoverSquadStamina, openLoanMarketModal, openPlayerModal } = useSquad()
 
 // Custo curto no botão (R$ 9,5k); o detalhe fica na dica.
 const restCostLabel = computed(() => 'R$ ' + (club.restCostNow / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'k')
@@ -46,7 +46,11 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
         <p v-if="club.restUsesToday > 0" class="text-[11px] text-ink-muted break-words">
           Descansos hoje: {{ club.restUsesToday }} • custo reinicia em {{ restResetLabel }}
         </p>
-        <p v-if="ui.selectedPitchSlotIndex !== null" class="text-[11px] font-bold text-amberpro break-words">
+        <p v-if="ui.selectedRosterPlayerId" class="text-[11px] font-bold text-amberpro break-words">
+          Veja no campo onde o atleta rende mais e toque na vaga.
+          <button type="button" @click="cancelSelection" class="underline ml-1">Cancelar</button>
+        </p>
+        <p v-if="ui.selectedPitchSlotIndex !== null" class="hidden lg:block text-[11px] font-bold text-amberpro break-words">
           Selecione um reserva abaixo para entrar na vaga #{{ ui.selectedPitchSlotIndex + 1 }}
         </p>
       </div>
@@ -90,7 +94,7 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
         :key="player.id"
         :class="[
           'p-3 rounded-xl border flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 transition-colors',
-          squad.isStarter(player.id) ? 'bg-emeraldpro-soft/40 border-emeraldpro/40' : 'bg-subtle border-borderline'
+          ui.selectedRosterPlayerId === player.id ? 'bg-amberpro-soft border-amberpro ring-2 ring-amberpro/40' : squad.isStarter(player.id) ? 'bg-emeraldpro-soft/40 border-emeraldpro/40' : 'bg-subtle border-borderline'
         ]"
       >
         <div class="flex items-center gap-2.5 min-w-0 flex-1">
@@ -176,9 +180,21 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
             v-if="ui.selectedPitchSlotIndex !== null && !player.isLoanedOut"
             type="button"
             @click="assignPlayerToSlot(player.id)"
-            class="flex-1 sm:flex-none min-h-[40px] sm:min-h-0 px-2.5 py-1.5 rounded-lg bg-amberpro text-white text-[11px] font-bold"
+            class="hidden lg:block lg:flex-none px-2.5 py-1.5 rounded-lg bg-amberpro text-white text-[11px] font-bold"
           >
             Escalar
+          </button>
+          <button
+            v-if="!player.isLoanedOut"
+            type="button"
+            @click="selectRosterPlayer(player.id)"
+            :aria-pressed="ui.selectedRosterPlayerId === player.id"
+            :class="[
+              'flex-1 sm:flex-none min-h-[40px] sm:min-h-0 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold',
+              ui.selectedRosterPlayerId === player.id ? 'bg-amberpro text-white border-amberpro' : 'bg-surface hover:bg-borderline border-borderline text-ink'
+            ]"
+          >
+            Posição
           </button>
           <button
             type="button"

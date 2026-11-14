@@ -4,6 +4,7 @@ import TeamPowerBar from '@/components/ui/TeamPowerBar.vue'
 import IncomingOffersPanel from '@/components/squad/IncomingOffersPanel.vue'
 import TacticalPitch from '@/components/squad/TacticalPitch.vue'
 import SquadRoster from '@/components/squad/SquadRoster.vue'
+import SlotPickerSheet from '@/components/squad/SlotPickerSheet.vue'
 import SquadScorers from '@/components/squad/SquadScorers.vue'
 import SquadDiscipline from '@/components/squad/SquadDiscipline.vue'
 
@@ -24,6 +25,7 @@ const squad = useSquadStore()
       <TacticalPitch />
       <SquadRoster />
     </div>
+    <SlotPickerSheet />
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <SquadScorers />
       <SquadDiscipline />

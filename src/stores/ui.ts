@@ -22,6 +22,8 @@ export const useUiStore = defineStore('ui', () => {
   /** Temporada cujo cartão de pódios foi ocultado (não é salvo). */
   const hiddenPodiumSeason = ref<number | null>(null)
   const selectedPitchSlotIndex = ref<number | null>(null)
+  /** Atleta escolhido na lista para ser posicionado no campo (fluxo inverso ao de tocar na vaga). */
+  const selectedRosterPlayerId = ref<string | null>(null)
   const squadPositionFilter = ref('ALL')
   const compareModal = ref<{ open: boolean; reportId: string | null; incumbentId: string | null }>({
     open: false,
@@ -95,7 +97,7 @@ export const useUiStore = defineStore('ui', () => {
   }
 
   return {
-    toast, compSubTab, hiddenPodiumSeason, selectedPitchSlotIndex, squadPositionFilter, compareModal, playerModal,
+    toast, compSubTab, hiddenPodiumSeason, selectedPitchSlotIndex, selectedRosterPlayerId, squadPositionFilter, compareModal, playerModal,
     loanMarketModalOpen, backupCodeText, confirmDialog,
     askConfirm, resolveConfirm, showToast, openCompare, closeCompare, openPlayer, closePlayer, openLoanMarket, closeLoanMarket,
   }
