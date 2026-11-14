@@ -103,12 +103,23 @@ export const useClubStore = defineStore('club', () => {
   const trophyGallery = ref<TrophyRecord[]>([])
   const podiumArchive = ref<Podium[]>([])
   const seasonGoals = ref<Record<string, number>>({})
+  const seasonAssists = ref<Record<string, number>>({})
+  const seasonApps = ref<Record<string, number>>({})
+  const seasonYellows = ref<Record<string, number>>({})
+  const seasonReds = ref<Record<string, number>>({})
   const careerStats = ref<Record<string, CareerStatEntry>>({})
   const tryoutsThisSeason = ref(0)
   const progress = ref<ClubProgress>(defaultProgress())
   // Descanso do elenco: usos contados no dia de restDayStart; vira 0 sozinho quando o dia muda.
   const restDayStart = ref(0)
   const restUses = ref(0)
+  // Renda offline: instante da última atividade e recompensa pendente (esta não é salva).
+  const lastActiveAt = ref(Date.now())
+  const offlinePending = ref<{ amount: number; hours: number; capped: boolean; title: string; message: string } | null>(null)
+  /** Marca atividade agora; congelado enquanto houver recompensa pendente para ela não se perder. */
+  function touchActive() {
+    if (!offlinePending.value) lastActiveAt.value = Date.now()
+  }
   const restUsesToday = computed(() => (restDayStart.value === dayStart(clubNow.value) ? restUses.value : 0))
   const restCostNow = computed(() => restCost(restUsesToday.value, division.value))
   const restResetsInMs = computed(() => Math.max(0, nextDayStart(clubNow.value) - clubNow.value))
@@ -214,12 +225,45 @@ export const useClubStore = defineStore('club', () => {
     if (ce && ce.goals > 0) ce.goals -= 1
   }
 
+  function recordAssist(player: Player) {
+    seasonAssists.value[player.id] = (seasonAssists.value[player.id] || 0) + 1
+    const e = ensureCareerEntry(player)
+    e.assists = (e.assists ?? 0) + 1
+  }
+
+  function revertAssist(playerId: string) {
+    const sa = seasonAssists.value[playerId]
+    if (sa) {
+      if (sa <= 1) delete seasonAssists.value[playerId]
+      else seasonAssists.value[playerId] = sa - 1
+    }
+    const ce = careerStats.value[playerId]
+    if (ce && (ce.assists ?? 0) > 0) ce.assists = (ce.assists ?? 0) - 1
+  }
+
   function recordAppearance(player: Player) {
     ensureCareerEntry(player).apps += 1
+    seasonApps.value[player.id] = (seasonApps.value[player.id] || 0) + 1
+  }
+
+  function recordYellow(player: Player) {
+    seasonYellows.value[player.id] = (seasonYellows.value[player.id] || 0) + 1
+    const e = ensureCareerEntry(player)
+    e.yellows = (e.yellows ?? 0) + 1
+  }
+
+  function recordRed(player: Player) {
+    seasonReds.value[player.id] = (seasonReds.value[player.id] || 0) + 1
+    const e = ensureCareerEntry(player)
+    e.reds = (e.reds ?? 0) + 1
   }
 
   function resetSeasonGoals() {
     seasonGoals.value = {}
+    seasonAssists.value = {}
+    seasonApps.value = {}
+    seasonYellows.value = {}
+    seasonReds.value = {}
   }
 
   /** Soma 1 de OVER ao ganho do atleta na temporada. */
@@ -304,6 +348,7 @@ export const useClubStore = defineStore('club', () => {
       tryoutsThisSeason: tryoutsThisSeason.value,
       restDayStart: restDayStart.value,
       restUses: restUses.value,
+      lastActiveAt: lastActiveAt.value,
       progress: {
         seasonStartOver: progress.value.seasonStartOver,
         seasonStartPlayerOver: { ...progress.value.seasonStartPlayerOver },
@@ -362,6 +407,8 @@ export const useClubStore = defineStore('club', () => {
     tryoutsThisSeason.value = Number.isFinite(data.tryoutsThisSeason) ? Math.max(0, Math.floor(data.tryoutsThisSeason as number)) : 0
     restDayStart.value = Number.isFinite(data.restDayStart) ? (data.restDayStart as number) : 0
     restUses.value = Number.isFinite(data.restUses) ? Math.max(0, Math.floor(data.restUses as number)) : 0
+    lastActiveAt.value = Number.isFinite(data.lastActiveAt) ? Math.min(data.lastActiveAt as number, Date.now()) : Date.now()
+    offlinePending.value = null
     const pr = data.progress
     const base = defaultProgress()
     progress.value = pr && typeof pr === 'object'
@@ -384,6 +431,10 @@ export const useClubStore = defineStore('club', () => {
     trophyGallery.value = []
     podiumArchive.value = []
     seasonGoals.value = {}
+    seasonAssists.value = {}
+    seasonApps.value = {}
+    seasonYellows.value = {}
+    seasonReds.value = {}
     careerStats.value = {}
     progress.value = defaultProgress()
     staffContracts.value = defaultStaffContracts()
@@ -414,6 +465,12 @@ export const useClubStore = defineStore('club', () => {
     transferHistory,
     trophyGallery,
     seasonGoals,
+    seasonAssists,
+    seasonApps,
+    seasonYellows,
+    seasonReds,
+    recordYellow,
+    recordRed,
     careerStats,
     tryoutsThisSeason,
     progress,
@@ -423,6 +480,9 @@ export const useClubStore = defineStore('club', () => {
     restUsesToday,
     restCostNow,
     restResetsInMs,
+    lastActiveAt,
+    offlinePending,
+    touchActive,
     registerRest,
     maxSquadCapacity,
     serieEconomy,
@@ -441,6 +501,8 @@ export const useClubStore = defineStore('club', () => {
     archivePodiums,
     recordTrophy,
     recordGoal,
+    recordAssist,
+    revertAssist,
     recordAppearance,
     revertGoal,
     resetSeasonGoals,

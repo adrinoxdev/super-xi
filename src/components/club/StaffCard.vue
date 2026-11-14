@@ -53,7 +53,7 @@ const buttonLabel = computed(() => {
       @click="hireStaffMember(priced)"
       :disabled="(active && !canRenew) || club.budget < price"
       :title="club.budget < price ? blockedMsg(price) : undefined"
-      class="w-full px-3 py-2 text-xs transition-colors break-words"
+      class="w-full min-h-[40px] sm:min-h-0 px-3 py-2 text-xs transition-colors break-words"
     >
       {{ buttonLabel }}
     </BaseButton>

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { LastMatchSummary, MatchCompetition, MatchState, MatchStats, TacticalMentality } from '@/types/match'
+import type { LastMatchSummary, MatchCompetition, MatchOpponent, MatchRecord, MatchState, MatchStats, TacticalMentality } from '@/types/match'
 import { MENTALITIES } from '@/config'
 
 function initialMatchState(): MatchState {
@@ -26,7 +26,15 @@ function initialMatchStats(): MatchStats {
     userCorners: 0,
     oppCorners: 0,
     userFouls: 0,
-    oppFouls: 0
+    oppFouls: 0,
+    userYellows: 0,
+    oppYellows: 0,
+    userReds: 0,
+    oppReds: 0,
+    userThrowIns: 0,
+    oppThrowIns: 0,
+    userOffsides: 0,
+    oppOffsides: 0
   }
 }
 
@@ -39,6 +47,8 @@ interface MatchSession {
   subOutId: string
   subInId: string
   lastMatchSummary: LastMatchSummary | null
+  /** Adversário, mando e rótulo congelados no início: o estado das competições avança quando a partida termina. */
+  snapshot: { opponent: MatchOpponent; isHome: boolean; label: string } | null
 }
 
 function newSession(): MatchSession {
@@ -48,7 +58,8 @@ function newSession(): MatchSession {
     showSubDrawer: false,
     subOutId: '',
     subInId: '',
-    lastMatchSummary: null
+    lastMatchSummary: null,
+    snapshot: null
   }
 }
 
@@ -109,11 +120,19 @@ export const useMatchStore = defineStore('match', () => {
   /** Competições com partida em andamento ou encerrada e ainda não fechada pelo usuário. */
   const openCompetitions = computed(() => COMPETITIONS_ORDER.filter((c) => sessionActive(sessions.value[c])))
 
+  // Histórico de partidas concluídas (mais recente primeiro), limitado para não pesar no save.
+  const MAX_HISTORY = 150
+  const matchHistory = ref<MatchRecord[]>([])
+  function addMatchRecord(record: MatchRecord) {
+    matchHistory.value = [record, ...matchHistory.value].slice(0, MAX_HISTORY)
+  }
+
   function resetMatchState(comp: MatchCompetition = activeMatchCompetition.value) {
     const s = sessions.value[comp]
     s.matchState = initialMatchState()
     s.showSubDrawer = false
     s.lastMatchSummary = null
+    s.snapshot = null
   }
 
   function resetStats(comp: MatchCompetition = activeMatchCompetition.value) {
@@ -121,6 +140,8 @@ export const useMatchStore = defineStore('match', () => {
   }
 
   return {
+    matchHistory,
+    addMatchRecord,
     sessions,
     activeMatchCompetition,
     selectedMentality,

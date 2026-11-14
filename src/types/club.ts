@@ -83,6 +83,9 @@ export interface CareerStatEntry {
   position: string
   apps: number
   goals: number
+  assists?: number
+  yellows?: number
+  reds?: number
 }
 
 export interface SeasonReview {
@@ -137,6 +140,8 @@ export interface ClubSave {
   /** Dia (meia-noite local, ms) em que os descansos foram contados e quantos já foram usados nele. */
   restDayStart?: number
   restUses?: number
+  /** Último instante (ms) em que o jogador esteve ativo; base da renda offline. Ausente em saves antigos = agora. */
+  lastActiveAt?: number
   /** Ausente em saves antigos: vira o padrão ao carregar. */
   progress?: ClubProgress
 }

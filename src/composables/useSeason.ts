@@ -3,6 +3,7 @@ import { useClubStore } from '@/stores/club'
 import { useCompetitionsStore } from '@/stores/competitions'
 import { useLeagueStore } from '@/stores/league'
 import { useMarketStore } from '@/stores/market'
+import { useMatchStore } from '@/stores/match'
 import { useScoutingStore } from '@/stores/scouting'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
@@ -17,6 +18,7 @@ export function useSeason() {
   const scouting = useScoutingStore()
   const league = useLeagueStore()
   const market = useMarketStore()
+  const match = useMatchStore()
   const competitions = useCompetitionsStore()
   const ui = useUiStore()
   const { saveGame, clearSave } = usePersistence()
@@ -25,6 +27,7 @@ export function useSeason() {
     squad.initializeDefaultSquad()
     club.resetCareerRecords()
     market.incomingOffers = []
+    match.matchHistory = []
     competitions.resetFinals()
     scouting.generateYouthAcademyBatch()
     league.initLeagueSeason(club.division, club.season)
@@ -142,8 +145,14 @@ export function useSeason() {
     )
   }
 
-  function resetCareer(): void {
-    if (!confirm('Deseja reiniciar sua carreira do zero?')) return
+  async function resetCareer(): Promise<void> {
+    const ok = await ui.askConfirm({
+      title: 'Reiniciar carreira?',
+      message: 'Todo o progresso atual será apagado e uma nova carreira começa do zero. Essa ação não pode ser desfeita.',
+      confirmLabel: 'Reiniciar',
+      danger: true
+    })
+    if (!ok) return
     clearSave()
     initializeFreshCareer()
     router.push('/')

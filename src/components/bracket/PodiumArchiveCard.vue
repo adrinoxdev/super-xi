@@ -23,7 +23,7 @@ function places(p: Podium): Array<{ place: number; entry: PodiumEntry | null }> 
       <h4 class="font-bold text-sm text-ink flex items-center gap-2 min-w-0">
         <Trophy class="w-4 h-4 text-emeraldpro shrink-0" /> <span class="min-w-0 break-words">Pódios da Temporada {{ season }}</span>
       </h4>
-      <button type="button" class="shrink-0 text-xs text-ink-muted hover:text-ink" @click="$emit('close')">Ocultar</button>
+      <button type="button" class="shrink-0 -my-2.5 -mr-2 py-2.5 px-2 md:m-0 md:p-0 text-xs text-ink-muted hover:text-ink" @click="$emit('close')">Ocultar</button>
     </header>
     <ListRow
       v-for="p in podiums"
@@ -32,7 +32,7 @@ function places(p: Podium): Array<{ place: number; entry: PodiumEntry | null }> 
       class="flex flex-col sm:flex-row sm:items-center gap-3"
     >
       <span class="text-xs font-bold text-ink sm:w-44 sm:shrink-0 min-w-0 break-words">{{ p.competitionLabel }}</span>
-      <div class="grid grid-cols-3 gap-2 flex-1 min-w-0">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2 flex-1 min-w-0">
         <div
           v-for="s in places(p)"
           :key="s.place"

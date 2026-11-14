@@ -19,3 +19,25 @@ export function facilityIncomeFactor(level: number, division: number): number {
   const cap = (SERIE_ECONOMY[division] ?? SERIE_ECONOMY[4]).levelCap
   return 1 + ECONOMY.facilityStep * (Math.min(level, cap) - 1)
 }
+
+/** Renda offline: fração da renda por jogo (bilheteria + patrocínio) paga por hora de ausência. Sem desconto de salários/juros. */
+export const OFFLINE = { ratioPerHour: 0.06, baseCapHours: 8, capHoursPerFinanceLevel: 1, maxCapHours: 16, minMinutes: 10 }
+
+/** Horas máximas acumuladas offline: base + bônus por nível de finanças acima do 1, limitado ao máximo. */
+export function offlineCapHours(financeLevel: number): number {
+  return Math.min(OFFLINE.maxCapHours, OFFLINE.baseCapHours + Math.max(0, financeLevel - 1) * OFFLINE.capHoursPerFinanceLevel)
+}
+
+/** Fórmula pura: horas (com teto) e valor; null abaixo de minMinutes. Relógio voltado = 0 ms ausente. */
+export function calcOfflineReward(
+  absentMs: number,
+  incomePerMatch: number,
+  financeLevel: number
+): { hours: number; amount: number; capped: boolean } | null {
+  const ms = Math.max(0, absentMs)
+  if (ms < OFFLINE.minMinutes * 60000) return null
+  const cap = offlineCapHours(financeLevel)
+  const rawHours = ms / 3600000
+  const hours = Math.min(rawHours, cap)
+  return { hours, amount: Math.round(incomePerMatch * OFFLINE.ratioPerHour * hours), capped: rawHours > cap }
+}

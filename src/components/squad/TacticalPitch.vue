@@ -14,7 +14,7 @@ import { formatPosBR } from '@/utils/format/formatCurrency'
 const squad = useSquadStore()
 const match = useMatchStore()
 const ui = useUiStore()
-const { formatStarterName, selectPitchSlot, changeFormation, autoPickBestLineup } = useSquad()
+const { formatStarterName, selectPitchSlot, changeFormation, autoPickBestLineup, autoPickBestFormation } = useSquad()
 
 function pct(mod: number): string {
   const v = Math.round((mod - 1) * 100)
@@ -29,13 +29,24 @@ function pct(mod: number): string {
         <SectionTitle>Prancheta Tática ({{ squad.formation }})</SectionTitle>
         <p class="text-xs text-ink-muted break-words">Toque em um titular para substituir ou alternar posição.</p>
       </div>
-      <BaseButton
-        variant="soft"
-        @click="autoPickBestLineup"
-        class="shrink-0 px-3.5 py-2 text-xs transition-colors self-start sm:self-auto"
-      >
-        Melhor Escalação
-      </BaseButton>
+      <div class="flex flex-wrap gap-2 shrink-0 self-start sm:self-auto">
+        <BaseButton
+          variant="soft"
+          @click="autoPickBestLineup"
+          title="Mantém a formação atual e escolhe, para cada posição, o atleta com melhor desempenho."
+          class="min-h-[40px] sm:min-h-0 px-3.5 py-2 text-xs transition-colors"
+        >
+          Melhor Escalação
+        </BaseButton>
+        <BaseButton
+          variant="soft"
+          @click="autoPickBestFormation"
+          title="Compara todas as formações com o elenco atual e adota a que dá o maior OVER, já escalando os melhores titulares nela."
+          class="min-h-[40px] sm:min-h-0 px-3.5 py-2 text-xs transition-colors"
+        >
+          Melhor Tática
+        </BaseButton>
+      </div>
     </div>
 
     <div class="flex flex-wrap gap-1.5">
@@ -45,7 +56,7 @@ function pct(mod: number): string {
         type="button"
         @click="changeFormation(fName)"
         :class="[
-          'px-2.5 py-1 rounded-lg text-xs font-bold transition-all border',
+          'px-3 py-2 sm:px-2.5 sm:py-1 rounded-lg text-xs font-bold transition-all border',
           squad.formation === fName
             ? 'bg-emeraldpro text-white border-emeraldpro shadow-sm'
             : 'bg-subtle text-ink-muted border-borderline hover:text-ink'
@@ -55,7 +66,8 @@ function pct(mod: number): string {
       </button>
     </div>
 
-    <div class="relative w-full h-[430px] sm:h-[510px] rounded-2xl pitch-bg border-2 border-emerald-800/30 overflow-hidden select-none shadow-inner">
+    <!-- Container query: no celular o card dos titulares escala com a largura do campo (cqw) para os 11 caberem sem sobrepor; md+ fixo em 76px como antes -->
+    <div class="relative w-full h-[430px] sm:h-[510px] max-w-full rounded-2xl pitch-bg border-2 border-emerald-800/30 overflow-hidden select-none shadow-inner [container-type:inline-size]">
       <div class="absolute inset-3 border-2 border-white/30 rounded-xl pointer-events-none"></div>
       <div class="absolute left-3 right-3 top-1/2 h-0.5 bg-white/30 pointer-events-none"></div>
       <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-2 border-white/30 pointer-events-none"></div>
@@ -67,12 +79,13 @@ function pct(mod: number): string {
         :key="idx"
         :style="{ left: slot.x + '%', top: slot.y + '%' }"
         :class="[
-          'absolute -translate-x-1/2 -translate-y-1/2',
+          'absolute -translate-x-1/2 -translate-y-1/2 w-[clamp(52px,19cqw,76px)] md:w-[76px]',
           ui.selectedPitchSlotIndex === idx ? 'z-20 scale-105' : 'z-10'
         ]"
       >
         <PlayerCard
           v-if="slot.player"
+          class="!w-full"
           :player="slot.player"
           size="xs"
           clickable
@@ -88,15 +101,15 @@ function pct(mod: number): string {
           type="button"
           @click="selectPitchSlot(idx)"
           :class="[
-            'w-[58px] sm:w-[74px] rounded-xl p-1 sm:p-1.5 bg-surface shadow-md border-2 transition-transform hover:scale-105 flex flex-col items-center text-center',
+            'w-full sm:w-[74px] mx-auto min-h-11 sm:min-h-0 rounded-xl p-1 sm:p-1.5 bg-surface shadow-md border-2 transition-transform hover:scale-105 flex flex-col items-center text-center',
             ui.selectedPitchSlotIndex === idx ? 'border-amberpro ring-2 ring-amberpro/40' : 'border-white'
           ]"
         >
-          <div class="w-full flex items-center justify-between text-[8px] sm:text-[10px] font-extrabold leading-none">
+          <div class="w-full flex items-center justify-between text-[10px] font-extrabold leading-none">
             <span class="text-amberpro">{{ formatPosBR(slot.role) }}</span>
             <span class="font-score text-xs sm:text-sm text-ink">--</span>
           </div>
-          <span class="text-[8px] sm:text-[10px] font-bold text-ink truncate w-full mt-0.5 leading-tight">Vazio</span>
+          <span class="text-[10px] font-bold text-ink truncate w-full mt-0.5 leading-tight">Vazio</span>
         </button>
       </div>
     </div>

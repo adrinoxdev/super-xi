@@ -19,7 +19,7 @@ const { continentalState, continentalStageLabel, continentalStandings, continent
   useCompetitionsStore()
 )
 const squad = useSquadStore()
-const { prepareMatch } = useMatchSimulation()
+const { prepareMatch, matchEntryLabel } = useMatchSimulation()
 
 const canPlay = computed(
   () => !continentalState.value.eliminated && !continentalState.value.champion && !continentalState.value.finalPosition
@@ -81,7 +81,7 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
             class="shrink-0 px-5 py-3 text-xs sm:text-sm shadow-sm flex items-center gap-2 self-start sm:self-auto"
           >
             <Play class="w-4 h-4 fill-current" />
-            {{ playLabel }}
+            {{ matchEntryLabel('continental', playLabel) }}
           </BaseButton>
         </div>
         <div v-if="canPlay" class="p-3 rounded-xl bg-subtle border border-borderline text-xs flex flex-wrap items-center justify-between gap-2">
@@ -99,7 +99,7 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
       <BaseCard class="space-y-3">
         <h4 class="font-bold text-sm text-ink">Grupo A</h4>
         <div class="overflow-x-auto">
-          <table class="w-full text-xs text-left">
+          <table class="w-full min-w-[380px] text-xs text-left">
             <thead>
               <tr class="border-b border-borderline text-[11px] uppercase text-ink-muted">
                 <th class="py-2 px-2">#</th>
@@ -121,7 +121,7 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
                   <span class="flex items-center gap-2 min-w-0">
                     <TeamCrest class="shrink-0" size="xs" :team="row.id" :name="row.name" :is-user="row.isUser" />
                     <span class="truncate" :title="row.name">{{ row.name }}</span>
-                    <span class="shrink-0 whitespace-nowrap text-[10px] text-ink-muted font-semibold">OVER {{ row.isUser ? squad.teamStrength.total : row.power }}</span>
+                    <span class="shrink-0 whitespace-nowrap text-[11px] text-ink-muted font-semibold">OVER {{ row.isUser ? squad.teamStrength.total : row.power }}</span>
                   </span>
                 </td>
                 <td class="py-2 px-2 text-center font-bold">{{ row.points }}</td>

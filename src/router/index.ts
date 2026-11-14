@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { useMatchStore } from '@/stores/match'
+import { rememberSection } from '@/utils/navigation/sectionMemory'
 // Telas da partida sem carregamento sob demanda: a partida não pode começar se o chunk falhar.
 import PreMatchView from '../views/PreMatchView.vue'
 import MatchView from '../views/MatchView.vue'
@@ -12,6 +13,8 @@ export const router = createRouter({
     { path: '/competitions', name: 'competitions', component: () => import('../views/CompetitionsView.vue') },
     { path: '/scouting', name: 'scouting', component: () => import('../views/ScoutingView.vue') },
     { path: '/squad', name: 'squad', component: () => import('../views/SquadView.vue') },
+    { path: '/matches', name: 'matches', component: () => import('../views/MatchesView.vue') },
+    { path: '/matches/:id', name: 'match-record', component: () => import('../views/MatchRecordView.vue') },
     { path: '/pre-match', name: 'prematch', component: PreMatchView },
     { path: '/match', name: 'match', component: MatchView },
     { path: '/club', name: 'club', component: () => import('../views/ClubView.vue') }
@@ -22,6 +25,10 @@ router.beforeEach((to) => {
   const match = useMatchStore()
   if (to.name === 'match' && !match.isMatchActive) return { name: 'prematch' }
   if (to.name === 'prematch' && match.isMatchActive) return { name: 'match' }
+})
+
+router.afterEach((to) => {
+  rememberSection(to.path, useMatchStore().activeMatchCompetition)
 })
 
 // Rede de segurança: se o carregamento sob demanda de uma tela falhar (chunk antigo após atualização, recarga do servidor

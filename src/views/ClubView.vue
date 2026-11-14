@@ -4,9 +4,6 @@ import IdentityEditor from '@/components/club/IdentityEditor.vue'
 import UpgradeCard from '@/components/club/UpgradeCard.vue'
 import StaffCard from '@/components/club/StaffCard.vue'
 import TrophyRoom from '@/components/club/TrophyRoom.vue'
-import MilestonesCard from '@/components/club/MilestonesCard.vue'
-import TopScorers from '@/components/club/TopScorers.vue'
-import HallOfFame from '@/components/club/HallOfFame.vue'
 import TransferHistory from '@/components/club/TransferHistory.vue'
 import ManagerRanking from '@/components/club/ManagerRanking.vue'
 import BackupPanel from '@/components/club/BackupPanel.vue'
@@ -37,14 +34,7 @@ import BaseCard from '@/components/ui/BaseCard.vue'
       </div>
     </BaseCard>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <TrophyRoom />
-      <TopScorers />
-    </div>
-
-    <MilestonesCard />
-
-    <HallOfFame />
+    <TrophyRoom />
     <TransferHistory />
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

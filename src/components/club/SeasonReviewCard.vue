@@ -29,7 +29,7 @@ function hide() {
       </div>
       <button
         type="button"
-        class="shrink-0 px-3 py-1.5 rounded-xl bg-subtle hover:bg-borderline text-ink text-xs font-bold"
+        class="shrink-0 min-h-[40px] sm:min-h-0 px-3 py-1.5 rounded-xl bg-subtle hover:bg-borderline text-ink text-xs font-bold"
         @click="hide"
       >
         Ocultar

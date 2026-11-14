@@ -1,5 +1,5 @@
 import type { Player, PlayerAttributes, PlayerPosition } from '@/types/player'
-import { AGING, ALL_POSITIONS, ATHLETE_MAX_OVERALL, OVER_TAIL, STAR, VALUE, VALUE_AGE, WAGE } from '@/config'
+import { AGING, ALL_POSITIONS, ATHLETE_MAX_OVERALL, OVER_TAIL, STAR, VALUE, VALUE_AGE, WAGE, YOUTH } from '@/config'
 import { clamp, pickRandom, randInt } from '@/utils/core/random'
 
 const FIRST_NAMES = [
@@ -77,6 +77,16 @@ export function applyAging(p: Player): void {
 /** Teto de venda na temporada da chegada: ninguém vende por mais do que pagou. */
 export function saleCap(p: Player, amount: number, season: number): number {
   return p.acquiredSeason === season ? Math.min(amount, p.acquiredFee ?? amount) : amount
+}
+
+/** Promovido da base ainda dentro do bloqueio de venda e empréstimo. */
+export function isYouthSaleLocked(p: Player, season: number): boolean {
+  return p.promotedSeason !== undefined && season < p.promotedSeason + YOUTH.lockSeasons
+}
+
+/** Primeira temporada em que o promovido da base pode ser vendido ou emprestado. */
+export function youthUnlockSeason(p: Player): number | null {
+  return p.promotedSeason === undefined ? null : p.promotedSeason + YOUTH.lockSeasons
 }
 
 /** Salário por jogo a partir do OVER (dobra a cada WAGE.doubleEvery pontos; prêmio de estrela acima de STAR.from). */

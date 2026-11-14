@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useMatchStore } from '@/stores/match'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
 import type { MatchCompetition } from '@/types/match'
+import { formatMinute } from '@/utils/match/formatMinute'
 
 const match = useMatchStore()
 const { switchActiveMatch, opponentFor } = useMatchSimulation()
@@ -26,7 +27,7 @@ const items = computed(() => {
     return {
       comp: c,
       name: NAMES[c],
-      status: !open ? 'Pré-jogo' : st.isFinished ? 'Encerrada' : st.isRunning ? st.minute + "'" : 'Pausada',
+      status: !open ? 'Pré-jogo' : st.isFinished ? 'Encerrada' : st.isRunning ? formatMinute(st.minute) : 'Pausada',
       score: open ? `${st.userScore}-${st.opponentScore}` : '',
       live: open && !st.isFinished,
       vs: open ? opponentFor(c).name : ''
@@ -43,19 +44,24 @@ const items = computed(() => {
       type="button"
       role="tab"
       :aria-selected="it.comp === match.activeMatchCompetition"
-      class="rounded-lg border px-3 py-2 text-left text-xs transition"
+      class="rounded-xl border px-3.5 py-2 text-left text-xs transition-colors flex flex-col gap-0.5 min-w-[9rem] min-h-11 flex-1 sm:flex-none max-w-full"
       :class="
         it.comp === match.activeMatchCompetition
-          ? 'border-emerald-400 bg-emerald-500/15 text-ink'
-          : 'border-slate-700 bg-slate-800/60 text-slate-300 hover:border-slate-500'
+          ? 'border-emeraldpro bg-emeraldpro-soft text-ink shadow-sm'
+          : 'border-borderline bg-surface text-ink-muted hover:bg-subtle hover:text-ink'
       "
       @click="switchActiveMatch(it.comp)"
     >
-      <span class="font-bold">{{ it.name }}</span>
-      <span v-if="it.vs" class="text-slate-400"> x {{ it.vs }}</span>
-      <span class="ml-2 inline-flex items-center gap-1">
-        <span v-if="it.live" class="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse"></span>
-        {{ it.score }} {{ it.status }}
+      <span class="flex items-center justify-between gap-3">
+        <span class="font-bold text-ink">{{ it.name }}</span>
+        <span class="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider" :class="it.live ? 'text-dangerpro' : 'text-ink-muted'">
+          <span v-if="it.live" class="h-1.5 w-1.5 rounded-full bg-dangerpro animate-pulse"></span>
+          {{ it.status }}
+        </span>
+      </span>
+      <span v-if="it.vs" class="flex items-center justify-between gap-3">
+        <span class="truncate" :title="it.vs">x {{ it.vs }}</span>
+        <span class="font-score font-bold text-ink">{{ it.score }}</span>
       </span>
     </button>
   </div>

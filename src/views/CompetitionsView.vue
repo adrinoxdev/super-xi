@@ -34,14 +34,14 @@ const tabs = [
         <h2 class="text-lg sm:text-xl font-bold text-ink break-words">Competições Paralelas & Supercopas</h2>
         <p class="text-xs text-ink-muted mt-0.5 break-words">Dispute a Taça Cacique, torneios continentais e decisões em jogo único.</p>
       </div>
-      <div class="flex flex-wrap items-center gap-1.5 bg-subtle p-1 rounded-xl border border-borderline self-start">
+      <div class="flex flex-wrap items-center gap-1.5 bg-subtle p-1 rounded-xl border border-borderline self-start max-w-full">
         <button
           v-for="t in tabs"
           :key="t.id"
           type="button"
           @click="compSubTab = t.id"
           :class="[
-            'px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+            'px-3 py-2.5 md:py-1.5 rounded-lg text-xs font-bold transition-all',
             t.id === 'supercups' ? 'flex items-center gap-1' : '',
             compSubTab === t.id ? 'bg-emeraldpro text-white shadow-sm' : 'text-ink-muted hover:text-ink'
           ]"

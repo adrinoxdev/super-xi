@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, reactive } from 'vue'
 import { router } from '@/router'
 import { useClubStore } from '@/stores/club'
 import { useCompetitionsStore } from '@/stores/competitions'
@@ -7,23 +7,59 @@ import { useMarketStore } from '@/stores/market'
 import { useMatchStore } from '@/stores/match'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
-import type { MatchCompetition, MatchEventType, MatchOpponent } from '@/types/match'
-import type { PlayerAttributes } from '@/types/player'
-import { getEffectiveOvr } from '@/utils/match/calculateTeamStrength'
+import type { FormationName, LiveMatchEvent, MatchCompetition, MatchEventType, MatchOpponent } from '@/types/match'
+import { LIVE_MATCH_KEY } from '@/config/storage'
+import { COMP_SHORT, isSuspendedFor } from '@/utils/player/suspension'
+import { COMPETITIONS_ORDER } from '@/stores/match'
+import type { Player, PlayerAttributes } from '@/types/player'
+import { calculateTeamStrength, getEffectiveOvr } from '@/utils/match/calculateTeamStrength'
 import { evolutionFactor, FORMATIONS, INJURY, MATCH_SIM, POSITION_KEY_FOCUS, PROGRESSION, progressionAgeFactor, STAFF_BONUS } from '@/config'
 import { refreshPlayerEconomy } from '@/utils/player/generatePlayer'
 import { checkMilestones } from '@/utils/club/progression'
 import {
-  commentLine,
+  brawlCalmLine,
+  brawlLine,
+  brawlReaction,
   cornerLine,
+  freeKickGoalLine,
+  gkEmergencyLine,
+  gkSubLine,
+  freeKickLine,
+  freeKickResultLine,
   fullTimeLine,
+  fullTimeReaction,
   goalLine,
+  goalReaction,
   halfTimeLine,
+  halfTimeReaction,
   keeperDefends,
   offTargetLine,
+  offsideLine,
+  oppKeeperOffLine,
+  ownGoalLine,
+  postLine,
+  postReaction,
+  throwInLine,
+  penaltyAwardLine,
+  penaltyAwardReaction,
+  penaltyHandballLine,
+  penaltyMissLine,
+  penaltyMissReaction,
+  redCardLine,
+  reorganizeLine,
+  redReaction,
   resetNarration,
-  savedLine
+  saveReaction,
+  savedLine,
+  shootoutEndLine,
+  shootoutKickLine,
+  shootoutStartLine,
+  stoppageLine,
+  yellowCardLine,
+  yellowReaction
 } from '@/utils/match/narration'
+import { shootoutStatus } from '@/utils/match/penaltyShootout'
+import { shootoutConversions } from '@/utils/bracket/bracket'
 import { clamp, pickRandom, randInt } from '@/utils/core/random'
 import { usePersistence } from './usePersistence'
 import { useEconomy } from './useEconomy'
@@ -38,15 +74,31 @@ const matchTimers: Partial<Record<MatchCompetition, ReturnType<typeof setInterva
 
 // Gols registrados na partida em andamento de cada competição (revertidos se abandonada).
 const matchGoalLogs: Partial<Record<MatchCompetition, string[]>> = {}
+const matchAssistLogs: Partial<Record<MatchCompetition, string[]>> = {}
+
+// Cartões da partida em andamento de cada competição. Reativo: a tela mostra o time com um a menos.
+// yellow/off: titulares do usuário com amarelo e expulsos. oppOff: expulsões do rival (sem nomes).
+interface MatchCards { yellow: Set<string>; off: Set<string>; direct: Set<string>; oppOff: number }
+const matchCards = reactive<Partial<Record<MatchCompetition, MatchCards>>>({})
+function cardsFor(comp: MatchCompetition): MatchCards {
+  return (matchCards[comp] ??= { yellow: new Set(), off: new Set(), direct: new Set(), oppOff: 0 })
+}
+/** O atleta foi expulso na partida em andamento desta competição? */
+export function isSentOff(comp: MatchCompetition, playerId: string): boolean {
+  return matchCards[comp]?.off.has(playerId) ?? false
+}
+
+/** Acréscimos do 2º tempo: o árbitro soma o tempo perdido com gols, cartões, lesões, trocas, pênaltis e brigas. */
+function stoppageMinutes(events: LiveMatchEvent[]): number {
+  const weight: Partial<Record<MatchEventType, number>> = {
+    sub: 0.5, injury: 1.5, yellow: 0.4, red: 1, brawl: 1.5, goal: 0.5, opp_goal: 0.5, penalty: 1
+  }
+  const sum = events.filter((e) => e.minute >= 46 && e.minute <= 90).reduce((a, e) => a + (weight[e.type] ?? 0), 0)
+  return clamp(Math.round(1 + 0.7 * sum), 2, 8)
+}
 
 // Mentalidade vigente quando o painel de substituições abriu (para narrar a mudança de estilo).
 let mentalityOnOpen: string | null = null
-
-// Minuto do último comentário solto: segura o ritmo para o narrador não falar o tempo todo.
-const lastCommentMinutes: Partial<Record<MatchCompetition, number>> = {}
-// Intervalo entre comentários sorteado a cada fala (2 a 6 min), para não cair sempre nos mesmos minutos.
-const COMMENT_GAP_RANGE: [number, number] = [2, 6]
-const nextCommentGap: Partial<Record<MatchCompetition, number>> = {}
 
 function clearMatchTimer(comp: MatchCompetition) {
   const t = matchTimers[comp]
@@ -73,7 +125,7 @@ export function useMatchSimulation() {
   const { settleMatch } = useEconomy()
   const { applyStageOutcome } = useSeason()
 
-  function isHomeFor(comp: MatchCompetition): boolean {
+  function rawIsHomeFor(comp: MatchCompetition): boolean {
     if (comp === 'league') return league.nextFixtureIsHome
     if (comp === 'continental') {
       const c = competitions.continentalState
@@ -82,9 +134,19 @@ export function useMatchSimulation() {
     }
     return true
   }
+  // Partida aberta (rodando ou encerrada e ainda na tela): vale o que foi congelado no início.
+  function isHomeFor(comp: MatchCompetition): boolean {
+    const snap = match.sessions[comp].snapshot
+    return snap && match.isCompetitionMatchActive(comp) ? snap.isHome : rawIsHomeFor(comp)
+  }
   const activeMatchIsHome = computed(() => isHomeFor(match.activeMatchCompetition))
 
   function opponentFor(comp: MatchCompetition): MatchOpponent {
+    const snap = match.sessions[comp].snapshot
+    return snap && match.isCompetitionMatchActive(comp) ? snap.opponent : rawOpponentFor(comp)
+  }
+
+  function rawOpponentFor(comp: MatchCompetition): MatchOpponent {
     if (comp === 'supercup') {
       return {
         name: competitions.supercupState.rivalName,
@@ -111,6 +173,11 @@ export function useMatchSimulation() {
   const activeMatchOpponent = computed<MatchOpponent>(() => opponentFor(match.activeMatchCompetition))
 
   function labelFor(comp: MatchCompetition): string {
+    const snap = match.sessions[comp].snapshot
+    return snap && match.isCompetitionMatchActive(comp) ? snap.label : rawLabelFor(comp)
+  }
+
+  function rawLabelFor(comp: MatchCompetition): string {
     if (comp === 'supercup') return 'Supercopa Soberana • Final Única'
     if (comp === 'recopa') return 'Recopa Condor • Final Única'
     if (comp === 'cup') return 'Taça Cacique • ' + competitions.cupRoundLabel
@@ -134,32 +201,95 @@ export function useMatchSimulation() {
   const homeBonusOn = computed(() => homeBonusApplies(match.activeMatchCompetition))
   // OVER de partida (sem arredondar): OVER do time + mando. Mesma unidade do OVER dos rivais.
   const userMatchRating = computed(
-    () => squad.teamStrength.rating + (homeBonusOn.value && activeMatchIsHome.value ? MATCH_SIM.homeAdvantage : 0)
+    () => userBaseRating(match.activeMatchCompetition) + (homeBonusOn.value && activeMatchIsHome.value ? MATCH_SIM.homeAdvantage : 0)
   )
   const opponentMatchRating = computed(
-    () => activeMatchOpponent.value.power + (homeBonusOn.value && !activeMatchIsHome.value ? MATCH_SIM.homeAdvantage : 0)
+    () => opponentPower(match.activeMatchCompetition) + (homeBonusOn.value && !activeMatchIsHome.value ? MATCH_SIM.homeAdvantage : 0)
   )
   const effectiveUserPower = computed(() => Math.round(userMatchRating.value))
   const effectiveOpponentPower = computed(() => Math.round(opponentMatchRating.value))
+
+  // Titulares ainda em campo (sem os expulsos).
+  function activeStarters(comp: MatchCompetition) {
+    return squad.currentStartersList.filter((p) => !isSentOff(comp, p.id) && !isSuspendedFor(p, comp))
+  }
+
+  // Quem está no gol agora: o ocupante da vaga de goleiro (pode ser um jogador de linha após uma expulsão).
+  function keeperOf(comp: MatchCompetition) {
+    const layout = FORMATIONS[squad.formation] || FORMATIONS['4-3-3']
+    const idx = layout.findIndex((slot) => slot.role === 'GK')
+    const p = squad.players.find((pl) => pl.id === squad.starterIds[idx])
+    return p && !isSentOff(comp, p.id) && !isSuspendedFor(p, comp) ? p : undefined
+  }
+
+  // Titulares que não jogam esta partida: expulsos nela e suspensos na competição.
+  function unavailableIds(comp: MatchCompetition): Set<string> {
+    const ids = new Set<string>(matchCards[comp]?.off ?? [])
+    squad.currentStartersList.forEach((p) => {
+      if (isSuspendedFor(p, comp)) ids.add(p.id)
+    })
+    return ids
+  }
+
+  // OVER do time do usuário: indisponível deixa a vaga vazia (conta 0 na média ponderada), então o time joga com 10.
+  function userBaseRating(comp: MatchCompetition): number {
+    const ids = unavailableIds(comp)
+    return ids.size ? calculateTeamStrength(squad.pitchSlots, ids).rating : squad.teamStrength.rating
+  }
+
+  // Titulares suspensos na competição que ainda dá para substituir (há reserva não suspenso, mesmo lesionado).
+  // Bloqueiam o início da partida; sem nenhum reserva possível, o time joga com a vaga vazia.
+  function lineupBlockers(comp: MatchCompetition) {
+    const starters = new Set(squad.starterIds)
+    const hasSub = squad.players.some((q) => !starters.has(q.id) && !q.isLoanedOut && !isSuspendedFor(q, comp))
+    return hasSub ? squad.currentStartersList.filter((p) => isSuspendedFor(p, comp)) : []
+  }
+
+  // Suspenso na competição sai da escalação: o melhor reserva disponível assume a vaga. Devolve as trocas feitas.
+  function fixLineupFor(comp: MatchCompetition) {
+    const swaps = squad.replaceInjuredStarters((p) => isSuspendedFor(p, comp))
+    // Jogador de linha no gol (sobrou de uma expulsão do goleiro) e há goleiro disponível no banco: devolve o gol.
+    const layout = FORMATIONS[squad.formation] || FORMATIONS['4-3-3']
+    const gkIdx = layout.findIndex((slot) => slot.role === 'GK')
+    const holder = squad.players.find((pl) => pl.id === squad.starterIds[gkIdx])
+    const spare = squad.availableBenchList.find((q) => q.position === 'GK' && !q.injury && !isSuspendedFor(q, comp))
+    if (holder && holder.position !== 'GK' && spare) {
+      squad.starterIds[gkIdx] = spare.id
+      saveGame()
+    }
+    if (swaps.length) saveGame()
+    return swaps
+  }
+
+  // Rival com expulsos perde 1/11 da força por jogador a menos (mesmo peso médio de uma vaga vazia do usuário).
+  function opponentPower(comp: MatchCompetition): number {
+    const n = matchCards[comp]?.oppOff ?? 0
+    const power = opponentFor(comp).power
+    return n ? (power * Math.max(0, 11 - n)) / 11 : power
+  }
 
   // Rating de uma competição específica (a partida pode não ser a exibida).
   function ratingsFor(comp: MatchCompetition) {
     const bonus = homeBonusApplies(comp)
     const home = isHomeFor(comp)
     return {
-      user: squad.teamStrength.rating + (bonus && home ? MATCH_SIM.homeAdvantage : 0),
-      opp: opponentFor(comp).power + (bonus && !home ? MATCH_SIM.homeAdvantage : 0)
+      user: userBaseRating(comp) + (bonus && home ? MATCH_SIM.homeAdvantage : 0),
+      opp: opponentPower(comp) + (bonus && !home ? MATCH_SIM.homeAdvantage : 0)
     }
   }
 
   function discardInProgressGoals(comp: MatchCompetition) {
     ;(matchGoalLogs[comp] ?? []).forEach((id) => club.revertGoal(id))
     matchGoalLogs[comp] = []
+    ;(matchAssistLogs[comp] ?? []).forEach((id) => club.revertAssist(id))
+    matchAssistLogs[comp] = []
+    delete matchCards[comp]
   }
 
   function prepareMatch(comp: MatchCompetition = 'league') {
-    // Partida desta competição já em andamento (ou encerrada e não fechada): só volta para ela, sem reiniciar.
-    if (match.isCompetitionMatchActive(comp)) {
+    // Partida desta competição em andamento: só volta para ela, sem reiniciar.
+    // Partida já encerrada não bloqueia: o resultado já está no histórico e o botão inicia a próxima.
+    if (match.isCompetitionMatchActive(comp) && !match.sessions[comp].matchState.isFinished) {
       match.activeMatchCompetition = comp
       router.push('/match')
       return
@@ -173,7 +303,16 @@ export function useMatchSimulation() {
     discardInProgressGoals(comp)
     match.activeMatchCompetition = comp
     match.resetMatchState(comp)
+    fixLineupFor(comp).forEach((sw) =>
+      ui.showToast(`Desfalque na ${COMP_SHORT[comp]}: ${sw.out.name} está suspenso e ${sw.in.name} assume a vaga.`, 'warning')
+    )
     router.push('/pre-match')
+  }
+
+  /** Texto do botão de entrada da competição: se já há partida aberta, ele leva a ela em vez de iniciar outra. */
+  function matchEntryLabel(comp: MatchCompetition, idleLabel: string): string {
+    if (!match.isCompetitionLive(comp)) return idleLabel
+    return 'Acompanhar partida ao vivo'
   }
 
   /** Troca a competição exibida na tela de partida (partidas simultâneas). */
@@ -191,9 +330,20 @@ export function useMatchSimulation() {
       router.push(comp === 'league' ? '/league' : '/competitions')
       return
     }
+    // Suspenso na competição não entra: o melhor reserva disponível assume a vaga.
+    fixLineupFor(comp)
+    // Se ainda sobrou suspenso titular (só havia reservas lesionados), a partida não começa até o técnico escalar outro.
+    const blockers = lineupBlockers(comp)
+    if (blockers.length) {
+      ui.showToast(`${blockers.map((p) => p.name).join(', ')} ${blockers.length === 1 ? 'está suspenso' : 'estão suspensos'} na ${COMP_SHORT[comp]}. Substitua antes de iniciar.`, 'danger')
+      return
+    }
     discardInProgressGoals(comp)
-    lastCommentMinutes[comp] = -99
+    // Congela adversário, mando e rótulo antes de ativar a sessão (depois do apito o estado das competições avança).
+    match.sessions[comp].snapshot = { opponent: { ...rawOpponentFor(comp) }, isHome: rawIsHomeFor(comp), label: rawLabelFor(comp) }
+    delete matchCards[comp]
     resetNarration()
+    const absent = squad.players.filter((p) => !p.isLoanedOut && isSuspendedFor(p, comp)).map((p) => p.name)
     match.matchState = {
       isRunning: true,
       isFinished: false,
@@ -205,9 +355,12 @@ export function useMatchSimulation() {
       events: [
         {
           minute: 1,
-          type: 'info',
+          type: 'whistle',
           description: `Apita o árbitro! Começa ${club.name} x ${activeMatchOpponent.value.name}!`
-        }
+        },
+        ...(absent.length
+          ? [{ minute: 0, type: 'info' as const, description: `Desfalques por suspensão no ${club.name}: ${absent.join(', ')}.` }]
+          : [])
       ]
     }
     match.resetStats(comp)
@@ -218,12 +371,89 @@ export function useMatchSimulation() {
       match.resetMatchState(comp)
       ui.showToast('Não foi possível abrir a partida. Recarregue a página.', 'danger')
     }
+    saveLiveMatch()
     router.push('/match').then((failure) => (failure ? abortStart() : runMatchLoop(comp)), abortStart)
+  }
+
+  /** O resultado da partida exige vencedor e o placar (ou o agregado) está empatado? */
+  function needsShootout(comp: MatchCompetition, u: number, o: number): boolean {
+    if (comp === 'cup' || comp === 'supercup' || comp === 'recopa') return u === o
+    if (comp === 'continental') return u === o && competitions.continentalState.stage !== 'GROUPS'
+    if (!league.isKnockoutStage) return false
+    const fx = league.nextUserFixture
+    if (!fx || fx.leg === 1) return false
+    let uAgg = u
+    let oAgg = o
+    if (fx.leg === 2) {
+      const first = league.leagueFixtures.find((f) => f.stage === fx.stage && f.tie === fx.tie && f.leg === 1 && f.played)
+      if (first) {
+        uAgg += first.homeId === 'user' ? (first.homeScore ?? 0) : (first.awayScore ?? 0)
+        oAgg += first.homeId === 'user' ? (first.awayScore ?? 0) : (first.homeScore ?? 0)
+      }
+    }
+    return uAgg === oAgg
+  }
+
+  function startShootout(comp: MatchCompetition) {
+    const state = match.sessions[comp].matchState
+    state.shootout = { kicks: [], first: isHomeFor(comp) ? 'user' : 'opp', done: false }
+    state.events.unshift({
+      minute: 90,
+      type: 'penalty',
+      description: shootoutStartLine(club.name, opponentFor(comp).name, state.userScore, state.opponentScore)
+    })
+    runShootoutLoop(comp)
+  }
+
+  // Uma cobrança por intervalo; usa o mesmo timer por competição da partida.
+  function runShootoutLoop(comp: MatchCompetition) {
+    clearMatchTimer(comp)
+    const state = match.sessions[comp].matchState
+    const sh = state.shootout
+    if (!sh || sh.done) return
+    const ratings = ratingsFor(comp)
+    const [convUser, convOpp] = shootoutConversions(ratings.user, ratings.opp)
+    const oppName = opponentFor(comp).name
+    matchTimers[comp] = setInterval(() => {
+      const s = match.sessions[comp].matchState
+      const shoot = s.shootout
+      if (!s.isRunning || !shoot || shoot.done) return
+      const side = shootoutStatus(shoot.kicks, shoot.first).next
+      const scored = Math.random() < (side === 'user' ? convUser : convOpp)
+      const userKicks = shoot.kicks.filter((k) => k.side === 'user').length
+      const takers = activeStarters(comp).filter((p) => p.position !== 'GK')
+      const taker = side === 'user' ? takers[userKicks % Math.max(1, takers.length)]?.name : undefined
+      shoot.kicks.push({ side, scored })
+      const st = shootoutStatus(shoot.kicks, shoot.first)
+      s.events.unshift({
+        minute: 90,
+        type: 'penalty',
+        description: shootoutKickLine(side === 'user' ? club.name : oppName, taker, scored, st.user, st.opp, club.name, oppName)
+      })
+      if (st.done) {
+        shoot.done = true
+        s.events.unshift({
+          minute: 90,
+          type: 'penalty',
+          description: shootoutEndLine(st.winner === 'user' ? club.name : oppName, st.user, st.opp)
+        })
+        s.isRunning = false
+        s.isFinished = true
+        clearMatchTimer(comp)
+        concludeMatch(comp)
+      }
+      saveLiveMatch()
+    }, MATCH_SIM.shootoutKickMs[state.speed === 2 ? 2 : 1])
   }
 
   function runMatchLoop(comp: MatchCompetition = match.activeMatchCompetition) {
     clearMatchTimer(comp)
     const st = match.sessions[comp].matchState
+    // Disputa de pênaltis em andamento (ex.: troca de velocidade): retoma a disputa, não o tempo normal.
+    if (st.shootout && !st.shootout.done) {
+      runShootoutLoop(comp)
+      return
+    }
     // Duração da partida: 2 min na velocidade normal e 1 min no 2x. O relógio avança 2 minutos de jogo por tick (45 ticks).
     const totalMs = st.speed === 2 ? MATCH_DURATION_2X_MS : MATCH_DURATION_NORMAL_MS
     const intervalMs = Math.round(totalMs / (90 / 2))
@@ -231,12 +461,27 @@ export function useMatchSimulation() {
       const state = match.sessions[comp].matchState
       if (!state.isRunning) return
       state.minute += 2
-      simulateMatchTick(state.minute, comp)
-      if (state.minute >= 90) {
-        state.minute = 90
+      // Acréscimos: anunciados aos 88'; o jogo segue até 90 + N (os lances do tempo extra aparecem como 90+N').
+      if (state.minute === 88 && state.addedTime === undefined) {
+        state.addedTime = stoppageMinutes(state.events)
+        state.events.unshift({ minute: 88, type: 'info', description: stoppageLine(state.addedTime) })
+      }
+      const end = 90 + (state.addedTime ?? 0)
+      const scoreBefore = state.userScore
+      simulateMatchTick(Math.min(state.minute, end), comp)
+      // Gol do usuário mexe em estatísticas de carreira: grava junto para o save principal não ficar para trás.
+      if (state.userScore !== scoreBefore) saveGame()
+      saveLiveMatch()
+      if (state.minute >= end) {
+        state.minute = end
+        clearMatchTimer(comp)
+        // Mata-mata empatado: o jogo segue para os pênaltis, ao vivo, antes de fechar o resultado.
+        if (needsShootout(comp, state.userScore, state.opponentScore)) {
+          startShootout(comp)
+          return
+        }
         state.isRunning = false
         state.isFinished = true
-        clearMatchTimer(comp)
         concludeMatch(comp)
       }
     }, intervalMs)
@@ -246,6 +491,7 @@ export function useMatchSimulation() {
     const comp = match.activeMatchCompetition
     match.matchState.speed = match.matchState.speed === 1 ? 2 : 1
     if (match.matchState.isRunning) runMatchLoop(comp)
+    saveLiveMatch()
   }
 
   function openInMatchSubDrawer() {
@@ -254,6 +500,7 @@ export function useMatchSimulation() {
     match.subOutId = ''
     match.subInId = ''
     mentalityOnOpen = match.selectedMentality
+    saveLiveMatch()
   }
 
   // Narra a mudança de estilo de jogo feita no painel (compara com a mentalidade de quando ele abriu).
@@ -269,22 +516,104 @@ export function useMatchSimulation() {
     saveGame()
   }
 
+  // Titulares lesionados ainda em campo que dá para trocar (há reserva saudável e disponível). Lesão exige ajuste:
+  // a partida só retoma depois de resolver. Sem reserva possível, o time segue com o lesionado em campo.
+  function pendingInjuries(comp: MatchCompetition): Player[] {
+    const hasReplacement = squad.availableBenchList.some((q) => !q.injury && !isSuspendedFor(q, comp))
+    return hasReplacement ? activeStarters(comp).filter((p) => !!p.injury) : []
+  }
+
   function closeInMatchSubDrawer() {
+    const pending = pendingInjuries(match.activeMatchCompetition)
+    if (pending.length) {
+      ui.showToast(`${pending.map((p) => p.name).join(', ')} ${pending.length === 1 ? 'está lesionado' : 'estão lesionados'}: faça a substituição antes de retomar.`, 'danger')
+      return
+    }
     announceMentalityChange()
     match.showSubDrawer = false
     if (!match.matchState.isFinished) {
       match.matchState.isRunning = true
       runMatchLoop(match.activeMatchCompetition)
     }
+    saveLiveMatch()
+  }
+
+  // Reorganiza o time com quem está em campo: testa todas as formações e, com jogador a menos (expulsão ou
+  // suspensão), todas as vagas que podem ficar vazias, e adota a de maior força. Não faz substituições.
+  function reorganizeTeam() {
+    const comp = match.activeMatchCompetition
+    const state = match.matchState
+    if (state.isFinished) return
+    const unavailable = (p: Player) => isSentOff(comp, p.id) || isSuspendedFor(p, comp)
+    const starters = squad.currentStartersList
+    const out = starters.filter(unavailable)
+    const pool = starters.filter((p) => !unavailable(p))
+    const empties = starters.length - pool.length
+    if (starters.length !== 11 || pool.length === 0) return
+    if (empties > 4) {
+      ui.showToast('Jogadores demais fora de campo para reorganizar automaticamente.', 'warning')
+      return
+    }
+    const combos = (items: number[], k: number): number[][] => {
+      if (k === 0) return [[]]
+      if (items.length < k) return []
+      const [head, ...tail] = items
+      return [...combos(tail, k - 1).map((c) => [head, ...c]), ...combos(tail, k)]
+    }
+    const before = userBaseRating(comp)
+    let best: { f: FormationName; ids: string[]; rating: number } | null = null
+    const order = [squad.formation, ...squad.formationNames.filter((f) => f !== squad.formation)]
+    for (const f of order) {
+      const layout = FORMATIONS[f]
+      const gkIdx = layout.findIndex((slot) => slot.role === 'GK')
+      const others = layout.map((_, i) => i).filter((i) => i !== gkIdx)
+      for (const empty of combos(others, empties)) {
+        const picked: Array<Player | null> = Array(11).fill(null)
+        const used = new Set<string>()
+        // Goleiro primeiro: a vaga nunca fica vazia e o titular natural do gol não pode ser tomado por outra posição.
+        for (const i of [gkIdx, ...others]) {
+          if (empty.includes(i)) continue
+          const cand = pool
+            .filter((p) => !used.has(p.id))
+            .sort((a, b) => getEffectiveOvr(b, layout[i].role) - getEffectiveOvr(a, layout[i].role))[0]
+          if (cand) {
+            picked[i] = cand
+            used.add(cand.id)
+          }
+        }
+        const rating = calculateTeamStrength(layout.map((slot, i) => ({ role: slot.role, player: picked[i] }))).rating
+        if (!best || rating > best.rating + 1e-9) {
+          const spare = out.map((p) => p.id)
+          best = { f, rating, ids: picked.map((p) => p?.id ?? spare.shift() ?? '') }
+        }
+      }
+    }
+    if (!best || best.ids.some((id) => !id) || new Set(best.ids).size !== 11) return
+    const same = best.f === squad.formation && best.ids.every((id, i) => id === squad.starterIds[i])
+    if (same || best.rating <= before + 0.05) {
+      ui.showToast('O time já está na melhor organização possível.', 'info')
+      return
+    }
+    squad.setFormation(best.f)
+    squad.setStarters(best.ids)
+    state.events.unshift({
+      minute: state.minute,
+      type: 'sub',
+      description: reorganizeLine(club.name, best.f, pool.length, before, best.rating)
+    })
+    ui.showToast(`Time reorganizado no ${best.f}: força ${before.toFixed(1)} → ${best.rating.toFixed(1)}.`, 'success')
+    saveGame()
+    saveLiveMatch()
   }
 
   // Sugere a melhor troca: maior ganho de OVER efetivo na vaga (posição, cansaço e lesão contam). Só preenche a
   // seleção; quem confirma é o usuário. Sem substituições restantes, só lesionados podem sair.
   function recommendSubstitution() {
     const subsLeft = match.matchState.subsUsed < 5
-    const bench = squad.availableBenchList.filter((p) => !p.injury)
+    const bench = squad.availableBenchList.filter((p) => !p.injury && !isSuspendedFor(p, match.activeMatchCompetition))
     let best: { outId: string; inId: string; gain: number } | null = null
     squad.currentStartersList.forEach((starter) => {
+      if (isSentOff(match.activeMatchCompetition, starter.id)) return
       if (!subsLeft && !starter.injury) return
       const slot = squad.starterIds.indexOf(starter.id)
       const role = (FORMATIONS[squad.formation] || FORMATIONS['4-3-3'])[slot]?.role
@@ -308,6 +637,8 @@ export function useMatchSimulation() {
   function confirmInMatchSubstitution() {
     const outPl = squad.players.find((p) => p.id === match.subOutId)
     const forced = !!outPl?.injury
+    // Expulso não pode ser substituído: o time segue com um a menos.
+    if (isSentOff(match.activeMatchCompetition, match.subOutId)) return
     if (!match.subOutId || !match.subInId || (!forced && match.matchState.subsUsed >= 5)) return
     announceMentalityChange()
     const inPl = squad.players.find((p) => p.id === match.subInId)
@@ -321,6 +652,7 @@ export function useMatchSimulation() {
     match.subOutId = ''
     match.subInId = ''
     saveGame()
+    saveLiveMatch()
   }
 
   function simulateMatchTick(minute: number, comp: MatchCompetition = match.activeMatchCompetition) {
@@ -333,11 +665,11 @@ export function useMatchSimulation() {
     const diff = ratings.user - ratings.opp
     const userName = club.name
     const oppName = opponentFor(comp).name
-    let narrated = false
     const say = (type: MatchEventType, description: string) => {
       state.events.unshift({ minute, type, description })
-      narrated = true
     }
+    // Opinião do comentarista sobre o lance que acabou de ser narrado.
+    const opine = (description: string) => say('comment', description)
 
     rollLiveInjury(minute, comp)
 
@@ -347,14 +679,179 @@ export function useMatchSimulation() {
     // Nem todo escanteio é narrado (os totais aparecem nas estatísticas).
     if (Math.random() < 0.16) {
       stats.userCorners++
-      if (Math.random() < 0.35) say('info', cornerLine(userName))
+      if (Math.random() < 0.35) say('corner', cornerLine(userName))
     }
     if (Math.random() < 0.15) {
       stats.oppCorners++
-      if (Math.random() < 0.35) say('info', cornerLine(oppName))
+      if (Math.random() < 0.35) say('corner', cornerLine(oppName))
     }
-    if (Math.random() < 0.18) stats.userFouls++
-    if (Math.random() < 0.18) stats.oppFouls++
+    // Lateral e impedimento: sempre contados; só parte é narrada (os totais aparecem nas estatísticas).
+    const roster = activeStarters(comp)
+    const bump = (key: 'userThrowIns' | 'oppThrowIns' | 'userOffsides' | 'oppOffsides') => {
+      stats[key] = (stats[key] ?? 0) + 1
+    }
+    if (Math.random() < M.throwInChance) {
+      bump('userThrowIns')
+      if (Math.random() < 0.12) say('throwin', throwInLine(userName, pickRandom(roster.filter((p) => ['LB', 'RB', 'LW', 'RW'].includes(p.position)))?.name))
+    }
+    if (Math.random() < M.throwInChance) {
+      bump('oppThrowIns')
+      if (Math.random() < 0.12) say('throwin', throwInLine(oppName))
+    }
+    if (Math.random() < M.offsideChance) {
+      bump('userOffsides')
+      if (Math.random() < 0.6) say('offside', offsideLine(userName, pickRandom(roster.filter((p) => ['ST', 'LW', 'RW', 'CAM'].includes(p.position)))?.name))
+    }
+    if (Math.random() < M.offsideChance) {
+      bump('oppOffsides')
+      if (Math.random() < 0.6) say('offside', offsideLine(oppName))
+    }
+    // Cada falta pode virar cartão. Time do usuário usa jogadores reais; o rival, só o clube. Segundo amarelo expulsa.
+    const cards = cardsFor(comp)
+    const count = (side: 'user' | 'opp', kind: 'Yellows' | 'Reds') => {
+      const key = `${side}${kind}` as 'userYellows' | 'oppYellows' | 'userReds' | 'oppReds'
+      stats[key] = (stats[key] ?? 0) + 1
+    }
+    const sendOff = (id: string, name: string) => {
+      cards.off.add(id)
+      ui.showToast(`${name} foi expulso! Você joga com ${11 - cards.off.size}.`, 'danger')
+    }
+    // Goleiro do usuário expulso: com troca disponível e goleiro reserva, o técnico sacrifica o jogador de linha de menor
+    // rendimento; senão, o jogador de linha de melhor defesa veste as luvas (joga fora de posição, com a penalidade de
+    // OVER de quem está no gol). O expulso fica na vaga do sacrificado (vazia), então o time joga com um a menos.
+    // Quem está no gol é quem ocupa a vaga de goleiro, mesmo que seja um jogador de linha improvisado.
+    const isInGoal = (id: string) => {
+      const layout = FORMATIONS[squad.formation] || FORMATIONS['4-3-3']
+      return squad.starterIds[layout.findIndex((slot) => slot.role === 'GK')] === id
+    }
+    const keeperOff = (gk: { id: string }) => {
+      const gkIdx = squad.starterIds.indexOf(gk.id)
+      if (gkIdx < 0) return
+      const layout = FORMATIONS[squad.formation] || FORMATIONS['4-3-3']
+      const field = activeStarters(comp).filter((p) => p.position !== 'GK' && p.id !== gk.id)
+      const backup = state.subsUsed < 5 ? squad.availableBenchList.find((p) => p.position === 'GK' && !p.injury && !isSuspendedFor(p, comp)) : undefined
+      const weakest = [...field].sort(
+        (a, b) =>
+          getEffectiveOvr(a, layout[squad.starterIds.indexOf(a.id)]?.role ?? a.position) -
+          getEffectiveOvr(b, layout[squad.starterIds.indexOf(b.id)]?.role ?? b.position)
+      )[0]
+      if (backup && weakest && squad.substituteStarter(weakest.id, backup.id)) {
+        const slot = squad.starterIds.indexOf(backup.id)
+        squad.starterIds[slot] = gk.id
+        squad.starterIds[gkIdx] = backup.id
+        state.subsUsed += 1
+        say('sub', gkSubLine(userName, weakest.name, backup.name))
+        saveGame()
+        return
+      }
+      const volunteer = [...field].sort((a, b) => b.attributes.defending - a.attributes.defending)[0]
+      if (!volunteer) return
+      const vIdx = squad.starterIds.indexOf(volunteer.id)
+      squad.starterIds[gkIdx] = volunteer.id
+      squad.starterIds[vIdx] = gk.id
+      say('info', gkEmergencyLine(userName, volunteer.name))
+      saveGame()
+    }
+    // `force`: punição já decidida (briga); sem ela, o sorteio é por falta.
+    const rollCard = (side: 'user' | 'opp', force?: 'yellow' | 'red', target?: ReturnType<typeof activeStarters>[number]) => {
+      const r = Math.random()
+      if (!force && r >= M.yellowPerFoul + M.redPerFoul) return
+      const team = side === 'user' ? userName : oppName
+      const player =
+        side === 'user' ? (target ?? pickRandom(activeStarters(comp))) : undefined
+      if (force ? force === 'red' : r < M.redPerFoul) {
+        count(side, 'Reds')
+        if (player) {
+          cards.direct.add(player.id)
+          sendOff(player.id, player.name)
+        } else cards.oppOff = Math.min(cards.oppOff + 1, 4)
+        say('red', redCardLine(team, player?.name, false))
+        if (player && isInGoal(player.id)) keeperOff(player)
+        else if (!player && Math.random() < 1 / 11) say('info', oppKeeperOffLine(team))
+        opine(redReaction(team, side === 'user' ? oppName : userName, side === 'user' ? state.userScore : state.opponentScore, side === 'user' ? state.opponentScore : state.userScore, minute))
+        return
+      }
+      if (player && cards.yellow.has(player.id)) {
+        count(side, 'Yellows')
+        count(side, 'Reds')
+        sendOff(player.id, player.name)
+        say('yellow', yellowCardLine(team, player.name))
+        say('red', redCardLine(team, player.name, true))
+        if (isInGoal(player.id)) keeperOff(player)
+        opine(redReaction(team, oppName, state.userScore, state.opponentScore, minute))
+        return
+      }
+      count(side, 'Yellows')
+      if (player) cards.yellow.add(player.id)
+      say('yellow', yellowCardLine(team, player?.name))
+      // Amarelos da competição já contando este: 2 = pendurado, 3 = suspenso no próximo jogo (sempre comentado).
+      const accumulated = player ? (player.yellowCards?.[comp] ?? 0) + 1 : 1
+      if (accumulated >= 2 || Math.random() < 0.35) opine(yellowReaction(team, player?.name, minute, accumulated))
+    }
+    // Falta perigosa: o time que sofreu cobra. Conta como finalização e pode virar gol (M.freeKickGoal).
+    const freeKick = (taker: 'user' | 'opp') => {
+      if (Math.random() >= M.dangerousFreeKick) return
+      const team = taker === 'user' ? userName : oppName
+      const kicker = taker === 'user' ? pickRandom(activeStarters(comp).filter((p) => p.position !== 'GK')) : undefined
+      const who = kicker?.name
+      say('freekick', freeKickLine(team, who))
+      if (taker === 'user') stats.userShots++
+      else stats.oppShots++
+      // Pequena chance de gol de falta: conta como qualquer gol (artilharia, placar e comentário).
+      if (Math.random() < M.freeKickGoal) {
+        if (taker === 'user') {
+          stats.userShotsOnTarget++
+          state.userScore++
+          if (kicker) {
+            club.recordGoal(kicker)
+            ;(matchGoalLogs[comp] ??= []).push(kicker.id)
+          }
+          say('goal', freeKickGoalLine(team, who))
+          opine(goalReaction({ team, other: oppName, scorer: who, scoreFor: state.userScore, scoreAgainst: state.opponentScore, minute }))
+        } else {
+          stats.oppShotsOnTarget++
+          state.opponentScore++
+          say('opp_goal', freeKickGoalLine(team))
+          opine(goalReaction({ team, other: userName, scoreFor: state.opponentScore, scoreAgainst: state.userScore, minute }))
+        }
+        return
+      }
+      const r = Math.random()
+      if (r < 0.3) {
+        if (taker === 'user') stats.userShotsOnTarget++
+        else stats.oppShotsOnTarget++
+        const keeper = taker === 'user' ? keeperDefends(undefined, oppName) : keeperDefends(keeperOf(comp)?.name, userName)
+        say('info', freeKickResultLine('saved', team, who, keeper))
+      } else if (r < 0.5) say('info', freeKickResultLine('wall', team, who, ''))
+      else if (r < 0.6) say('post', freeKickResultLine('post', team, who, ''))
+      else say('info', freeKickResultLine('over', team, who, ''))
+    }
+    if (Math.random() < 0.18) {
+      stats.userFouls++
+      rollCard('user')
+      freeKick('opp')
+    }
+    if (Math.random() < 0.18) {
+      stats.oppFouls++
+      rollCard('opp')
+      freeKick('user')
+    }
+    // Briga: tumulto curto, sem parar o jogo. O árbitro pode dar cartões aos dois lados (até vermelho) ou só acalmar.
+    if (minute > 6 && minute < 88 && Math.random() < M.brawlChance) {
+      say('brawl', brawlLine(userName, oppName))
+      stats.userFouls++
+      stats.oppFouls++
+      const punish = (side: 'user' | 'opp') => {
+        const x = Math.random()
+        if (x < 0.12) rollCard(side, 'red')
+        else if (x < 0.6) rollCard(side, 'yellow')
+        else return false
+        return true
+      }
+      const carded = [punish('user'), punish('opp')]
+      if (!carded.some(Boolean)) say('info', brawlCalmLine())
+      opine(brawlReaction())
+    }
 
     // Mentalidade muda o quanto o jogo é aberto: multiplica as chances próprias e divide as do rival.
     const userChanceProb = clamp((M.userChanceBase + M.slope * diff) * ment.atkMod, M.chanceMin, M.chanceMax)
@@ -362,7 +859,7 @@ export function useMatchSimulation() {
 
     if (Math.random() < userChanceProb) {
       stats.userShots++
-      const starters = squad.currentStartersList
+      const starters = activeStarters(comp)
       const attackers = starters.filter((p) => ['ST', 'LW', 'RW', 'CAM', 'CM'].includes(p.position))
       const shooter = pickRandom(attackers.length ? attackers : starters)
 
@@ -370,16 +867,34 @@ export function useMatchSimulation() {
         stats.userShotsOnTarget++
         if (Math.random() < M.userGoal) {
           state.userScore++
-          if (shooter) {
+          let assisterName: string | undefined
+          // Parte dos gols é gol contra do rival: o placar sobe igual, mas ninguém do elenco leva gol ou assistência.
+          const ownGoal = Math.random() < M.ownGoalShare
+          if (shooter && !ownGoal) {
             club.recordGoal(shooter)
             ;(matchGoalLogs[comp] ??= []).push(shooter.id)
+            if (Math.random() < 0.75) {
+              const pool = starters.filter((p) => p.id !== shooter.id && p.position !== 'GK')
+              const creators = pool.filter((p) => ['CAM', 'CM', 'LW', 'RW'].includes(p.position))
+              const assister = pickRandom(creators.length && Math.random() < 0.6 ? creators : pool)
+              if (assister) {
+                assisterName = assister.name
+                club.recordAssist(assister)
+                ;(matchAssistLogs[comp] ??= []).push(assister.id)
+              }
+            }
           }
-          say('goal', goalLine(userName, shooter?.name))
+          say('goal', ownGoal ? ownGoalLine(oppName, userName) : goalLine(userName, shooter?.name, assisterName))
+          opine(goalReaction({ team: userName, other: oppName, scorer: ownGoal ? undefined : shooter?.name, scoreFor: state.userScore, scoreAgainst: state.opponentScore, minute }))
         } else {
           say('info', savedLine(userName, shooter?.name, keeperDefends(undefined, oppName)))
+          if (Math.random() < 0.4) opine(saveReaction(shooter?.name ?? userName, oppName))
         }
       } else {
-        say('info', offTargetLine(userName, shooter?.name))
+        if (Math.random() < M.postShare) {
+          say('post', postLine(userName, shooter?.name))
+          if (Math.random() < 0.4) opine(postReaction())
+        } else say('info', offTargetLine(userName, shooter?.name))
       }
     }
 
@@ -389,46 +904,85 @@ export function useMatchSimulation() {
         stats.oppShotsOnTarget++
         if (Math.random() < M.oppGoal) {
           state.opponentScore++
-          say('opp_goal', goalLine(oppName))
+          if (Math.random() < M.ownGoalShare) {
+            const defender = pickRandom(activeStarters(comp).filter((p) => ['CB', 'LB', 'RB', 'CDM'].includes(p.position)))
+            say('opp_goal', ownGoalLine(userName, oppName, defender?.name))
+          } else say('opp_goal', goalLine(oppName))
+          opine(goalReaction({ team: oppName, other: userName, scoreFor: state.opponentScore, scoreAgainst: state.userScore, minute }))
         } else {
-          const keeper = squad.currentStartersList.find((p) => p.position === 'GK')?.name
+          const keeper = keeperOf(comp)?.name
           say('info', savedLine(oppName, undefined, keeperDefends(keeper, userName)))
+          if (Math.random() < 0.4) opine(saveReaction(oppName, userName))
         }
       } else {
-        say('info', offTargetLine(oppName))
+        if (Math.random() < M.postShare) {
+          say('post', postLine(oppName))
+          if (Math.random() < 0.4) opine(postReaction())
+        } else say('info', offTargetLine(oppName))
+      }
+    }
+
+    // Pênalti em jogo: raro, narrado em dois lances (marcação e cobrança). Conversão ajustada pelo OVER.
+    const [convUser, convOpp] = shootoutConversions(ratings.user, ratings.opp)
+    if (minute < 90 && Math.random() < M.penaltyChance * ment.atkMod) {
+      const starters = activeStarters(comp)
+      const attackers = starters.filter((p) => ['ST', 'LW', 'RW', 'CAM', 'CM'].includes(p.position))
+      const taker = pickRandom(attackers.length ? attackers : starters)
+      // Parte dos pênaltis é toque de mão do rival (sem nome); às vezes o árbitro dá amarelo ao infrator.
+      if (Math.random() < M.handballShare) {
+        say('penalty', penaltyHandballLine(userName, taker?.name))
+        if (Math.random() < M.handballCard) rollCard('opp', 'yellow')
+      } else say('penalty', penaltyAwardLine(userName, taker?.name))
+      opine(penaltyAwardReaction(userName))
+      stats.userShots++
+      if (Math.random() < convUser) {
+        stats.userShotsOnTarget++
+        state.userScore++
+        if (taker) {
+          club.recordGoal(taker)
+          ;(matchGoalLogs[comp] ??= []).push(taker.id)
+        }
+        say('goal', goalLine(userName, taker?.name))
+        opine(goalReaction({ team: userName, other: oppName, scorer: taker?.name, scoreFor: state.userScore, scoreAgainst: state.opponentScore, minute }))
+      } else {
+        const wide = Math.random() < 0.4
+        if (!wide) stats.userShotsOnTarget++
+        say('info', penaltyMissLine(userName, taker?.name, keeperDefends(undefined, oppName), wide))
+        opine(penaltyMissReaction(userName, state.userScore, state.opponentScore))
+      }
+    }
+    if (minute < 90 && Math.random() < M.penaltyChance / ment.defMod) {
+      // Toque de mão de um defensor seu: o árbitro pode dar amarelo a ele.
+      if (Math.random() < M.handballShare) {
+        const offender = pickRandom(activeStarters(comp).filter((p) => ['CB', 'LB', 'RB', 'CDM'].includes(p.position)))
+        say('penalty', penaltyHandballLine(oppName, undefined, offender?.name))
+        if (offender && Math.random() < M.handballCard) rollCard('user', 'yellow', offender)
+      } else say('penalty', penaltyAwardLine(oppName))
+      opine(penaltyAwardReaction(oppName))
+      stats.oppShots++
+      if (Math.random() < convOpp) {
+        stats.oppShotsOnTarget++
+        state.opponentScore++
+        say('opp_goal', goalLine(oppName))
+        opine(goalReaction({ team: oppName, other: userName, scoreFor: state.opponentScore, scoreAgainst: state.userScore, minute }))
+      } else {
+        const wide = Math.random() < 0.4
+        if (!wide) stats.oppShotsOnTarget++
+        const keeper = keeperOf(comp)?.name
+        say('info', penaltyMissLine(oppName, undefined, keeperDefends(keeper, userName), wide))
+        opine(penaltyMissReaction(oppName, state.opponentScore, state.userScore))
       }
     }
 
     // Marcos da partida: começo do 2º tempo e apito final, sempre com o placar real.
-    if (minute === 46) say('info', halfTimeLine(userName, oppName, state.userScore, state.opponentScore))
-    if (minute >= 90) say('info', fullTimeLine(userName, oppName, state.userScore, state.opponentScore))
-
-    // Momentos vagos: sem lance narrado neste tick, espaça os comentários e solta um dado real, uma dica ou uma piada.
-    if (!narrated && minute < 88 && minute - (lastCommentMinutes[comp] ?? -99) >= (nextCommentGap[comp] ?? 2)) {
-      lastCommentMinutes[comp] = minute
-      nextCommentGap[comp] = randInt(COMMENT_GAP_RANGE[0], COMMENT_GAP_RANGE[1])
-      const tired = squad.currentStartersList.find((p) => (p.stamina ?? 100) < 60)
-      const injured = squad.currentStartersList.find((p) => p.injury)
-      say(
-        'comment',
-        commentLine({
-          minute,
-          user: userName,
-          opp: oppName,
-          possession: Math.round(stats.userPossession),
-          userShots: stats.userShots,
-          oppShots: stats.oppShots,
-          userOnTarget: stats.userShotsOnTarget,
-          oppOnTarget: stats.oppShotsOnTarget,
-          userCorners: stats.userCorners,
-          oppCorners: stats.oppCorners,
-          userScore: state.userScore,
-          oppScore: state.opponentScore,
-          userPlayer: pickRandom(squad.currentStartersList.filter((p) => p.position !== 'GK'))?.name,
-          tired: tired ? { name: tired.name, stamina: Math.round(tired.stamina ?? 100) } : undefined,
-          injuredOnPitch: injured?.name
-        })
-      )
+    const phase = { possession: Math.round(stats.userPossession), userShots: stats.userShots, oppShots: stats.oppShots }
+    if (minute === 46) {
+      say('whistle', halfTimeLine(userName, oppName, state.userScore, state.opponentScore))
+      opine(halfTimeReaction(userName, oppName, state.userScore, state.opponentScore, phase))
+    }
+    if (minute >= 90 + (state.addedTime ?? 0)) {
+      say('whistle', fullTimeLine(userName, oppName, state.userScore, state.opponentScore))
+      opine(fullTimeReaction(userName, oppName, state.userScore, state.opponentScore, phase))
     }
   }
 
@@ -439,7 +993,7 @@ export function useMatchSimulation() {
     if (minute >= 88) return
     const medCut = 1 - INJURY.medicalReductionPerLevel * (club.upgrades.medicalCenterLevel - 1)
     const physio = club.clubStaff.physio
-    for (const p of squad.currentStartersList) {
+    for (const p of activeStarters(comp)) {
       if (p.injury) continue
       const tired = Math.max(0, 60 - (p.stamina ?? 100)) / 60
       const perMatch = (INJURY.baseChance + tired * INJURY.fatigueChance) * medCut * (physio ? STAFF_BONUS.physioChanceMult : 1)
@@ -456,6 +1010,7 @@ export function useMatchSimulation() {
         description: `Lesão no ${club.name}! ${p.name} cai no gramado e precisa ser atendido. Fora por ${matches} ${matches === 1 ? 'jogo' : 'jogos'} se sair agora.`
       })
       ui.showToast(`${p.name} se lesionou! Faça a substituição.`, 'danger')
+      saveGame()
       state.isRunning = false
       clearMatchTimer(comp)
       session.showSubDrawer = true
@@ -478,6 +1033,120 @@ export function useMatchSimulation() {
       if (p.injury.matchesLeft <= 0) delete p.injury
     })
     squad.replaceInjuredStarters()
+  }
+
+  // Disciplina pós-jogo, por competição: quem estava suspenso nela cumpriu esta partida; expulsos e pendurados
+  // (3 amarelos na competição) são suspensos nela. Expulsão direta: 2 jogos. Segundo amarelo: 1 jogo.
+  function applyDiscipline(cards: MatchCards | undefined, comp: MatchCompetition) {
+    squad.players.forEach((p) => {
+      const left = p.suspension?.[comp]
+      if (!left || !p.suspension) return
+      if (left <= 1) delete p.suspension[comp]
+      else p.suspension[comp] = left - 1
+      if (!Object.keys(p.suspension).length) delete p.suspension
+    })
+    if (!cards) return
+    // Amarelos recebidos na partida: quem foi expulso pelo segundo amarelo levou dois (e depois o vermelho).
+    const yellowsGiven = (id: string) => 1 + (cards.off.has(id) && !cards.direct.has(id) ? 1 : 0)
+    cards.yellow.forEach((id) => {
+      const yp = squad.players.find((pl) => pl.id === id)
+      if (yp) for (let i = 0; i < yellowsGiven(id); i++) club.recordYellow(yp)
+    })
+    cards.off.forEach((id) => {
+      const rp = squad.players.find((pl) => pl.id === id)
+      if (rp) club.recordRed(rp)
+    })
+    const suspend =(p: { name: string; suspension?: Partial<Record<MatchCompetition, number>> }, games: number, why: string) => {
+      p.suspension = { ...p.suspension, [comp]: Math.max(games, p.suspension?.[comp] ?? 0) }
+      ui.showToast(`${p.name} está suspenso por ${games} ${games === 1 ? 'jogo' : 'jogos'} na ${COMP_SHORT[comp]} (${why}).`, 'warning')
+    }
+    cards.off.forEach((id) => {
+      const p = squad.players.find((pl) => pl.id === id)
+      if (p) suspend(p, cards.direct.has(id) ? 2 : 1, cards.direct.has(id) ? 'cartão vermelho' : 'segundo amarelo')
+    })
+    // Acúmulo da competição: todos os amarelos contam (inclusive os dois do expulso por segundo amarelo). Ao chegar a 3
+    // vira suspensão de 1 jogo, a não ser que o atleta já esteja suspenso por esta expulsão.
+    cards.yellow.forEach((id) => {
+      const p = squad.players.find((pl) => pl.id === id)
+      if (!p) return
+      let total = (p.yellowCards?.[comp] ?? 0) + yellowsGiven(id)
+      if (total >= 3) {
+        total -= 3
+        if (!cards.off.has(id)) suspend(p, 1, 'terceiro amarelo')
+      }
+      p.yellowCards = { ...p.yellowCards, [comp]: total }
+    })
+  }
+
+  // Partida ao vivo salva à parte: recarregar a página retoma de onde parou (relógio, placar, cartões, trocas).
+  function saveLiveMatch() {
+    try {
+      const live = COMPETITIONS_ORDER.filter((c) => match.isCompetitionLive(c))
+      if (!live.length) {
+        localStorage.removeItem(LIVE_MATCH_KEY)
+        return
+      }
+      const sessions: Record<string, unknown> = {}
+      const cards: Record<string, unknown> = {}
+      const goals: Record<string, string[]> = {}
+      const assists: Record<string, string[]> = {}
+      live.forEach((c) => {
+        sessions[c] = match.sessions[c]
+        const k = matchCards[c]
+        cards[c] = k ? { yellow: [...k.yellow], off: [...k.off], direct: [...k.direct], oppOff: k.oppOff } : null
+        goals[c] = matchGoalLogs[c] ?? []
+        assists[c] = matchAssistLogs[c] ?? []
+      })
+      localStorage.setItem(
+        LIVE_MATCH_KEY,
+        JSON.stringify({ v: 1, active: match.activeMatchCompetition, mentality: match.selectedMentality, sessions, cards, goals, assists })
+      )
+    } catch {
+      /* silencioso, igual ao save principal */
+    }
+  }
+
+  /** Retoma partidas que estavam ao vivo quando a página foi fechada. Devolve true se retomou alguma. */
+  function restoreLiveMatches(): boolean {
+    try {
+      const raw = localStorage.getItem(LIVE_MATCH_KEY)
+      if (!raw) return false
+      const d = JSON.parse(raw)
+      const restored: MatchCompetition[] = []
+      for (const comp of COMPETITIONS_ORDER) {
+        const s = d?.sessions?.[comp]
+        if (!s?.matchState || s.matchState.isFinished || !competitions.isCompetitionPlayable(comp)) continue
+        if (!s.matchState.isRunning && !s.showSubDrawer) continue
+        match.sessions[comp] = s
+        const k = d.cards?.[comp]
+        matchCards[comp] = {
+          yellow: new Set<string>(k?.yellow ?? []),
+          off: new Set<string>(k?.off ?? []),
+          direct: new Set<string>(k?.direct ?? []),
+          oppOff: k?.oppOff ?? 0
+        }
+        matchGoalLogs[comp] = Array.isArray(d.goals?.[comp]) ? d.goals[comp] : []
+        matchAssistLogs[comp] = Array.isArray(d.assists?.[comp]) ? d.assists[comp] : []
+        restored.push(comp)
+      }
+      if (!restored.length) {
+        localStorage.removeItem(LIVE_MATCH_KEY)
+        return false
+      }
+      match.activeMatchCompetition = restored.includes(d.active) ? d.active : restored[0]
+      if (d.mentality) match.selectedMentality = d.mentality
+      resetNarration()
+      // Partidas que estavam rodando seguem do mesmo minuto; as pausadas para trocas continuam pausadas.
+      restored.forEach((c) => {
+        if (match.sessions[c].matchState.isRunning) runMatchLoop(c)
+      })
+      router.push('/match')
+      ui.showToast('Partida retomada de onde você parou.', 'info')
+      return true
+    } catch {
+      localStorage.removeItem(LIVE_MATCH_KEY)
+      return false
+    }
   }
 
   function applyPostMatchProgression() {
@@ -538,8 +1207,15 @@ export function useMatchSimulation() {
     const rival = opponentFor(comp)
 
     matchGoalLogs[comp] = []
-    const summary = settleMatch(uGoals, oGoals, isHome)
+    matchAssistLogs[comp] = []
+    const cards = matchCards[comp]
+    delete matchCards[comp]
+    const sh = session.matchState.shootout
+    const shoot = sh?.done ? shootoutStatus(sh.kicks, sh.first) : null
+    const pens = shoot ? { user: shoot.user, opp: shoot.opp } : null
+    const summary = settleMatch(uGoals, oGoals, isHome, pens)
     session.lastMatchSummary = summary
+    applyDiscipline(cards, comp)
     const evolved = applyPostMatchProgression()
     if (evolved.length) summary.evolutions = evolved.map((g) => ({ name: g.name, overall: g.overall }))
     const newMilestones = club.addMilestones(
@@ -553,21 +1229,41 @@ export function useMatchSimulation() {
     if (newMilestones.length) summary.milestones = newMilestones.map((m) => m.title)
 
     if (comp === 'supercup' || comp === 'recopa') {
-      const r = competitions.applyFinalResult(comp, uGoals, oGoals)
+      const r = competitions.applyFinalResult(comp, uGoals, oGoals, pens)
       ui.showToast(r.toast, r.toastType)
     } else if (comp === 'cup') {
-      const r = competitions.applyCupResult(uGoals, oGoals, club.name)
+      const r = competitions.applyCupResult(uGoals, oGoals, club.name, pens)
       ui.showToast(r.toast, r.toastType)
     } else if (comp === 'continental') {
-      const r = competitions.applyContinentalResult(uGoals, oGoals, club.name, rival.name)
+      const r = competitions.applyContinentalResult(uGoals, oGoals, club.name, rival.name, pens)
       if (r) ui.showToast(r.toast, r.toastType)
     } else {
-      league.recordRoundResults(uGoals, oGoals)
+      league.recordRoundResults(uGoals, oGoals, pens)
       applyStageOutcome(league.evaluateStageProgression())
     }
 
+    match.addMatchRecord({
+      id: `${Date.now()}-${comp}`,
+      playedAt: Date.now(),
+      season: club.season,
+      competition: comp,
+      label: labelFor(comp),
+      userName: club.name,
+      opponentName: rival.name,
+      isHome,
+      userScore: uGoals,
+      opponentScore: oGoals,
+      mentality: match.mentalityInfo.label,
+      formation: squad.formation,
+      events: JSON.parse(JSON.stringify(session.matchState.events)),
+      stats: { ...session.matchStats },
+      summary: JSON.parse(JSON.stringify(summary)),
+      penalties: pens
+    })
+
     market.generateIncomingTransferOffer()
     saveGame()
+    saveLiveMatch()
   }
 
   function finishMatchAndReturn() {
@@ -584,11 +1280,14 @@ export function useMatchSimulation() {
 
   return {
     activeMatchIsHome,
+    lineupBlockers,
     activeMatchOpponent,
     activeMatchCompetitionLabel,
     effectiveUserPower,
     effectiveOpponentPower,
     prepareMatch,
+    matchEntryLabel,
+    isHomeFor,
     switchActiveMatch,
     opponentFor,
     labelFor,
@@ -597,9 +1296,12 @@ export function useMatchSimulation() {
     toggleMatchSpeed,
     openInMatchSubDrawer,
     closeInMatchSubDrawer,
+    pendingInjuries,
+    reorganizeTeam,
     recommendSubstitution,
     confirmInMatchSubstitution,
     simulateMatchTick,
+    restoreLiveMatches,
     applyPostMatchProgression,
     concludeMatch,
     finishMatchAndReturn

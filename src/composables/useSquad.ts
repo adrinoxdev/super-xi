@@ -3,12 +3,14 @@ import { useClubStore } from '@/stores/club'
 import { useMarketStore } from '@/stores/market'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
+import { useMatchStore } from '@/stores/match'
+import { isSuspendedFor } from '@/utils/player/suspension'
 import type { FormationName } from '@/types/match'
 import type { IncomingOffer, LoanCandidate, Player } from '@/types'
-import { pickBestLineup } from '@/utils/match/calculateTeamStrength'
-import { CONTRACT, MIN_SQUAD_SIZE, REST, STAFF_BONUS, TRANSFER } from '@/config'
+import { buildFormationSlots, calculateTeamStrength, pickBestLineup } from '@/utils/match/calculateTeamStrength'
+import { CONTRACT, INJURY, MIN_SQUAD_SIZE, REST, STAFF_BONUS, TRANSFER } from '@/config'
 import { formatCurrency, formatPitchStarterName } from '@/utils/format/formatCurrency'
-import { refreshPlayerEconomy, retireAgeFor, saleCap } from '@/utils/player/generatePlayer'
+import { isYouthSaleLocked, refreshPlayerEconomy, retireAgeFor, saleCap, youthUnlockSeason } from '@/utils/player/generatePlayer'
 import { squadFullTitle, blockedMsg, wageWarning } from './useClub'
 import { usePersistence } from './usePersistence'
 
@@ -18,8 +20,19 @@ export const LOAN_OUT_SHARE = TRANSFER.loanShare
 /** Preço de venda de um atleta do elenco (mesmo cálculo usado ao vender e exibido no modal). */
 export function sellPriceFor(p: Player): number {
   const club = useClubStore()
+  if (isYouthSaleLocked(p, club.season) || p.injury) return 0
   const base = Math.round(p.value * TRANSFER.saleShare * (1 + (club.clubStaff.marketAnalyst ? STAFF_BONUS.analystSaleBonus : 0)))
   return saleCap(p, base, club.season)
+}
+
+/** Tratamento pago de uma lesão: quantos jogos corta e quanto custa; null se não há o que tratar. */
+export function treatmentFor(p: Player): { removed: number; cost: number; discount: number } | null {
+  const inj = p.injury
+  if (!inj || inj.treated || inj.matchesLeft < 2) return null
+  const removed = Math.min(inj.matchesLeft - 1, Math.max(1, Math.ceil(inj.matchesLeft * INJURY.treatmentShare)))
+  // Departamento Médico: -7% no custo por nível acima do 1 (mesma escala que reduz chance e duração das lesões).
+  const discount = INJURY.medicalReductionPerLevel * (useClubStore().upgrades.medicalCenterLevel - 1)
+  return { removed, cost: Math.round(removed * INJURY.treatmentCostPerMatch * (1 - discount) / 100) * 100, discount }
 }
 
 /** Taxa de empréstimo de saída recebida por temporada. */
@@ -65,11 +78,65 @@ export function useSquad() {
     saveGame()
   }
 
+  // Suspensos na competição da próxima partida ficam fora da escalação automática.
+  const suspendedNow = (p: Player) => isSuspendedFor(p, useMatchStore().activeMatchCompetition)
+
   function autoPickBestLineup(): void {
-    squad.setStarters(pickBestLineup(squad.players, squad.formation))
+    squad.setStarters(pickBestLineup(squad.players, squad.formation, suspendedNow))
     ui.selectedPitchSlotIndex = null
     saveGame()
     ui.showToast('Melhor escalação titular definida!', 'success')
+  }
+
+  /** Testa todas as formações com a melhor escalação de cada uma e adota a de maior OVER para o elenco atual. */
+  async function autoPickBestFormation(): Promise<void> {
+    const ratingOf = (f: FormationName, ids: string[]) =>
+      calculateTeamStrength(
+        buildFormationSlots(f, ids.map((id) => squad.players.find((p) => p.id === id) ?? null))
+      ).rating
+    const current = squad.formation
+    let best = { formation: current, ids: pickBestLineup(squad.players, current, suspendedNow), rating: 0 }
+    best.rating = ratingOf(best.formation, best.ids)
+    const currentRating = best.rating
+    for (const f of squad.formationNames) {
+      if (f === current) continue
+      const ids = pickBestLineup(squad.players, f, suspendedNow)
+      const rating = ratingOf(f, ids)
+      if (rating > best.rating + 1e-9) best = { formation: f, ids, rating }
+    }
+    if (best.formation !== current) {
+      const gain = best.rating - currentRating
+      const ok = await ui.askConfirm({
+        title: `Adotar a formação ${best.formation}?`,
+        message: `Com o elenco atual, o ${best.formation} rende +${gain.toFixed(1)} de OVER em relação ao ${current}. Os titulares serão reescolhidos para encaixar nessa formação.`,
+        confirmLabel: `Adotar ${best.formation}`
+      })
+      if (!ok) return
+    }
+    squad.setFormation(best.formation)
+    squad.setStarters(best.ids)
+    ui.selectedPitchSlotIndex = null
+    saveGame()
+    if (best.formation === current) {
+      ui.showToast(`O ${current} já é a formação que mais valoriza este elenco. Só reorganizei os titulares.`, 'success')
+    } else {
+      const gain = best.rating - currentRating
+      ui.showToast(`Formação ${best.formation} adotada: +${gain.toFixed(1)} de OVER com os melhores titulares.`, 'success')
+    }
+  }
+
+  function treatInjury(p: Player): void {
+    const t = treatmentFor(p)
+    if (!t || !p.injury) return
+    if (!club.spend(t.cost)) {
+      ui.showToast(blockedMsg(t.cost), 'warning')
+      return
+    }
+    p.injury.matchesLeft -= t.removed
+    p.injury.treated = true
+    if (p.injury.matchesLeft <= 0) delete p.injury
+    saveGame()
+    ui.showToast(`${p.name} passou por tratamento (${formatCurrency(t.cost)}): ${t.removed} ${t.removed === 1 ? 'jogo a menos' : 'jogos a menos'} fora.`, 'success')
   }
 
   function recoverSquadStamina(): void {
@@ -146,6 +213,14 @@ export function useSquad() {
       return
     }
     if (p.isLoanedOut) return
+    if (p.injury) {
+      ui.showToast('Atleta lesionado: aguarde a recuperação ou pague o tratamento antes de emprestar.', 'warning')
+      return
+    }
+    if (isYouthSaleLocked(p, club.season)) {
+      ui.showToast(`Promovido da base: empréstimo liberado na temporada ${youthUnlockSeason(p)}.`, 'warning')
+      return
+    }
     if (p.acquiredSeason === club.season) {
       ui.showToast('Chegou nesta temporada: empréstimo liberado na próxima.', 'warning')
       return
@@ -173,9 +248,18 @@ export function useSquad() {
       ui.showToast(`Você precisa manter pelo menos ${MIN_SQUAD_SIZE} atletas no elenco.`, 'warning')
       return
     }
+    if (p.injury) {
+      ui.showToast('Atleta lesionado: aguarde a recuperação ou pague o tratamento antes de vender.', 'warning')
+      return
+    }
     const price = sellPriceFor(p)
     if (price <= 0) {
-      ui.showToast('Promovido nesta temporada: venda liberada na próxima.', 'warning')
+      ui.showToast(
+        isYouthSaleLocked(p, club.season)
+          ? `Promovido da base: venda liberada na temporada ${youthUnlockSeason(p)}.`
+          : 'Promovido nesta temporada: venda liberada na próxima.',
+        'warning'
+      )
       return
     }
     squad.removePlayer(p.id)
@@ -223,6 +307,10 @@ export function useSquad() {
       saveGame()
       return
     }
+    if (pl.injury) {
+      ui.showToast(`${pl.name} está lesionado: a proposta só pode ser aceita depois da recuperação.`, 'warning')
+      return
+    }
     if (offer.type === 'loan') {
       squad.releaseStarter(pl.id)
       pl.isLoanedOut = true
@@ -266,6 +354,8 @@ export function useSquad() {
     assignPlayerToSlot,
     changeFormation,
     autoPickBestLineup,
+    autoPickBestFormation,
+    treatInjury,
     recoverSquadStamina,
     openPlayerModal,
     getRenewalCost,

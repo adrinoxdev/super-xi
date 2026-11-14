@@ -190,7 +190,8 @@ export function createContinental(ctx: { continentalState: Ref<ContinentalState>
     uGoals: number,
     oGoals: number,
     clubName: string,
-    rivalName: string
+    rivalName: string,
+    userPens?: { user: number; opp: number } | null
   ): CompetitionToast | null {
     if (continentalState.value.qualified && (!continentalState.value.bracket || !continentalState.value.otherGroups.length)) {
       migrateContinental()
@@ -236,7 +237,7 @@ export function createContinental(ctx: { continentalState: Ref<ContinentalState>
     const idx = tie.roundIndex
     const userIsHome = tie.homeId === 'user'
     playLeg(tie, 0, userIsHome ? uGoals : oGoals, userIsHome ? oGoals : uGoals)
-    resolveTie(tie, b.teams, Math.random, 0.55)
+    resolveTie(tie, b.teams, Math.random, 0.55, userPens)
     const userWon = tie.winnerId === 'user'
     let scoreLabel = `${uGoals} x ${oGoals}`
     if (tie.penalties) {

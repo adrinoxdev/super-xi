@@ -9,7 +9,7 @@ import { useScoutingStore } from '@/stores/scouting'
 import { useScouting } from '@/composables/useScouting'
 import { blockedMsg, squadFullTitle } from '@/composables/useClub'
 import { useSquadStore } from '@/stores/squad'
-import { MAX_TRYOUTS_PER_SEASON } from '@/config'
+import { MAX_TRYOUTS_PER_SEASON, YOUTH } from '@/config'
 import { formatCurrency, formatPosBR } from '@/utils/format/formatCurrency'
 
 const club = useClubStore()
@@ -25,14 +25,14 @@ const { runYouthAcademyTryout, promoteYouthProspect } = useScouting()
         <span class="text-[11px] font-bold uppercase tracking-wider text-emeraldpro">Categorias de Base • Sub-17 / Sub-20</span>
         <SectionTitle size="responsive">Academia de Base Própria ({{ scouting.youthAcademyProspects.length }} Promessas)</SectionTitle>
         <p class="text-xs text-ink-muted">Peneiras desta temporada: {{ club.tryoutsThisSeason }}/{{ MAX_TRYOUTS_PER_SEASON }}</p>
-        <p class="text-xs text-ink-muted break-words">Promoção gratuita: o atleta só pode ser vendido a partir da próxima temporada</p>
+        <p class="text-xs text-ink-muted break-words">Promoção gratuita: o atleta só pode ser vendido ou emprestado {{ YOUTH.lockSeasons }} temporadas depois da promoção</p>
       </div>
       <BaseButton
         variant="soft"
         @click="runYouthAcademyTryout"
         :disabled="club.budget < 12000 || club.tryoutsThisSeason >= MAX_TRYOUTS_PER_SEASON"
         :title="club.tryoutsThisSeason >= MAX_TRYOUTS_PER_SEASON ? 'Limite de peneiras desta temporada atingido.' : club.budget < 12000 ? blockedMsg(12000) : undefined"
-        class="px-3.5 py-2 disabled:opacity-50 text-xs transition-colors self-start sm:self-auto"
+        class="min-h-[40px] sm:min-h-0 px-3.5 py-2 disabled:opacity-50 text-xs transition-colors w-full sm:w-auto"
       >
         + Peneira na Base ({{ formatCurrency(12000) }})
       </BaseButton>
@@ -47,12 +47,12 @@ const { runYouthAcademyTryout, promoteYouthProspect } = useScouting()
         :key="kid.id"
         padding="p-3.5"
         layout="block"
-        class="flex items-center justify-between gap-3"
+        class="flex flex-wrap items-center justify-between gap-3"
       >
-        <div class="flex items-center gap-2.5 min-w-0">
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
           <div class="w-10 h-10 rounded-xl bg-surface border border-borderline flex flex-col items-center justify-center shrink-0">
             <span class="font-score font-extrabold text-sm text-emeraldpro leading-none">{{ kid.overall }}</span>
-            <span class="text-[9px] font-bold text-ink-muted">{{ formatPosBR(kid.position) }}</span>
+            <span class="text-[11px] md:text-[10px] font-bold text-ink-muted">{{ formatPosBR(kid.position) }}</span>
           </div>
           <div class="min-w-0">
             <div class="font-bold text-xs text-ink truncate" :title="kid.name">{{ kid.name }}</div>
@@ -66,7 +66,7 @@ const { runYouthAcademyTryout, promoteYouthProspect } = useScouting()
           @click="promoteYouthProspect(kid)"
           :disabled="squad.isFull"
           :title="squad.isFull ? squadFullTitle(squad.players.length, club.maxSquadCapacity) : undefined"
-          class="px-3 py-1.5 rounded-lg bg-emeraldpro hover:bg-emeraldpro-hover disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-[11px] font-bold shrink-0"
+          class="min-h-[40px] sm:min-h-0 px-3 py-1.5 rounded-lg bg-emeraldpro hover:bg-emeraldpro-hover disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-[11px] font-bold shrink-0"
         >
           Promover
         </button>

@@ -43,15 +43,18 @@ const SECTOR_WEIGHTS: Record<'atk' | 'mid' | 'def', { atk: number; mid: number; 
   def: { atk: 0, mid: 0.2, def: 1.15 }
 }
 
+/** `unavailable`: atletas que não jogam esta partida (expulsos, suspensos): a vaga conta como vazia. */
 export function calculateTeamStrength(
-  slots: Array<{ player: Player | null; role: PlayerPosition }>
+  slots: Array<{ player: Player | null; role: PlayerPosition }>,
+  unavailable?: ReadonlySet<string>
 ): TeamStrengthBreakdown {
   const sum = { atk: 0, mid: 0, def: 0 }
   const wsum = { atk: 0, mid: 0, def: 0 }
   for (const slot of slots) {
     const group = ['ST', 'LW', 'RW'].includes(slot.role) ? 'atk' : ['CAM', 'CM', 'CDM'].includes(slot.role) ? 'mid' : 'def'
     const w = SECTOR_WEIGHTS[group]
-    const eff = slot.player ? getEffectiveOvr(slot.player, slot.role) : 0 // vaga vazia conta como 0
+    const out = !!slot.player && !!unavailable?.has(slot.player.id)
+    const eff = slot.player && !out ? getEffectiveOvr(slot.player, slot.role) : 0 // vaga vazia (ou indisponível) conta como 0
     for (const k of ['atk', 'mid', 'def'] as const) {
       sum[k] += eff * w[k]
       wsum[k] += w[k]
@@ -77,13 +80,15 @@ export function buildFormationSlots(formation: FormationName, starters: (Player 
   }))
 }
 
-export function pickBestLineup(players: Player[], formation: FormationName): string[] {
+/** `exclude`: atletas a evitar (ex.: suspensos na competição); só entram se não houver outro para a vaga. */
+export function pickBestLineup(players: Player[], formation: FormationName, exclude?: (p: Player) => boolean): string[] {
   const layout = FORMATIONS[formation] || FORMATIONS['4-3-3']
   const available = players.filter((p) => !p.isLoanedOut)
   const picked: string[] = []
   for (const slot of layout) {
-    const best = available
-      .filter((p) => !picked.includes(p.id))
+    const open = available.filter((p) => !picked.includes(p.id))
+    const preferred = exclude ? open.filter((p) => !exclude(p)) : open
+    const best = (preferred.length ? preferred : open)
       .sort((a, b) => getEffectiveOvr(b, slot.role) - getEffectiveOvr(a, slot.role))[0]
     if (best) picked.push(best.id)
   }

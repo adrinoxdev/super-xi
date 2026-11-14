@@ -9,7 +9,8 @@ import {
   SCOUT_MISSIONS,
   SCOUT_OVR_OFFSETS,
   SCOUT_REPORT_COUNT,
-  STAFF_BONUS
+  STAFF_BONUS,
+  YOUTH
 } from '@/config'
 import { generatePlayer } from '@/utils/player/generatePlayer'
 import { clamp, randInt } from '@/utils/core/random'
@@ -114,9 +115,14 @@ export const useScoutingStore = defineStore('scouting', () => {
 
   function generateYouthAcademyBatch() {
     const extra = clubStore.clubStaff.chiefScout ? STAFF_BONUS.scoutYouthOvr : 0
+    // Uma promessa por temporada: a base é um bônus, não uma fonte contínua de titulares.
     youthAcademyProspects.value = [
-      generatePlayer({ minOvr: 45 + extra, maxOvr: 53 + extra, isYouth: true, isGem: Math.random() < 0.3 }),
-      generatePlayer({ minOvr: 44 + extra, maxOvr: 52 + extra, isYouth: true, isGem: Math.random() < 0.25 })
+      generatePlayer({
+        minOvr: YOUTH.batchOvr[0] + extra,
+        maxOvr: YOUTH.batchOvr[1] + extra,
+        isYouth: true,
+        isGem: Math.random() < YOUTH.batchGemChance
+      })
     ]
   }
 
@@ -124,7 +130,12 @@ export const useScoutingStore = defineStore('scouting', () => {
   function addTryoutProspect() {
     const extra = clubStore.clubStaff.chiefScout ? STAFF_BONUS.scoutYouthOvr : 0
     youthAcademyProspects.value.unshift(
-      generatePlayer({ minOvr: 47 + extra, maxOvr: 55 + extra, isYouth: true, isGem: Math.random() < 0.35 })
+      generatePlayer({
+        minOvr: YOUTH.tryoutOvr[0] + extra,
+        maxOvr: YOUTH.tryoutOvr[1] + extra,
+        isYouth: true,
+        isGem: Math.random() < YOUTH.tryoutGemChance
+      })
     )
   }
 

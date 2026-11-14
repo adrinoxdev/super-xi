@@ -4,7 +4,8 @@ import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
 import type { LastMatchSummary } from '@/types/match'
 import type { Player } from '@/types/player'
-import { ECONOMY, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE } from '@/config'
+import { ECONOMY, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE, calcOfflineReward } from '@/config'
+import { offlineRewardText } from '@/utils/club/offlineRewardText'
 import { formatCurrency } from '@/utils/format/formatCurrency'
 import { generatePlayer, saleCap } from '@/utils/player/generatePlayer'
 
@@ -27,7 +28,7 @@ export function useEconomy() {
       // Elenco no mínimo: vende o titular mais caro e promove um jovem da base (ou da peneira) para manter 11.
       target = [...sellable].sort(byWage)[0]
       if (!target) return null
-      // Não mexe na lista da base (o save regenera lista vazia): sobe um jovem gerado na hora.
+      // Não mexe na lista da base: sobe um jovem gerado na hora.
       const kid = generatePlayer({ position: target.position, minOvr: 45, maxOvr: 49, isYouth: true })
       kid.acquiredSeason = club.season
       kid.acquiredFee = 0
@@ -47,24 +48,53 @@ export function useEconomy() {
     return { name: target.name, price }
   }
 
-  function settleMatch(uGoals: number, oGoals: number, isHome: boolean): LastMatchSummary {
+  /** `pens`: disputa de pênaltis do mata-mata empatado; quem vence nos pênaltis conta como vencedor. */
+  function settleMatch(
+    uGoals: number,
+    oGoals: number,
+    isHome: boolean,
+    pens?: { user: number; opp: number } | null
+  ): LastMatchSummary {
+    const won = uGoals > oGoals || (uGoals === oGoals && !!pens && pens.user > pens.opp)
+    const lost = uGoals < oGoals || (uGoals === oGoals && !!pens && pens.user < pens.opp)
     const eco = club.serieEconomy
     const ticket = ticketIncome(isHome)
     const sponsor = club.projectedSponsorIncome
     const winBonus =
-      uGoals > oGoals ? Math.round(eco.sponsorBase * ECONOMY.winBonusShare) : uGoals === oGoals ? Math.round(eco.sponsorBase * ECONOMY.drawBonusShare) : 0
+      won ? Math.round(eco.sponsorBase * ECONOMY.winBonusShare) : lost ? 0 : Math.round(eco.sponsorBase * ECONOMY.drawBonusShare)
     const wages = squad.totalWageBill
     // Saldo negativo é permitido (dívida): paga juros por partida e bloqueia gastos (spend exige saldo).
     const interest = club.budget < 0 ? Math.round(-club.budget * ECONOMY.debtInterestPerMatch) : 0
     const maintenance = club.maintenanceCost
     const net = ticket + sponsor + winBonus - wages - interest - maintenance
     club.budget += net
-    club.reputation += uGoals > oGoals ? 3 : uGoals === oGoals ? 1 : 0
+    club.reputation += won ? 3 : lost ? 0 : 1
     const sale = club.budget < -eco.debtLimit ? forcedSale() : null
     return { ticket, sponsor, winBonus, wages, net, interest, maintenance, forcedSale: sale }
   }
 
   const projectedTotalIncome = computed(() => club.projectedStadiumIncome + club.projectedSponsorIncome)
 
-  return { ticketIncome, settleMatch, projectedTotalIncome }
+  /** Recompensa offline pela ausência desde lastActiveAt; null se abaixo do mínimo. */
+  function computeOfflineReward(now = Date.now()) {
+    const r = calcOfflineReward(
+      now - club.lastActiveAt,
+      club.projectedStadiumIncome + club.projectedSponsorIncome,
+      club.upgrades.financeLevel
+    )
+    if (!r || r.amount <= 0) return null
+    return { ...r, text: offlineRewardText({ clubName: club.name, hours: r.hours, seed: club.lastActiveAt }) }
+  }
+
+  /** Paga a recompensa pendente uma única vez e reinicia a contagem. */
+  function claimOfflineReward() {
+    const pending = club.offlinePending
+    if (!pending) return
+    club.offlinePending = null
+    club.earn(pending.amount)
+    club.lastActiveAt = Date.now()
+    ui.showToast(`Renda offline coletada: ${formatCurrency(pending.amount)}.`, 'success')
+  }
+
+  return { ticketIncome, settleMatch, projectedTotalIncome, computeOfflineReward, claimOfflineReward }
 }

@@ -33,7 +33,7 @@ const statusBadge = computed(() => {
     default: return null
   }
 })
-const { prepareMatch } = useMatchSimulation()
+const { prepareMatch, matchEntryLabel } = useMatchSimulation()
 </script>
 
 <template>
@@ -55,7 +55,7 @@ const { prepareMatch } = useMatchSimulation()
         class="shrink-0 px-5 py-3 text-xs sm:text-sm shadow-sm flex items-center gap-2 self-start sm:self-auto"
       >
         <Play class="w-4 h-4 fill-current" />
-        Jogar {{ cupRoundLabel }}
+        {{ matchEntryLabel('cup', `Jogar ${cupRoundLabel}`) }}
       </BaseButton>
       <span
         v-else-if="cupState.champion"

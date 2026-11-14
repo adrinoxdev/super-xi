@@ -7,7 +7,8 @@ import { useScoutingStore } from '@/stores/scouting'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
 import { ATHLETE_ECONOMY_VERSION, BALANCE_VERSION, PROGRESSION_VERSION, migrateAthleteEconomyV1, migrateBalanceV2, migrateProgressionV3 } from '@/migrations/balanceMigration'
-import { STORAGE_KEY } from '@/config'
+import { LIVE_MATCH_KEY, STORAGE_KEY } from '@/config'
+import { useEconomy } from './useEconomy'
 import { checkMilestones } from '@/utils/club/progression'
 
 // Definição única em constants.ts; reexportada por compatibilidade com quem importava daqui.
@@ -37,9 +38,13 @@ export function usePersistence() {
   const competitions = useCompetitionsStore()
   const match = useMatchStore()
   const ui = useUiStore()
+  const { computeOfflineReward } = useEconomy()
+  // Durante o carregamento o saveGame não pode sobrescrever lastActiveAt antes da recompensa ser calculada.
+  let loading = false
 
   function saveGame(): void {
     try {
+      if (!loading) club.touchActive()
       const sc = scouting.toSave()
       localStorage.setItem(
         STORAGE_KEY,
@@ -51,7 +56,12 @@ export function usePersistence() {
           transferHistory: club.transferHistory,
           trophyGallery: club.trophyGallery,
           seasonGoals: club.seasonGoals,
+          seasonAssists: club.seasonAssists,
+          seasonApps: club.seasonApps,
+          seasonYellows: club.seasonYellows,
+          seasonReds: club.seasonReds,
           careerStats: club.careerStats,
+          matchHistory: match.matchHistory,
           incomingOffers: market.toSave().incomingOffers,
           youthAcademyProspects: sc.youthAcademyProspects,
           staffContracts: club.staffContracts,
@@ -69,6 +79,7 @@ export function usePersistence() {
       if (!raw) return false
       const p = JSON.parse(raw)
       if (p?.club && p?.squad?.players?.length) {
+        loading = true
         club.fromSave(p.club)
         squad.fromSave(p.squad)
         scouting.fromSave({
@@ -80,7 +91,12 @@ export function usePersistence() {
         club.transferHistory = p.transferHistory || []
         club.trophyGallery = p.trophyGallery || []
         club.seasonGoals = p.seasonGoals || {}
+        club.seasonAssists = p.seasonAssists || {}
+        club.seasonApps = p.seasonApps || {}
+        club.seasonYellows = p.seasonYellows || {}
+        club.seasonReds = p.seasonReds || {}
         club.careerStats = p.careerStats || {}
+        match.matchHistory = p.matchHistory || []
         club.loadStaff(p)
         market.fromSave({ incomingOffers: p.incomingOffers || [] })
         competitions.fromSave({
@@ -135,14 +151,19 @@ export function usePersistence() {
           ui.showToast('Nova escala de OVER: todos os números do clube e dos rivais foram ajustados. A força do seu time na série não mudou.', 'success')
           saveGame()
         }
-        if (!p.youthAcademyProspects?.length) scouting.generateYouthAcademyBatch()
+        // Só gera lote em save sem o campo (muito antigo). Lista vazia é legítima: recarregar não renova a base.
+        if (!Array.isArray(p.youthAcademyProspects)) scouting.generateYouthAcademyBatch()
         if (!league.leagueFixtures.length) league.initLeagueSeason(club.division, club.season)
         league.ensureKnockoutTies()
         league.selectedRound = league.currentRound
+        loading = false
+        applyOfflineReward()
         return true
       }
     } catch {
       club.resetClub()
+    } finally {
+      loading = false
     }
     return false
   }
@@ -155,6 +176,7 @@ export function usePersistence() {
   function clearSave(): void {
     try {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(LIVE_MATCH_KEY)
     } catch {
       /* ignora */
     }
@@ -163,7 +185,17 @@ export function usePersistence() {
     match.resetMatchState()
   }
 
+  function applyOfflineReward(): void {
+    const reward = computeOfflineReward()
+    if (reward) {
+      club.offlinePending = { amount: reward.amount, hours: reward.hours, capped: reward.capped, ...reward.text }
+    } else {
+      club.touchActive()
+    }
+  }
+
   function exportCareerCode(): void {
+    saveGame()
     try {
       ui.backupCodeText = utf8ToBase64(localStorage.getItem(STORAGE_KEY) || '')
       ui.showToast('Código de carreira gerado!', 'success')
@@ -178,6 +210,7 @@ export function usePersistence() {
       const json = base64ToUtf8(ui.backupCodeText.trim())
       const p = JSON.parse(json)
       if (!(p?.club && p?.squad?.players?.length)) throw new Error('invalid')
+      saveGame()
       const previous = localStorage.getItem(STORAGE_KEY)
       let ok = false
       try {
@@ -196,11 +229,13 @@ export function usePersistence() {
         }
         throw new Error('invalid')
       }
+      // A partida ao vivo salva pertence à carreira anterior: não pode ser retomada sobre a importada.
+      try { localStorage.removeItem(LIVE_MATCH_KEY) } catch { /* ignora */ }
       ui.showToast('Carreira importada com sucesso!', 'success')
     } catch {
       ui.showToast('Código inválido.', 'danger')
     }
   }
 
-  return { saveGame, loadGame, clearSave, exportCareerCode, importCareerCode }
+  return { saveGame, loadGame, clearSave, applyOfflineReward, exportCareerCode, importCareerCode }
 }

@@ -13,7 +13,7 @@ export function createSimulation(ctx: {
 }) {
   const { competitionStage, leagueTeams, leagueFixtures, selectedRound, currentRound, typicalOver } = ctx
 
-  function recordRoundResults(uGoals: number, oGoals: number) {
+  function recordRoundResults(uGoals: number, oGoals: number, userPens?: { user: number; opp: number } | null) {
     const round = currentRound.value
     for (const fx of leagueFixtures.value) {
       const inStage =
@@ -23,6 +23,11 @@ export function createSimulation(ctx: {
         fx.homeScore = fx.homeId === 'user' ? uGoals : oGoals
         fx.awayScore = fx.awayId === 'user' ? uGoals : oGoals
         fx.played = true
+        // Pênaltis disputados ao vivo ficam gravados no jogo e decidem o confronto.
+        if (userPens) {
+          fx.homePens = fx.homeId === 'user' ? userPens.user : userPens.opp
+          fx.awayPens = fx.awayId === 'user' ? userPens.user : userPens.opp
+        }
       } else {
         simulateOther(fx)
       }

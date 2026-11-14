@@ -5,6 +5,7 @@ import { Play, Shield } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import MentalitySelector from '@/components/ui/MentalitySelector.vue'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
+import MatchBackButton from '@/components/match/MatchBackButton.vue'
 import OutcomeBar from '@/components/match/OutcomeBar.vue'
 import { pickMatchColors } from '@/utils/identity/matchColors'
 import { getTeamIdentity } from '@/utils/identity/teamIdentities'
@@ -15,6 +16,7 @@ import { formatCurrency } from '@/utils/format/formatCurrency'
 import { estimateOutcome } from '@/utils/match/winChance'
 import { ECONOMY, MATCH_SIM } from '@/config'
 import { useSquadStore } from '@/stores/squad'
+import { COMP_SHORT } from '@/utils/player/suspension'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import ListRow from '@/components/ui/ListRow.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -29,10 +31,13 @@ const {
   activeMatchCompetitionLabel,
   effectiveUserPower,
   effectiveOpponentPower,
+  lineupBlockers,
   startLiveMatch
 } = useMatchSimulation()
 
 const squad = useSquadStore()
+// Titulares suspensos na competição que ainda dá para trocar: a partida só começa depois de escalar outro.
+const blockers = computed(() => lineupBlockers(match.activeMatchCompetition))
 const homeBonus = computed(() => homeBonusApplies(match.activeMatchCompetition))
 const estimate = computed(() =>
   estimateOutcome(squad.teamStrength.rating, activeMatchOpponent.value.power, {
@@ -75,22 +80,31 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2.5 shrink-0 self-start sm:self-auto">
+        <MatchBackButton class="px-4 py-3 min-h-11 rounded-xl border border-borderline hover:bg-subtle text-ink-muted hover:text-ink text-sm font-bold transition-colors flex items-center justify-center gap-2" />
         <button
           type="button"
           @click="router.push('/squad')"
-          class="px-4 py-3 rounded-xl bg-subtle hover:bg-borderline text-ink text-sm font-bold transition-colors flex items-center justify-center gap-2"
+          class="px-4 py-3 min-h-11 rounded-xl bg-subtle hover:bg-borderline text-ink text-sm font-bold transition-colors flex items-center justify-center gap-2"
         >
           <Shield class="w-4 h-4 text-emeraldpro" />
           Ajustar Tática
         </button>
         <BaseButton
           @click="startLiveMatch"
-          class="px-6 py-3 text-sm shadow-sm flex items-center justify-center gap-2"
+          :disabled="blockers.length > 0"
+          :title="blockers.length ? 'Escalação irregular: substitua o suspenso em Ajustar Tática.' : undefined"
+          class="px-6 py-3 text-sm shadow-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed"
         >
           <Play class="w-4 h-4 fill-current" />
           Iniciar Partida
         </BaseButton>
       </div>
+    </div>
+
+    <div v-if="blockers.length" class="p-3 rounded-xl bg-dangerpro-soft/60 border border-dangerpro/40 text-xs text-ink break-words" role="alert">
+      <strong class="text-dangerpro">Escalação irregular:</strong>
+      {{ blockers.map((p) => p.name).join(', ') }} {{ blockers.length === 1 ? 'está suspenso' : 'estão suspensos' }} na {{ COMP_SHORT[match.activeMatchCompetition] }}.
+      Troque em <strong>Ajustar Tática</strong> antes de iniciar a partida.
     </div>
 
     <div class="space-y-2">
@@ -100,7 +114,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
-        <span class="text-[10px] font-bold uppercase text-ink-muted block">Mando de Campo</span>
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Mando de Campo</span>
         <strong class="font-score text-lg text-emeraldpro block mt-0.5">
           {{ !homeBonus ? 'Sem bônus de mando' : activeMatchIsHome ? '+' + MATCH_SIM.homeAdvantage + ' OVER (Mandante)' : 'Visitante (+0)' }}
         </strong>
@@ -110,7 +124,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
       </ListRow>
 
       <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
-        <span class="text-[10px] font-bold uppercase text-ink-muted block">Bônus Tático</span>
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Bônus Tático</span>
         <strong class="font-score text-lg text-ink block mt-0.5">{{ mentalityInfo.label }}</strong>
         <span class="text-[11px] text-ink-muted">
           ATQ x{{ mentalityInfo.atkMod.toFixed(2) }} • DEF x{{ mentalityInfo.defMod.toFixed(2) }}
@@ -118,7 +132,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
       </ListRow>
 
       <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
-        <span class="text-[10px] font-bold uppercase text-ink-muted block">Bilheteria Estimada</span>
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Bilheteria Estimada</span>
         <strong class="font-score text-lg text-emeraldpro block mt-0.5">
           +{{ formatCurrency(activeMatchIsHome ? club.projectedStadiumIncome : Math.round(club.projectedStadiumIncome * ECONOMY.awayTicketShare)) }}
         </strong>
@@ -126,7 +140,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
       </ListRow>
 
       <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
-        <span class="text-[10px] font-bold uppercase text-ink-muted block">Cota Patrocínio</span>
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Cota Patrocínio</span>
         <strong class="font-score text-lg text-emeraldpro block mt-0.5">
           +{{ formatCurrency(club.projectedSponsorIncome) }}
         </strong>
@@ -134,7 +148,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
       </ListRow>
     </div>
     <ListRow padding="p-3.5" layout="block" class="min-w-0 space-y-2.5 break-words">
-      <span class="text-[10px] font-bold uppercase text-ink-muted block">Chance estimada*</span>
+      <span class="text-[11px] font-bold uppercase text-ink-muted block">Chance estimada*</span>
       <OutcomeBar
         :win="winPct"
         :draw="drawPct"

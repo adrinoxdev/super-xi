@@ -40,7 +40,7 @@ const slots = computed(() => [
         <span v-else class="text-xs text-ink-muted">—</span>
         <div :class="['w-full rounded-t-xl flex flex-col items-center justify-center', slot.platform]">
           <span class="font-score text-2xl font-extrabold">{{ slot.place }}º</span>
-          <span class="text-[10px] uppercase font-bold tracking-wide">{{ slot.title }}</span>
+          <span class="text-[11px] md:text-[10px] uppercase font-bold tracking-wide">{{ slot.title }}</span>
         </div>
       </div>
     </div>

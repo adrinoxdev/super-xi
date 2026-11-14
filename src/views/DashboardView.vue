@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { MailWarning, Clock3, Shield, Play, Trophy, Radar } from 'lucide-vue-next'
+import { MailWarning, Clock3, Shield, Play, Trophy, Radar, CalendarClock } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import FinanceSummary from '@/components/club/FinanceSummary.vue'
 import TeamPowerBar from '@/components/ui/TeamPowerBar.vue'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
+import NextMatchCard from '@/components/match/NextMatchCard.vue'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
+import type { MatchCompetition } from '@/types/match'
+import { clubStyleByName } from '@/utils/league/clubStyle'
 import { useClubStore } from '@/stores/club'
+import { useCompetitionsStore } from '@/stores/competitions'
 import { useLeagueStore } from '@/stores/league'
 import { useMarketStore } from '@/stores/market'
 import { useScoutingStore } from '@/stores/scouting'
@@ -26,7 +30,24 @@ const league = useLeagueStore()
 const market = useMarketStore()
 const scouting = useScoutingStore()
 const squad = useSquadStore()
-const { prepareMatch } = useMatchSimulation()
+const competitions = useCompetitionsStore()
+const { prepareMatch, matchEntryLabel, opponentFor, labelFor, isHomeFor } = useMatchSimulation()
+
+// Próximos jogos das competições (além da liga): só as que ainda têm partida a disputar.
+const CUP_COMPETITIONS: MatchCompetition[] = ['cup', 'continental', 'supercup', 'recopa']
+const upcomingCompetitionGames = computed(() =>
+  CUP_COMPETITIONS.filter((c) => competitions.isCompetitionPlayable(c)).map((comp) => {
+    const [name, ...rest] = labelFor(comp).replace(' — ', ' • ').split(' • ')
+    return {
+      comp,
+      name,
+      detail: rest.join(' • '),
+      opponent: opponentFor(comp),
+      style: clubStyleByName(opponentFor(comp).name),
+      home: isHomeFor(comp)
+    }
+  })
+)
 const trendDelta = computed(() => squad.teamStrength.rating - club.progress.seasonStartOver)
 const trendUp = computed(() => Math.round(trendDelta.value * 10) >= 1)
 const trendDown = computed(() => Math.round(trendDelta.value * 10) <= -1)
@@ -56,7 +77,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
       <button
         type="button"
         @click="router.push('/squad')"
-        class="px-3.5 py-1.5 rounded-xl bg-amberpro text-white text-xs font-bold hover:opacity-90 self-start sm:self-auto shrink-0"
+        class="px-3.5 py-2.5 md:py-1.5 rounded-xl bg-amberpro text-white text-xs font-bold hover:opacity-90 self-start sm:self-auto shrink-0"
       >
         Ver Propostas
       </button>
@@ -84,66 +105,58 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
 
     <FinanceSummary />
 
-    <BaseCard padding="p-4 sm:p-6">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div class="space-y-1.5 min-w-0">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-full bg-emeraldpro-soft text-emeraldpro text-[11px] font-bold uppercase tracking-wide max-w-full break-words">
-              {{ league.currentStageLabel }}
-            </span>
-            <span class="text-xs font-semibold text-ink-muted min-w-0 break-words [overflow-wrap:anywhere]">
-              {{ league.nextFixtureIsHome ? 'Mandante (' + club.stadiumName + ')' : 'Visitante' }}
-            </span>
-          </div>
-          <h3 class="text-lg sm:text-2xl font-extrabold text-ink flex flex-wrap items-center gap-x-2 gap-y-1">
-            <template v-if="league.nextFixtureIsHome">
-              <span class="min-w-0 break-words [overflow-wrap:anywhere]">{{ club.name }}</span>
-              <span class="inline-flex items-center gap-2"><TeamCrest size="sm" is-user />vs<TeamCrest size="sm" :name="league.nextOpponent.name" /></span>
-              <span class="min-w-0 break-words [overflow-wrap:anywhere]">{{ league.nextOpponent.name }}</span>
-            </template>
-            <template v-else>
-              <span class="min-w-0 break-words [overflow-wrap:anywhere]">{{ league.nextOpponent.name }}</span>
-              <span class="inline-flex items-center gap-2"><TeamCrest size="sm" :name="league.nextOpponent.name" />vs<TeamCrest size="sm" is-user /></span>
-              <span class="min-w-0 break-words [overflow-wrap:anywhere]">{{ club.name }}</span>
-            </template>
-          </h3>
-          <p class="text-xs sm:text-sm text-ink-muted break-words">
-            Estilo adversário: <strong class="text-ink">{{ league.nextOpponent.style }}</strong> • OVER estimado: <strong class="text-ink">{{ league.nextOpponent.power }}</strong>
-          </p>
-        </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <NextMatchCard
+        :title="'Liga • ' + league.currentStageLabel.replace(' — ', ' • ')"
+        :venue="league.nextFixtureIsHome ? 'Em casa (' + club.stadiumName + ')' : 'Fora'"
+        :club-name="club.name"
+        :is-home="league.nextFixtureIsHome"
+        :opponent-name="league.nextOpponent.name"
+        :opponent-power="league.nextOpponent.power"
+        :opponent-style="league.nextOpponent.style"
+        :play-label="matchEntryLabel('league', 'Jogar')"
+        @tactics="router.push('/squad')"
+        @play="prepareMatch('league')"
+      />
 
-        <div class="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            @click="router.push('/squad')"
-            class="px-4 py-2.5 rounded-xl bg-subtle hover:bg-borderline text-ink text-xs sm:text-sm font-bold transition-colors flex items-center gap-2"
-          >
-            <Shield class="w-4 h-4 text-emeraldpro" />
-            Ajustar Tática
-          </button>
-          <BaseButton
-            @click="prepareMatch('league')"
-            class="px-5 py-2.5 text-xs sm:text-sm shadow-sm transition-colors flex items-center gap-2"
-          >
-            <Play class="w-4 h-4 fill-current" />
-            Jogar Partida
-          </BaseButton>
-        </div>
-      </div>
+      <NextMatchCard
+        v-for="g in upcomingCompetitionGames"
+        :key="g.comp"
+        :title="g.name + (g.detail ? ' • ' + g.detail : '')"
+        :venue="g.home ? 'Em casa (' + club.stadiumName + ')' : 'Fora'"
+        :club-name="club.name"
+        :is-home="g.home"
+        :opponent-name="g.opponent.name"
+        :opponent-power="g.opponent.power"
+        :opponent-style="g.style"
+        :play-label="matchEntryLabel(g.comp, 'Jogar')"
+        @tactics="router.push('/squad')"
+        @play="prepareMatch(g.comp)"
+      />
 
+      <BaseCard v-if="!upcomingCompetitionGames.length" padding="p-4 sm:p-5" class="flex flex-col items-center justify-center gap-2 text-center">
+        <CalendarClock class="w-6 h-6 text-ink-muted" />
+        <p class="text-xs text-ink-muted">Nenhum jogo de copa pendente no momento.</p>
+        <button type="button" @click="router.push('/competitions')" class="min-h-11 md:min-h-0 px-3 md:px-0 text-xs font-bold text-emeraldpro hover:underline">
+          Ver competições
+        </button>
+      </BaseCard>
+    </div>
+
+    <div class="space-y-2">
       <TeamPowerBar
-        variant="inline"
+        variant="cards"
         :total="squad.teamStrength.total"
         :attack="squad.teamStrength.attack"
         :midfield="squad.teamStrength.midfield"
         :defense="squad.teamStrength.defense"
       />
-      <p v-if="club.progress.seasonStartOver > 0" class="mt-3 text-xs text-ink-muted break-words min-w-0">
+      <p v-if="club.progress.seasonStartOver > 0" class="text-xs text-ink-muted break-words min-w-0">
         <span class="font-bold" :class="trendUp ? 'text-emeraldpro' : ''" aria-hidden="true">{{ trendUp ? '▲' : trendDown ? '▼' : '=' }}</span>
         OVER do time <strong class="text-ink">{{ fmtOver(squad.teamStrength.rating) }}</strong>
         (<span :class="trendUp ? 'text-emeraldpro font-semibold' : ''">{{ fmtDelta(trendDelta) }}</span> na temporada)
       </p>
-    </BaseCard>
+    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <BaseCard padding="p-4 sm:p-5" class="space-y-3">
@@ -152,7 +165,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
             <Trophy class="w-4 h-4 text-emeraldpro shrink-0" />
             <span class="min-w-0 break-words">Classificação Atual ({{ league.serieMeta.name }})</span>
           </h4>
-          <button type="button" @click="router.push('/league')" class="shrink-0 text-xs font-bold text-emeraldpro hover:underline">
+          <button type="button" @click="router.push('/league')" class="shrink-0 -my-2.5 -mr-2 py-2.5 px-2 md:m-0 md:p-0 text-xs font-bold text-emeraldpro hover:underline">
             Tabela Completa
           </button>
         </div>
@@ -182,7 +195,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
             <Radar class="w-4 h-4 text-emeraldpro shrink-0" />
             <span class="min-w-0 break-words">Departamento de Scouting & Base</span>
           </h4>
-          <button type="button" @click="router.push('/scouting')" class="shrink-0 text-xs font-bold text-emeraldpro hover:underline">
+          <button type="button" @click="router.push('/scouting')" class="shrink-0 -my-2.5 -mr-2 py-2.5 px-2 md:m-0 md:p-0 text-xs font-bold text-emeraldpro hover:underline">
             Abrir Scouting
           </button>
         </div>

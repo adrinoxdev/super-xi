@@ -9,7 +9,7 @@ super-xi/
 ├── src/
 │   ├── assets/
 │   ├── components/
-│   │   ├── ui/                  # Design System: BaseCard, SectionTitle, ListRow, Badge, BaseButton, EmptyState, AppToast, BaseModal, ClubCrest...
+│   │   ├── ui/                  # Design System: BaseCard, SectionTitle, ListRow, Badge, BaseButton, EmptyState, AppToast, BaseModal, ConfirmDialog (ver `docs/modais-confirmacao.md`), ClubCrest...
 │   │   ├── layout/              # Sidebar.vue, BottomNav.vue, Header.vue
 │   │   ├── player/              # PlayerDetails.vue, PlayerCompare.vue, LoanMarketModal.vue
 │   │   ├── scouting/            # ScoutMissionCard.vue, ScoutReportCard.vue, YouthAcademyPanel.vue...
@@ -24,6 +24,7 @@ super-xi/
 │   │   ├── useClub.ts
 │   │   ├── useEconomy.ts
 │   │   ├── useSeason.ts
+│   │   ├── useHeaderStats.ts    # Chips do header por página
 │   │   ├── usePersistence.ts
 │   │   └── useNavigation.ts
 │   ├── config/                  # Balanceamento e constantes por domínio (economy, match, squad, scouting, staff...); import via '@/config'
@@ -62,7 +63,9 @@ super-xi/
 │   │   ├── SquadView.vue
 │   │   ├── LeagueView.vue
 │   │   ├── CompetitionsView.vue
-│   │   ├── MatchView.vue
+│   │   ├── MatchesView.vue      # Histórico de partidas (somente leitura)
+│   │   ├── MatchRecordView.vue  # Detalhe de uma partida concluída
+│   │   ├── MatchView.vue        # Subpágina da partida ao vivo (sem aba própria)
 │   │   ├── PreMatchView.vue
 │   │   └── ClubView.vue
 │   ├── router/

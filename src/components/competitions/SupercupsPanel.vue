@@ -14,7 +14,7 @@ import { formatCurrency } from '@/utils/format/formatCurrency'
 
 const club = useClubStore()
 const { supercupState, recopaState } = storeToRefs(useCompetitionsStore())
-const { prepareMatch } = useMatchSimulation()
+const { prepareMatch, matchEntryLabel } = useMatchSimulation()
 </script>
 
 <template>
@@ -42,7 +42,7 @@ const { prepareMatch } = useMatchSimulation()
           <div class="flex items-center gap-2.5 min-w-0">
             <TeamCrest class="shrink-0" size="sm" :name="supercupState.rivalName" />
             <div class="min-w-0">
-              <span class="text-[10px] font-bold uppercase text-ink-muted block">Adversário da Decisão</span>
+              <span class="text-[11px] md:text-[10px] font-bold uppercase text-ink-muted block">Adversário da Decisão</span>
               <strong class="text-sm text-ink block break-words [overflow-wrap:anywhere]">{{ supercupState.rivalName }}</strong>
             </div>
           </div>
@@ -55,7 +55,7 @@ const { prepareMatch } = useMatchSimulation()
           class="w-full py-2.5 text-xs flex items-center justify-center gap-1.5 shadow-sm"
         >
           <Play class="w-3.5 h-3.5 fill-current" />
-          Disputar Final da Supercopa
+          {{ matchEntryLabel('supercup', 'Disputar Final da Supercopa') }}
         </BaseButton>
         <div
           v-else
@@ -90,7 +90,7 @@ const { prepareMatch } = useMatchSimulation()
           <div class="flex items-center gap-2.5 min-w-0">
             <TeamCrest class="shrink-0" size="sm" :name="recopaState.rivalName" />
             <div class="min-w-0">
-              <span class="text-[10px] font-bold uppercase text-ink-muted block">Campeão Continental Rival</span>
+              <span class="text-[11px] md:text-[10px] font-bold uppercase text-ink-muted block">Campeão Continental Rival</span>
               <strong class="text-sm text-ink block break-words [overflow-wrap:anywhere]">{{ recopaState.rivalName }}</strong>
             </div>
           </div>
@@ -103,7 +103,7 @@ const { prepareMatch } = useMatchSimulation()
           class="w-full py-2.5 text-xs flex items-center justify-center gap-1.5 shadow-sm"
         >
           <Play class="w-3.5 h-3.5 fill-current" />
-          Disputar Final da Recopa
+          {{ matchEntryLabel('recopa', 'Disputar Final da Recopa') }}
         </BaseButton>
         <div
           v-else
