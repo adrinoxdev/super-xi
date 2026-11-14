@@ -37,19 +37,19 @@ Merge da `develop` para dentro de uma frente (para trazer novidades) é permitid
 
 ## Versão
 
-A versão mora em `package.json` (`version`) e aparece no rodapé da sidebar. Hoje é `4.0.0`.
+A versão mora em `package.json` (`version`) e aparece no rodapé da sidebar. Hoje é `1.0.0`: ainda não houve versão oficial, então a numeração recomeçou do zero em `1.0.0` (antes era `4.0.x`).
 
-- **O último número sobe 1 a cada merge de `feature/*` ou `fix/*` na `develop`** (`4.0.0` vira `4.0.1`, depois `4.0.2`...).
+- **O último número sobe 1 a cada merge de `feature/*` ou `fix/*` na `develop`** (`1.0.0` vira `1.0.1`, depois `1.0.2`...).
 - **Quem faz o merge sobe a versão, dentro do próprio commit de merge.** A branch da frente nunca mexe na versão, assim duas frentes paralelas não conflitam em `package.json`.
 - Merge de `docs/*` e `chore/*` não sobe a versão (não muda o produto).
 - Merge repetido da mesma branch sobe de novo: cada merge é uma entrega. Um merge, um incremento.
-- Se o merge já foi commitado sem o incremento e ainda não foi enviado, usar `git commit --amend` com o `package.json` atualizado. Se já foi enviado, um commit `chore(version): 4.0.N` logo em seguida.
-- Mudar o número do meio (`4.1.0`) ou do primeiro (`5.0.0`) é decisão do dono do produto, nunca automática.
+- Se o merge já foi commitado sem o incremento e ainda não foi enviado, usar `git commit --amend` com o `package.json` atualizado. Se já foi enviado, um commit `chore(version): 1.0.N` logo em seguida.
+- Mudar o número do meio (`1.1.0`) ou do primeiro (`2.0.0`) é decisão do dono do produto, nunca automática.
 
-Conferir a contagem: o último número deve bater com o número de merges de `feature/` e `fix/` na `develop` desde a versão `4.0.0`:
+Conferir a contagem: o último número deve bater com o número de merges de `feature/` e `fix/` na `develop` desde a versão `1.0.0` (commit de merge `cd1f10b`, que já não conta):
 
 ```bash
-git log --first-parent --merges --format='%s' develop | grep -cE "^Merge branch '(feature|fix)/"
+git log --first-parent --merges --format='%s' cd1f10b..develop | grep -cE "^Merge branch '(feature|fix)/"
 ```
 
 ## Lançamento (develop → master)
