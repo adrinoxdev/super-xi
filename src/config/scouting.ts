@@ -24,6 +24,18 @@ export const SCOUTING_LEVELS: Record<number, {
 /** Peneiras na base permitidas por temporada. */
 export const MAX_TRYOUTS_PER_SEASON = 3
 
+/**
+ * Categorias de base. Oferta curta de propósito: 1 promessa grátis por temporada e peneiras mais fracas.
+ * Promovido da base só pode ser vendido ou emprestado a partir de `lockSeasons` temporadas depois (evita farm de revenda).
+ */
+export const YOUTH = {
+  batchOvr: [45, 53] as const,
+  batchGemChance: 0.3,
+  tryoutOvr: [45, 52] as const,
+  tryoutGemChance: 0.25,
+  lockSeasons: 2
+}
+
 export const SCOUT_MISSIONS: Array<{
   type: ScoutMissionType
   title: string

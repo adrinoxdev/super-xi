@@ -124,6 +124,7 @@ export function useScouting() {
     // Promovido da base de graça: na temporada da promoção a venda vale 0 (teto = valor pago), sem ciclo peneira + venda.
     kid.acquiredSeason = club.season
     kid.acquiredFee = 0
+    kid.promotedSeason = club.season
     squad.addPlayer(kid)
     scouting.removeProspect(kid.id)
     club.recordTransfer('sign', kid.name, kid.position, kid.overall, 0)

@@ -9,7 +9,7 @@ import { useScoutingStore } from '@/stores/scouting'
 import { useScouting } from '@/composables/useScouting'
 import { blockedMsg, squadFullTitle } from '@/composables/useClub'
 import { useSquadStore } from '@/stores/squad'
-import { MAX_TRYOUTS_PER_SEASON } from '@/config'
+import { MAX_TRYOUTS_PER_SEASON, YOUTH } from '@/config'
 import { formatCurrency, formatPosBR } from '@/utils/format/formatCurrency'
 
 const club = useClubStore()
@@ -25,7 +25,7 @@ const { runYouthAcademyTryout, promoteYouthProspect } = useScouting()
         <span class="text-[11px] font-bold uppercase tracking-wider text-emeraldpro">Categorias de Base • Sub-17 / Sub-20</span>
         <SectionTitle size="responsive">Academia de Base Própria ({{ scouting.youthAcademyProspects.length }} Promessas)</SectionTitle>
         <p class="text-xs text-ink-muted">Peneiras desta temporada: {{ club.tryoutsThisSeason }}/{{ MAX_TRYOUTS_PER_SEASON }}</p>
-        <p class="text-xs text-ink-muted break-words">Promoção gratuita: o atleta só pode ser vendido a partir da próxima temporada</p>
+        <p class="text-xs text-ink-muted break-words">Promoção gratuita: o atleta só pode ser vendido ou emprestado {{ YOUTH.lockSeasons }} temporadas depois da promoção</p>
       </div>
       <BaseButton
         variant="soft"

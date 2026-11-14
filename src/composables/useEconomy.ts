@@ -28,7 +28,7 @@ export function useEconomy() {
       // Elenco no mínimo: vende o titular mais caro e promove um jovem da base (ou da peneira) para manter 11.
       target = [...sellable].sort(byWage)[0]
       if (!target) return null
-      // Não mexe na lista da base (o save regenera lista vazia): sobe um jovem gerado na hora.
+      // Não mexe na lista da base: sobe um jovem gerado na hora.
       const kid = generatePlayer({ position: target.position, minOvr: 45, maxOvr: 49, isYouth: true })
       kid.acquiredSeason = club.season
       kid.acquiredFee = 0

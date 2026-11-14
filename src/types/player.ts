@@ -47,6 +47,8 @@ export interface Player {
   /** Temporada em que o atleta chegou (contratação ou promoção) e quanto custou: teto de venda nessa temporada. */
   acquiredSeason?: number
   acquiredFee?: number
+  /** Temporada em que subiu da base: venda e empréstimo ficam bloqueados por `YOUTH.lockSeasons` temporadas. */
+  promotedSeason?: number
 }
 
 export type LoanCandidate = Player & { loanFee: number }

@@ -151,7 +151,8 @@ export function usePersistence() {
           ui.showToast('Nova escala de OVER: todos os números do clube e dos rivais foram ajustados. A força do seu time na série não mudou.', 'success')
           saveGame()
         }
-        if (!p.youthAcademyProspects?.length) scouting.generateYouthAcademyBatch()
+        // Só gera lote em save sem o campo (muito antigo). Lista vazia é legítima: recarregar não renova a base.
+        if (!Array.isArray(p.youthAcademyProspects)) scouting.generateYouthAcademyBatch()
         if (!league.leagueFixtures.length) league.initLeagueSeason(club.division, club.season)
         league.ensureKnockoutTies()
         league.selectedRound = league.currentRound

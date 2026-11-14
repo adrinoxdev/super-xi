@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { IncomingOffer, LoanCandidate } from '../types'
 import { useSquadStore } from './squad'
-import { generatePlayer, saleCap } from '@/utils/player/generatePlayer'
+import { generatePlayer, isYouthSaleLocked, saleCap } from '@/utils/player/generatePlayer'
 import { useClubStore } from './club'
 import { pickRandom } from '@/utils/core/random'
 import { OFFER_RIVAL_CLUBS, TRANSFER } from '@/config'
@@ -19,7 +19,7 @@ export const useMarketStore = defineStore('market', () => {
     const squadStore = useSquadStore()
     if (incomingOffers.value.length >= 3) return
     const eligible = squadStore.players.filter(
-      p => !p.isLoanedOut && !p.isLoanedIn && p.marketStatus !== 'untouchable'
+      p => !p.isLoanedOut && !p.isLoanedIn && p.marketStatus !== 'untouchable' && !p.injury && !isYouthSaleLocked(p, useClubStore().season)
     )
     if (!eligible.length) return
     const listed = eligible.filter(p => p.marketStatus === 'transfer_listed')
