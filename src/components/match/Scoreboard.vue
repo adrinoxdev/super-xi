@@ -43,8 +43,8 @@ const rightScore = computed(() => (h.value ? match.matchState.opponentScore : ma
     </div>
 
     <div v-if="match.matchState.shootout" class="space-y-2" aria-label="Disputa de pênaltis">
-      <div class="flex items-center justify-center gap-3 text-xs">
-        <span class="font-bold text-slate-300 truncate max-w-[30%]">{{ club.name }}</span>
+      <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs">
+        <span class="font-bold text-slate-300 truncate min-w-0 max-w-[30%]">{{ club.name }}</span>
         <span class="flex gap-1">
           <span
             v-for="(k, i) in userKicks"
@@ -60,7 +60,7 @@ const rightScore = computed(() => (h.value ? match.matchState.opponentScore : ma
             :class="['w-3 h-3 rounded-full', k.scored ? 'bg-emerald-400' : 'bg-red-500']"
           ></span>
         </span>
-        <span class="font-bold text-slate-300 truncate max-w-[30%]">{{ activeMatchOpponent.name }}</span>
+        <span class="font-bold text-slate-300 truncate min-w-0 max-w-[30%]">{{ activeMatchOpponent.name }}</span>
       </div>
     </div>
 
@@ -70,7 +70,7 @@ const rightScore = computed(() => (h.value ? match.matchState.opponentScore : ma
         <div class="font-bold text-sm sm:text-lg truncate max-w-full" :title="leftName">{{ leftName }}</div>
         <div class="text-[11px] text-slate-400">OVER {{ leftPower }}</div>
       </div>
-      <div class="font-score font-extrabold text-4xl sm:text-5xl tracking-wider text-emerald-400">
+      <div class="font-score font-extrabold text-3xl min-[400px]:text-4xl sm:text-5xl tracking-wider whitespace-nowrap text-emerald-400">
         {{ leftScore }} <span class="text-slate-500 text-2xl">x</span> {{ rightScore }}
       </div>
       <div class="flex flex-col items-center gap-1 min-w-0">
