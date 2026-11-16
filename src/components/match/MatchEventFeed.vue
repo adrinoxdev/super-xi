@@ -39,7 +39,7 @@ const { toggleMatchSpeed, openInMatchSubDrawer } = useMatchSimulation()
         </button>
       </div>
     </div>
-    <div class="space-y-2 max-h-[50dvh] md:max-h-[380px] overflow-y-auto pr-1">
+    <div class="space-y-2 max-h-72 lg:max-h-[380px] overflow-y-auto overscroll-contain pr-1">
       <MatchEventRow v-for="(ev, idx) in match.matchState.events" :key="idx" :ev="ev" />
     </div>
   </BaseCard>
