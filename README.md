@@ -86,6 +86,13 @@ npm install
 npm run dev
 ```
 
+## Instalar no celular (PWA)
+O jogo publicado no GitHub Pages pode ser instalado como app e abre sem internet. O save continua no `localStorage`, igual ao navegador.
+- **Android (Chrome):** aparece o aviso "Instalar o Super XI" com o botão Instalar, ou menu do Chrome > Instalar app.
+- **iPhone (Safari):** Compartilhar > Adicionar à Tela de Início (o aviso do jogo mostra o passo a passo).
+- Arquivos: `public/manifest.webmanifest`, `public/sw.js` (cache do jogo) e os ícones `icon-*.png`. O service worker só é registrado no build de produção; no `npm run dev` ele fica desligado.
+- Se mudar a lógica de `public/sw.js`, troque `VERSION` nele para descartar os caches antigos (os arquivos do jogo têm hash no nome e se renovam sozinhos).
+
 ## Roadmap de Evolução
 - [x] **Fase 1:** Arquitetura Vue 3 + TS + Pinia + Tailwind (Daylight Pro) + Economia Calibrada
 - [x] **Fase 2 (Pendente de Execução):** Novos mecanismos (Tabela de classificação da liga com 10 clubes, contratações por empréstimo / renovação de contrato e histórico de transferências)

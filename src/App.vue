@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header.vue'
 import BottomNav from '@/components/layout/BottomNav.vue'
 import AppToast from '@/components/ui/AppToast.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import InstallPrompt from '@/components/ui/InstallPrompt.vue'
 import OfflineRewardModal from '@/components/club/OfflineRewardModal.vue'
 import PlayerCompare from '@/components/player/PlayerCompare.vue'
 import PlayerDetails from '@/components/player/PlayerDetails.vue'
@@ -56,5 +57,6 @@ onBeforeUnmount(() => {
     <LoanMarketModal />
     <ConfirmDialog />
     <OfflineRewardModal />
+    <InstallPrompt />
   </div>
 </template>

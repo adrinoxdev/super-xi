@@ -24,33 +24,22 @@ O prefixo de tipo é o vocabulário do git flow. O nome depois da barra é curto
 
 ```bash
 git checkout develop
-git merge --no-ff --no-commit feature/<nome>
-# subir a versão em package.json (ver abaixo), se a frente for feature/ ou fix/
-git add package.json
-git commit --no-edit        # mensagem: Merge branch 'feature/<nome>' into develop
+git merge --no-ff feature/<nome>     # mensagem: Merge branch 'feature/<nome>' into develop
 git push origin develop
 ```
 
 5. Apagar a branch da frente depois do merge.
 
-Merge da `develop` para dentro de uma frente (para trazer novidades) é permitido e não conta para a versão.
+O merge **não altera a versão do jogo** (ver abaixo). Merge da `develop` para dentro de uma frente (para trazer novidades) também é permitido.
 
 ## Versão
 
-A versão mora em `package.json` (`version`) e aparece no rodapé da sidebar. Hoje é `4.0.0`.
+A versão mora em `package.json` (`version`) e aparece no rodapé da sidebar. Hoje é `1.0.0`: ainda não houve versão oficial, então a numeração recomeçou do zero em `1.0.0` (antes era `4.0.x`).
 
-- **O último número sobe 1 a cada merge de `feature/*` ou `fix/*` na `develop`** (`4.0.0` vira `4.0.1`, depois `4.0.2`...).
-- **Quem faz o merge sobe a versão, dentro do próprio commit de merge.** A branch da frente nunca mexe na versão, assim duas frentes paralelas não conflitam em `package.json`.
-- Merge de `docs/*` e `chore/*` não sobe a versão (não muda o produto).
-- Merge repetido da mesma branch sobe de novo: cada merge é uma entrega. Um merge, um incremento.
-- Se o merge já foi commitado sem o incremento e ainda não foi enviado, usar `git commit --amend` com o `package.json` atualizado. Se já foi enviado, um commit `chore(version): 4.0.N` logo em seguida.
-- Mudar o número do meio (`4.1.0`) ou do primeiro (`5.0.0`) é decisão do dono do produto, nunca automática.
-
-Conferir a contagem: o último número deve bater com o número de merges de `feature/` e `fix/` na `develop` desde a versão `4.0.0`:
-
-```bash
-git log --first-parent --merges --format='%s' develop | grep -cE "^Merge branch '(feature|fix)/"
-```
+- **A versão do jogo nunca muda por conta própria. Sempre perguntar ao dono do produto antes de alterá-la** (número do fim, do meio ou do começo).
+- Merge de `feature/*`, `fix/*`, `docs/*` ou `chore/*` **não** sobe a versão automaticamente. A versão fica onde está até o dono pedir.
+- Quando o dono autorizar a mudança, ela vira um commit próprio (`chore(version): <nova versao>`) ou entra no commit de merge, conforme ele indicar. A branch da frente nunca mexe na versão, assim duas frentes paralelas não conflitam em `package.json`.
+- Antes de qualquer lançamento (`develop` → `master`), perguntar se a versão deve mudar e qual será.
 
 ## Lançamento (develop → master)
 
@@ -63,9 +52,11 @@ git checkout master && git pull
 git merge --no-ff develop -m "release: <versao>"
 git push origin master
 git checkout develop
+git merge --no-ff master -m "Merge branch 'master' into develop (lancamento <versao>)"
+git push origin develop
 ```
 
-Tag de versão (`v<versao>`) é opcional e só vale se o dono do produto pedir. Depois do lançamento, `master` e `develop` ficam iguais.
+O `--no-ff` cria um commit de merge que existe só na `master`. O último merge (da `master` de volta na `develop`) traz esse commit para a `develop`: não muda nenhum arquivo, só deixa os dois históricos coincidindo. Sem ele, `git log develop..master` fica com os commits de lançamento. Tag de versão (`v<versao>`) é opcional e só vale se o dono do produto pedir.
 
 ## Hotfix
 
@@ -78,5 +69,5 @@ Tag de versão (`v<versao>`) é opcional e só vale se o dono do produto pedir. 
 
 - Commit ou push direto na `master`.
 - Fast-forward ao integrar uma frente na `develop` (o merge explícito é o registro da entrega).
-- Subir a versão dentro da branch da frente.
+- Alterar a versão do jogo (`package.json`) sem perguntar antes ao dono do produto, inclusive dentro da branch da frente.
 - `push --force` na `develop` ou na `master`.
