@@ -10,16 +10,17 @@ const props = withDefaults(
   { shirtColor: '#059669', animated: false }
 )
 
-// Só expressões sérias e cabelos de atleta, para o visual não ficar infantil.
+// Futebol masculino: só cortes e expressões de leitura masculina e adulta. Ficam de fora tranças longas (cornrows),
+// dreads volumosos, coques e franjas, olhos fechados com cílios (calm) e cabelos de leitura infantil (noHair2, mohawk2).
 const BASE: Partial<Options> = {
-  face: ['calm', 'serious', 'driven', 'solemn', 'contempt', 'suspicious', 'smile'],
+  face: ['serious', 'driven', 'solemn', 'contempt', 'suspicious', 'smile'],
   head: [
     'short1', 'short2', 'short3', 'short4', 'short5',
-    'shaved1', 'shaved2', 'shaved3', 'flatTop', 'pomp',
-    'afro', 'cornrows', 'cornrows2', 'dreads1', 'twists', 'noHair1', 'noHair2'
+    'shaved1', 'shaved2', 'shaved3', 'flatTop', 'flatTopLong', 'pomp',
+    'afro', 'twists', 'twists2', 'mohawk', 'noHair1'
   ],
-  facialHair: ['chin', 'full', 'full2', 'goatee1', 'goatee2', 'moustache1', 'moustache2'],
-  facialHairProbability: 35,
+  facialHair: ['chin', 'full', 'full2', 'full3', 'goatee1', 'goatee2', 'moustache1', 'moustache2'],
+  facialHairProbability: 45,
   accessoriesProbability: 0,
   maskProbability: 0,
   skinColor: ['ffdbb4', 'edb98a', 'd08b5b', 'ae5d29', '694d3d'],
