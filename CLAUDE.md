@@ -52,9 +52,11 @@ git checkout master && git pull
 git merge --no-ff develop -m "release: <versao>"
 git push origin master
 git checkout develop
+git merge --no-ff master -m "Merge branch 'master' into develop (lancamento <versao>)"
+git push origin develop
 ```
 
-Tag de versão (`v<versao>`) é opcional e só vale se o dono do produto pedir. Depois do lançamento, `master` e `develop` ficam iguais.
+O `--no-ff` cria um commit de merge que existe só na `master`. O último merge (da `master` de volta na `develop`) traz esse commit para a `develop`: não muda nenhum arquivo, só deixa os dois históricos coincidindo. Sem ele, `git log develop..master` fica com os commits de lançamento. Tag de versão (`v<versao>`) é opcional e só vale se o dono do produto pedir.
 
 ## Hotfix
 
