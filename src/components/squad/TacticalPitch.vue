@@ -82,7 +82,7 @@ const fit = computed(() => {
     </div>
 
     <!-- Container query: no celular o card dos titulares escala com a largura do campo (cqw) para os 11 caberem sem sobrepor; md+ fixo em 76px como antes -->
-    <div id="prancheta-tatica" class="scroll-mt-16 relative w-full aspect-[1/1.8] max-h-[640px] sm:aspect-auto sm:h-[640px] lg:h-[510px] max-w-full rounded-2xl pitch-bg border-2 border-emerald-800/30 overflow-hidden select-none shadow-inner [container-type:inline-size]">
+    <div id="prancheta-tatica" class="scroll-mt-16 relative w-full aspect-[1/1.8] max-h-[640px] sm:aspect-auto sm:h-[640px] lg:h-[510px] max-w-full rounded-2xl pitch-bg border-2 border-emeraldpro/20 overflow-hidden select-none shadow-inner [container-type:inline-size]">
       <div class="absolute inset-3 border-2 border-white/30 rounded-xl pointer-events-none"></div>
       <div class="absolute left-3 right-3 top-1/2 h-0.5 bg-white/30 pointer-events-none"></div>
       <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-2 border-white/30 pointer-events-none"></div>
