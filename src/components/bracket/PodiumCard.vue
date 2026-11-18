@@ -10,8 +10,8 @@ const props = defineProps<{ podium: Podium }>()
 
 // ordem visual: 2º, 1º, 3º
 const slots = computed(() => [
-  { place: 2, title: 'Vice', entry: props.podium.runnerUp, platform: 'h-16 bg-ink-light text-white' },
-  { place: 1, title: 'Campeão', entry: props.podium.champion, platform: 'h-24 bg-emeraldpro text-white' },
+  { place: 2, title: 'Vice', entry: props.podium.runnerUp, platform: 'h-16 bg-ink-light text-night' },
+  { place: 1, title: 'Campeão', entry: props.podium.champion, platform: 'h-24 bg-emeraldpro text-night' },
   { place: 3, title: '3º lugar', entry: props.podium.third, platform: 'h-12 bg-subtle border border-borderline text-ink' }
 ])
 </script>

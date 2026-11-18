@@ -77,7 +77,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
       <button
         type="button"
         @click="router.push('/squad')"
-        class="px-3.5 py-2.5 md:py-1.5 rounded-xl bg-amberpro text-white text-xs font-bold hover:opacity-90 self-start sm:self-auto shrink-0"
+        class="px-3.5 py-2.5 md:py-1.5 rounded-xl bg-amberpro text-night text-xs font-bold hover:opacity-90 self-start sm:self-auto shrink-0"
       >
         Ver Propostas
       </button>

@@ -66,7 +66,7 @@ const { runYouthAcademyTryout, promoteYouthProspect } = useScouting()
           @click="promoteYouthProspect(kid)"
           :disabled="squad.isFull"
           :title="squad.isFull ? squadFullTitle(squad.players.length, club.maxSquadCapacity) : undefined"
-          class="min-h-[40px] sm:min-h-0 px-3 py-1.5 rounded-lg bg-emeraldpro hover:bg-emeraldpro-hover disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-[11px] font-bold shrink-0"
+          class="min-h-[40px] sm:min-h-0 px-3 py-1.5 rounded-lg bg-emeraldpro hover:bg-emeraldpro-hover disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-night text-[11px] font-bold shrink-0"
         >
           Promover
         </button>

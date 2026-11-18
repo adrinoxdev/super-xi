@@ -52,7 +52,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
         @click.prevent.stop="closeInMatchSubDrawer"
         :disabled="pending.length > 0"
         :title="pending.length ? 'Substitua o lesionado antes de retomar.' : undefined"
-        class="shrink-0 px-4 py-2 min-h-11 md:min-h-0 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-xs font-bold"
+        class="shrink-0 px-4 py-2 min-h-11 md:min-h-0 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-night text-xs font-bold"
       >
         Retomar Jogo
       </button>
@@ -116,7 +116,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
         type="button"
         @click.prevent.stop="confirmInMatchSubstitution"
         :disabled="!subOutId || !subInId || (!forcedSub && match.matchState.subsUsed >= 5)"
-        class="px-5 py-2.5 min-h-11 md:min-h-0 rounded-xl bg-amberpro disabled:opacity-40 text-white text-xs font-bold"
+        class="px-5 py-2.5 min-h-11 md:min-h-0 rounded-xl bg-amberpro disabled:opacity-40 text-night text-xs font-bold"
       >
         Confirmar Substituição
       </button>

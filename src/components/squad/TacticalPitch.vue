@@ -73,7 +73,7 @@ const fit = computed(() => {
         :class="[
           'px-3 py-2 sm:px-2.5 sm:py-1 rounded-lg text-xs font-bold transition-all border',
           squad.formation === fName
-            ? 'bg-emeraldpro text-white border-emeraldpro shadow-sm'
+            ? 'bg-emeraldpro text-night border-emeraldpro shadow-sm'
             : 'bg-subtle text-ink-muted border-borderline hover:text-ink'
         ]"
       >
@@ -108,7 +108,7 @@ const fit = computed(() => {
           <span
             :class="[
               'absolute -top-2.5 left-1/2 -translate-x-1/2 z-30 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold leading-none whitespace-nowrap shadow pointer-events-none',
-              fit[idx].best ? 'bg-emeraldpro text-white' : fit[idx].penalty ? 'bg-amberpro text-white' : 'bg-surface text-ink border border-borderline'
+              fit[idx].best ? 'bg-emeraldpro text-night' : fit[idx].penalty ? 'bg-amberpro text-night' : 'bg-surface text-ink border border-borderline'
             ]"
           >{{ fit[idx].best ? 'Melhor ' : '' }}{{ fit[idx].eff }}</span>
         </template>

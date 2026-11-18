@@ -34,9 +34,9 @@ const rightScore = computed(() => (h.value ? match.matchState.opponentScore : ma
 </script>
 
 <template>
-  <div class="bg-ink text-white rounded-2xl p-4 sm:p-6 shadow-md space-y-4">
+  <div class="bg-night border border-borderline text-white rounded-2xl p-4 sm:p-6 shadow-md space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-      <span class="px-2.5 py-1 rounded-full bg-emeraldpro text-white font-bold uppercase">
+      <span class="px-2.5 py-1 rounded-full bg-emeraldpro text-night font-bold uppercase">
         {{ match.matchState.shootout ? (match.matchState.isFinished ? 'Fim de Jogo • Pênaltis' : 'Disputa de Pênaltis') : match.matchState.isFinished ? 'Fim de Jogo • ' + formatMinute(match.matchState.minute) : 'Ao Vivo • ' + formatMinute(match.matchState.minute) }}
       </span>
       <span class="text-slate-300 font-medium min-w-0 break-words">{{ activeMatchCompetitionLabel }}</span>

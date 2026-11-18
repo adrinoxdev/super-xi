@@ -81,7 +81,7 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
         @click="ui.squadPositionFilter = f"
         :class="[
           'px-3 py-2 sm:py-1 rounded-lg text-xs font-bold transition-colors shrink-0',
-          ui.squadPositionFilter === f ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted hover:text-ink'
+          ui.squadPositionFilter === f ? 'bg-emeraldpro text-night' : 'bg-subtle text-ink-muted hover:text-ink'
         ]"
       >
         {{ filterLabels[f] }}
@@ -138,7 +138,7 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
               </span>
               <span
                 v-if="player.injury"
-                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-dangerpro text-white shrink-0"
+                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-dangerpro text-night shrink-0"
                 :title="`Lesionado: ${player.injury.matchesLeft} jogo(s) restantes`"
                 role="img"
                 :aria-label="`Lesionado, ${player.injury.matchesLeft} jogos restantes`"
@@ -180,7 +180,7 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
             v-if="ui.selectedPitchSlotIndex !== null && !player.isLoanedOut"
             type="button"
             @click="assignPlayerToSlot(player.id)"
-            class="hidden lg:block lg:flex-none px-2.5 py-1.5 rounded-lg bg-amberpro text-white text-[11px] font-bold"
+            class="hidden lg:block lg:flex-none px-2.5 py-1.5 rounded-lg bg-amberpro text-night text-[11px] font-bold"
           >
             Escalar
           </button>
@@ -191,7 +191,7 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
             :aria-pressed="ui.selectedRosterPlayerId === player.id"
             :class="[
               'flex-1 sm:flex-none min-h-[40px] sm:min-h-0 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold',
-              ui.selectedRosterPlayerId === player.id ? 'bg-amberpro text-white border-amberpro' : 'bg-surface hover:bg-borderline border-borderline text-ink'
+              ui.selectedRosterPlayerId === player.id ? 'bg-amberpro text-night border-amberpro' : 'bg-surface hover:bg-borderline border-borderline text-ink'
             ]"
           >
             Posição

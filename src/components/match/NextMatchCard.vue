@@ -61,7 +61,7 @@ const awayName = computed(() => (props.isHome ? props.opponentName : props.clubN
         </button>
         <button
           type="button"
-          class="px-3 py-2 min-h-10 md:min-h-0 md:py-1.5 rounded-lg bg-emeraldpro hover:bg-emeraldpro-hover text-white text-[11px] font-bold flex items-center gap-1"
+          class="px-3 py-2 min-h-10 md:min-h-0 md:py-1.5 rounded-lg bg-emeraldpro hover:bg-emeraldpro-hover text-night text-[11px] font-bold flex items-center gap-1"
           @click="$emit('play')"
         >
           <Play class="w-3 h-3 fill-current" />

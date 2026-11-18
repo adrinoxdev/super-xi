@@ -30,7 +30,7 @@ const TEXT_COLORS = CREST_COLORS
 
 const chip = (on: boolean) => [
   'px-3 py-2 sm:px-2.5 sm:py-1 rounded-lg text-xs font-bold border',
-  on ? 'bg-emeraldpro text-white border-emeraldpro' : 'bg-subtle text-ink-muted border-borderline'
+  on ? 'bg-emeraldpro text-night border-emeraldpro' : 'bg-subtle text-ink-muted border-borderline'
 ]
 </script>
 

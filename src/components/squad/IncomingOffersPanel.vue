@@ -50,7 +50,7 @@ const { acceptIncomingOffer, counterIncomingOffer, rejectIncomingOffer } = useSq
           <button
             type="button"
             @click="acceptIncomingOffer(offer)"
-            class="flex-1 min-h-[40px] sm:min-h-0 py-1.5 rounded-lg bg-emeraldpro hover:bg-emeraldpro-hover text-white font-bold"
+            class="flex-1 min-h-[40px] sm:min-h-0 py-1.5 rounded-lg bg-emeraldpro hover:bg-emeraldpro-hover text-night font-bold"
           >
             Aceitar
           </button>

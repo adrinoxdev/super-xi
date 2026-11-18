@@ -23,7 +23,7 @@ const { prepareMatch, matchEntryLabel } = useMatchSimulation()
     <BaseCard class="flex flex-col justify-between space-y-4">
       <div class="space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-          <span class="max-w-full break-words px-2.5 py-0.5 rounded-full bg-amberpro text-white text-[11px] font-bold uppercase">
+          <span class="max-w-full break-words px-2.5 py-0.5 rounded-full bg-amberpro text-night text-[11px] font-bold uppercase">
             Supercopa Soberana • Final Única
           </span>
           <span class="text-xs font-bold text-ink-muted">Temp. {{ club.season }}</span>
@@ -71,7 +71,7 @@ const { prepareMatch, matchEntryLabel } = useMatchSimulation()
     <BaseCard class="flex flex-col justify-between space-y-4">
       <div class="space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-          <span class="max-w-full break-words px-2.5 py-0.5 rounded-full bg-emeraldpro text-white text-[11px] font-bold uppercase">
+          <span class="max-w-full break-words px-2.5 py-0.5 rounded-full bg-emeraldpro text-night text-[11px] font-bold uppercase">
             Recopa Condor • Final Única
           </span>
           <span class="text-xs font-bold text-ink-muted">Temp. {{ club.season }}</span>

@@ -86,7 +86,7 @@ const tables = computed(() => {
     <BaseCard padding="p-4 sm:p-6" class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div class="space-y-1.5 min-w-0">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="px-2.5 py-0.5 rounded-full bg-emeraldpro text-white text-xs font-extrabold uppercase">
+          <span class="px-2.5 py-0.5 rounded-full bg-emeraldpro text-night text-xs font-extrabold uppercase">
             Série {{ serieMeta.code }}
           </span>
           <span class="text-xs font-semibold text-ink-muted">Temporada {{ club.season }}</span>
@@ -132,7 +132,7 @@ const tables = computed(() => {
         v-for="t in tabOptions"
         :key="t.key"
         type="button"
-        :class="['px-4 py-2.5 md:py-2 rounded-lg text-xs font-bold', shownTab === t.key ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted hover:text-ink']"
+        :class="['px-4 py-2.5 md:py-2 rounded-lg text-xs font-bold', shownTab === t.key ? 'bg-emeraldpro text-night' : 'bg-subtle text-ink-muted hover:text-ink']"
         @click="activeTab = t.key"
       >
         {{ t.label }}

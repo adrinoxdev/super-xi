@@ -53,7 +53,7 @@ const rows = computed(() => {
     <BaseCard v-if="!m" class="text-sm text-ink-muted text-center py-8">Partida não encontrada.</BaseCard>
 
     <template v-else>
-      <div class="bg-ink text-white rounded-2xl p-4 sm:p-6 shadow-md space-y-4">
+      <div class="bg-night border border-borderline text-white rounded-2xl p-4 sm:p-6 shadow-md space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span :class="['px-2.5 py-1 rounded-full font-bold uppercase', OUTCOME_UI[outcomeOf(m)].cls]">
             {{ OUTCOME_UI[outcomeOf(m)].label }} • Encerrada
@@ -105,7 +105,7 @@ const rows = computed(() => {
                 <span class="text-ink-muted">{{ r.label }}</span>
                 <span class="font-score font-bold text-ink">{{ r.opp }}</span>
               </div>
-              <div class="h-1.5 rounded-full bg-ink/80 overflow-hidden">
+              <div class="h-1.5 rounded-full bg-night overflow-hidden">
                 <div class="h-full bg-emeraldpro" :style="{ width: r.pct + '%' }"></div>
               </div>
             </div>

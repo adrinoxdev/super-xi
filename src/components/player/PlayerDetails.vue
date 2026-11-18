@@ -157,7 +157,7 @@ const renewBlockedReason = computed(() => {
         type="button"
         :disabled="club.budget < treatment.cost"
         :title="club.budget < treatment.cost ? 'Saldo insuficiente para o tratamento.' : undefined"
-        class="shrink-0 px-3 py-2 min-h-10 rounded-lg bg-dangerpro hover:opacity-90 disabled:opacity-50 text-white text-[11px] font-bold"
+        class="shrink-0 px-3 py-2 min-h-10 rounded-lg bg-dangerpro hover:opacity-90 disabled:opacity-50 text-night text-[11px] font-bold"
         @click="treatInjury(player)"
       >
         Tratar (-{{ treatment.removed }} {{ treatment.removed === 1 ? 'jogo' : 'jogos' }} • {{ formatCurrency(treatment.cost) }})
@@ -188,7 +188,7 @@ const renewBlockedReason = computed(() => {
         type="button"
         :disabled="!canRenew(player)"
         :title="renewBlockedReason || undefined"
-        class="py-2.5 px-3 min-h-11 rounded-xl bg-emeraldpro-soft hover:bg-emeraldpro hover:text-white disabled:opacity-50 disabled:hover:bg-emeraldpro-soft disabled:hover:text-emeraldpro text-emeraldpro text-xs font-bold transition-colors break-words min-w-0"
+        class="py-2.5 px-3 min-h-11 rounded-xl bg-emeraldpro-soft hover:bg-emeraldpro hover:text-night disabled:opacity-50 disabled:hover:bg-emeraldpro-soft disabled:hover:text-emeraldpro text-emeraldpro text-xs font-bold transition-colors break-words min-w-0"
         @click="renewPlayerContract(player)"
       >
         Renovar (+{{ renewYearsFor(player) }} temp. • luvas {{ formatCurrency(getRenewalCost(player)) }})
@@ -207,7 +207,7 @@ const renewBlockedReason = computed(() => {
         type="button"
         :disabled="sellBlocked"
         :title="sellBlocked ? (injured ? 'Atleta lesionado: aguarde a recuperação ou pague o tratamento.' : youthLocked ? `Promovido da base: venda liberada na temporada ${youthUnlock}.` : 'Promovido nesta temporada: venda liberada na próxima.') : undefined"
-        class="py-2.5 px-3 min-h-11 rounded-xl bg-dangerpro-soft hover:bg-dangerpro hover:text-white disabled:opacity-50 disabled:hover:bg-dangerpro-soft disabled:hover:text-dangerpro text-dangerpro text-xs font-bold transition-colors break-words min-w-0"
+        class="py-2.5 px-3 min-h-11 rounded-xl bg-dangerpro-soft hover:bg-dangerpro hover:text-night disabled:opacity-50 disabled:hover:bg-dangerpro-soft disabled:hover:text-dangerpro text-dangerpro text-xs font-bold transition-colors break-words min-w-0"
         @click="sellSquadPlayer(player)"
       >
         {{ injured ? 'Lesionado' : `Vender (+${formatCurrency(sellPriceFor(player))})` }}

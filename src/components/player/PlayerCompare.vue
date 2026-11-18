@@ -79,7 +79,7 @@ function sign() {
       </button>
       <button
         type="button"
-        class="px-5 py-2 min-h-10 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-xs font-bold"
+        class="px-5 py-2 min-h-10 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-night text-xs font-bold"
         :disabled="squad.isFull"
         :title="squad.isFull ? squadFullTitle(squad.players.length, club.maxSquadCapacity) : undefined"
         @click="sign"
