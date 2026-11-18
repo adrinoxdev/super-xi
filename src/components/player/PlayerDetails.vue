@@ -143,7 +143,7 @@ const renewBlockedReason = computed(() => {
     <p v-if="renewBlockedReason && !player.isLoanedIn" class="text-[11px] text-ink-muted text-center break-words">{{ renewBlockedReason }}</p>
     <div
       v-if="injured && player.injury && !player.isLoanedIn"
-      class="p-3 rounded-xl bg-dangerpro-soft/60 border border-dangerpro/40 flex flex-wrap items-center justify-between gap-2"
+      class="p-3 rounded-xl bg-dangerpro-soft border border-dangerpro/40 flex flex-wrap items-center justify-between gap-2"
     >
       <p class="text-xs text-ink min-w-0 break-words">
         <strong class="text-dangerpro">Lesionado:</strong> fora por {{ player.injury.matchesLeft }} {{ player.injury.matchesLeft === 1 ? 'jogo' : 'jogos' }}.
@@ -166,7 +166,7 @@ const renewBlockedReason = computed(() => {
     </div>
     <div
       v-if="suspensionsOf(player).length && !player.isLoanedIn"
-      class="p-3 rounded-xl bg-dangerpro-soft/60 border border-dangerpro/40 text-xs text-ink break-words"
+      class="p-3 rounded-xl bg-dangerpro-soft border border-dangerpro/40 text-xs text-ink break-words"
     >
       <strong class="text-dangerpro">Suspenso:</strong> {{ suspensionText(player) }}.
       Fora só dessas competições; nas demais ele joga normalmente.

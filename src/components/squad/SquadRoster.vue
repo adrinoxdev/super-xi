@@ -94,7 +94,7 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
         :key="player.id"
         :class="[
           'p-3 rounded-xl border flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 transition-colors',
-          ui.selectedRosterPlayerId === player.id ? 'bg-amberpro-soft border-amberpro ring-2 ring-amberpro/40' : squad.isStarter(player.id) ? 'bg-emeraldpro-soft/40 border-emeraldpro/40' : 'bg-subtle border-borderline'
+          ui.selectedRosterPlayerId === player.id ? 'bg-amberpro-soft border-amberpro ring-2 ring-amberpro/40' : squad.isStarter(player.id) ? 'bg-emeraldpro-soft border-emeraldpro/40' : 'bg-subtle border-borderline'
         ]"
       >
         <div class="flex items-center gap-2.5 min-w-0 flex-1">

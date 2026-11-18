@@ -58,7 +58,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
       </button>
     </div>
 
-    <div v-if="pending.length" class="p-3 rounded-xl bg-dangerpro-soft/60 border border-dangerpro/40 text-xs text-ink break-words" role="alert">
+    <div v-if="pending.length" class="p-3 rounded-xl bg-dangerpro-soft border border-dangerpro/40 text-xs text-ink break-words" role="alert">
       <strong class="text-dangerpro">Lesão em campo:</strong>
       {{ pending.map((p) => p.name).join(', ') }} precisa ser substituído para o jogo continuar. Essa troca não gasta substituição.
     </div>

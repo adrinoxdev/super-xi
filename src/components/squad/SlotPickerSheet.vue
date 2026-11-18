@@ -77,7 +77,7 @@ function close(): void {
           @click="pick(c.p)"
           :class="[
             'w-full min-h-14 p-2.5 rounded-xl border flex items-center gap-3 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-            c.starter ? 'bg-emeraldpro-soft/40 border-emeraldpro/40' : 'bg-subtle border-borderline'
+            c.starter ? 'bg-emeraldpro-soft border-emeraldpro/40' : 'bg-subtle border-borderline'
           ]"
         >
           <div class="w-11 h-11 rounded-xl bg-surface border border-borderline flex flex-col items-center justify-center shrink-0">

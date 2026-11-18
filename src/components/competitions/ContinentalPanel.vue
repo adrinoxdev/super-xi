@@ -114,7 +114,7 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
               <tr
                 v-for="(row, idx) in continentalStandings"
                 :key="row.id"
-                :class="row.isUser ? 'bg-emeraldpro-soft/70 font-bold' : ''"
+                :class="row.isUser ? 'bg-emeraldpro-soft font-bold' : ''"
               >
                 <td class="py-2 px-2">{{ idx + 1 }}º</td>
                 <td class="py-2 px-2 text-ink max-w-[180px] sm:max-w-[280px]">

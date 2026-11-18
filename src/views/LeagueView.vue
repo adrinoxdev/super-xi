@@ -174,7 +174,7 @@ const tables = computed(() => {
               <tr
                 v-for="row in tb.rows"
                 :key="row.teamId"
-                :class="['transition-colors', row.isUser ? 'bg-emeraldpro-soft/70 font-bold' : 'hover:bg-subtle/70']"
+                :class="['transition-colors', row.isUser ? 'bg-emeraldpro-soft font-bold' : 'hover:bg-subtle/70']"
               >
                 <td class="py-2.5 px-2">
                   <span
@@ -237,7 +237,7 @@ const tables = computed(() => {
             :class="[
               'p-3 rounded-xl border text-xs flex items-center justify-between gap-2',
               fx.homeId === 'user' || fx.awayId === 'user'
-                ? 'bg-emeraldpro-soft/50 border-emeraldpro/40 font-bold'
+                ? 'bg-emeraldpro-soft border-emeraldpro/40 font-bold'
                 : 'bg-subtle border-borderline'
             ]"
           >
