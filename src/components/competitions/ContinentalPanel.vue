@@ -32,7 +32,7 @@ const playLabel = computed(() => {
 })
 const statusBadge = computed(() => {
   const c = continentalState.value
-  if (c.finalPosition === 1 || c.champion) return { text: 'Campeão', cls: 'bg-emeraldpro text-white' }
+  if (c.finalPosition === 1 || c.champion) return { text: 'Campeão', cls: 'bg-emeraldpro text-night' }
   if (c.finalPosition === 2) return { text: 'Vice-campeão', cls: 'bg-subtle text-ink' }
   if (c.finalPosition === 3) return { text: '3º lugar', cls: 'bg-emeraldpro-soft text-emeraldpro' }
   if (c.finalPosition === 4) return { text: '4º lugar', cls: 'bg-subtle text-ink' }
@@ -69,7 +69,7 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div class="space-y-1 min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="max-w-full break-words px-2.5 py-0.5 rounded-full bg-emeraldpro text-white text-xs font-bold uppercase">{{ tierLabel }}</span>
+              <span class="max-w-full break-words px-2.5 py-0.5 rounded-full bg-emeraldpro text-night text-xs font-bold uppercase">{{ tierLabel }}</span>
               <span v-if="statusBadge" :class="['max-w-full break-words px-2.5 py-0.5 rounded-full text-xs font-bold', statusBadge.cls]">{{ statusBadge.text }}</span>
             </div>
             <h3 class="text-lg sm:text-xl font-extrabold text-ink break-words">{{ continentalStageLabel }}</h3>
@@ -114,7 +114,7 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
               <tr
                 v-for="(row, idx) in continentalStandings"
                 :key="row.id"
-                :class="row.isUser ? 'bg-emeraldpro-soft/70 font-bold' : ''"
+                :class="row.isUser ? 'bg-emeraldpro-soft font-bold' : ''"
               >
                 <td class="py-2 px-2">{{ idx + 1 }}º</td>
                 <td class="py-2 px-2 text-ink max-w-[180px] sm:max-w-[280px]">

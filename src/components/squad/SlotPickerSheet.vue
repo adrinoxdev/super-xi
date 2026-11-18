@@ -77,7 +77,7 @@ function close(): void {
           @click="pick(c.p)"
           :class="[
             'w-full min-h-14 p-2.5 rounded-xl border flex items-center gap-3 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-            c.starter ? 'bg-emeraldpro-soft/40 border-emeraldpro/40' : 'bg-subtle border-borderline'
+            c.starter ? 'bg-emeraldpro-soft border-emeraldpro/40' : 'bg-subtle border-borderline'
           ]"
         >
           <div class="w-11 h-11 rounded-xl bg-surface border border-borderline flex flex-col items-center justify-center shrink-0">
@@ -89,7 +89,7 @@ function close(): void {
               <span class="font-bold text-xs text-ink truncate">{{ c.p.name }}</span>
               <span v-if="c.starter" class="px-1.5 py-0.5 rounded bg-surface border border-borderline text-ink-muted text-[11px] font-bold">Titular: troca de lugar</span>
               <EventIcon v-if="suspensionText(c.p)" kind="red" :size="16" />
-              <span v-if="c.p.injury" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-dangerpro text-white" role="img" :aria-label="`Lesionado, ${c.p.injury.matchesLeft} jogos`">
+              <span v-if="c.p.injury" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-dangerpro text-night" role="img" :aria-label="`Lesionado, ${c.p.injury.matchesLeft} jogos`">
                 <Bandage class="w-3 h-3" />
               </span>
             </div>
@@ -99,8 +99,8 @@ function close(): void {
               <template v-if="blocked(c.p)"> • Suspenso: {{ suspensionText(c.p) }}</template>
             </div>
           </div>
-          <span v-if="i === 0 && !blocked(c.p)" class="shrink-0 px-1.5 py-0.5 rounded bg-emeraldpro text-white text-[10px] font-extrabold">Melhor</span>
-          <span v-if="!blocked(c.p)" class="shrink-0 px-3 py-2 rounded-lg bg-amberpro text-white text-[11px] font-bold">Escalar</span>
+          <span v-if="i === 0 && !blocked(c.p)" class="shrink-0 px-1.5 py-0.5 rounded bg-emeraldpro text-night text-[10px] font-extrabold">Melhor</span>
+          <span v-if="!blocked(c.p)" class="shrink-0 px-3 py-2 rounded-lg bg-amberpro text-night text-[11px] font-bold">Escalar</span>
         </button>
       </li>
     </ul>

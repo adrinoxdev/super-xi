@@ -1,11 +1,11 @@
 <script setup lang="ts">
 const toneClasses = {
-  success: 'bg-emeraldpro-soft text-emeraldpro',
+  success: 'bg-emeraldpro-soft text-emeraldpro-hover',
   'success-strong': 'bg-emeraldpro-soft text-emeraldpro-hover',
   'success-outline': 'border border-emeraldpro text-emeraldpro-hover',
-  'success-solid': 'bg-emeraldpro text-white',
+  'success-solid': 'bg-emeraldpro text-night',
   warning: 'bg-amberpro-soft text-amberpro',
-  'warning-solid': 'bg-amberpro text-white',
+  'warning-solid': 'bg-amberpro text-night',
   neutral: 'bg-subtle text-ink-muted',
   'neutral-outline': 'bg-subtle border border-borderline text-ink-muted',
 } as const

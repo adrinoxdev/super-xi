@@ -38,7 +38,7 @@ function places(p: Podium): Array<{ place: number; entry: PodiumEntry | null }> 
           :key="s.place"
           :class="[
             'flex items-center gap-1.5 min-w-0 rounded-lg px-1.5 py-1',
-            s.entry?.isUser ? 'bg-emeraldpro-soft/50' : ''
+            s.entry?.isUser ? 'bg-emeraldpro-soft' : ''
           ]"
         >
           <template v-if="s.entry">

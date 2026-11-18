@@ -84,7 +84,7 @@ const treeHeight = computed(() => (visibleRounds.value[0]?.ties.length ?? 1) * S
           type="button"
           :class="[
             'shrink-0 snap-start px-3.5 py-2.5 min-h-11 rounded-lg text-xs font-bold',
-            i === activeTab ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted'
+            i === activeTab ? 'bg-emeraldpro text-night' : 'bg-subtle text-ink-muted'
           ]"
           @click="activeTab = i"
         >
@@ -112,7 +112,7 @@ const treeHeight = computed(() => (visibleRounds.value[0]?.ties.length ?? 1) * S
           type="button"
           :class="[
             'px-2.5 py-2 md:py-1 rounded-lg text-[11px] font-bold',
-            i === effectiveStart ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted'
+            i === effectiveStart ? 'bg-emeraldpro text-night' : 'bg-subtle text-ink-muted'
           ]"
           @click="startRound = i"
         >

@@ -4,27 +4,29 @@ export default {
   theme: {
     extend: {
       colors: {
-        canvas: '#F4F6F9',      // 60% Dominante - Cool Off-White
-        surface: '#FFFFFF',     // 30% Secundária - Pure White Cards
-        subtle: '#F1F5F9',
-        borderline: '#E2E8F0',
+        canvas: '#0A1628',
+        surface: '#0F2238',
+        subtle: '#162E4A',
+        borderline: '#1F3F63',
+        night: '#050D18',
+        gold: { DEFAULT: '#FBBF24', deep: '#B45309' },
         ink: {
-          DEFAULT: '#0F172A',   // 10% Destaque - Deep Ink
-          muted: '#64748B',
-          light: '#1E293B'
+          DEFAULT: '#F1F5F9',
+          muted: '#8FA3BF',
+          light: '#CBD5E1'
         },
         emeraldpro: {
-          DEFAULT: '#059669',   // 10% Destaque Esportivo - Pitch Emerald
-          hover: '#047857',
-          soft: '#D1FAE5'
+          DEFAULT: '#22C55E',
+          hover: '#4ADE80',
+          soft: 'rgba(34,197,94,0.16)'
         },
         amberpro: {
-          DEFAULT: '#D97706',
-          soft: '#FEF3C7'
+          DEFAULT: '#FBBF24',
+          soft: 'rgba(251,191,36,0.16)'
         },
         dangerpro: {
-          DEFAULT: '#DC2626',
-          soft: '#FEE2E2'
+          DEFAULT: '#F87171',
+          soft: 'rgba(248,113,113,0.16)'
         }
       },
       fontFamily: {

@@ -55,7 +55,7 @@ const colClass = (k: SortKey) => (sortKey.value === k ? 'text-emeraldpro' : 'tex
           @click="sortKey = o.key"
           :class="[
             'px-3 py-2 sm:px-2 sm:py-1 rounded-lg text-[11px] font-bold transition-colors',
-            sortKey === o.key ? 'bg-emeraldpro text-white' : 'bg-subtle text-ink-muted hover:text-ink'
+            sortKey === o.key ? 'bg-emeraldpro text-night' : 'bg-subtle text-ink-muted hover:text-ink'
           ]"
         >
           {{ o.label }}

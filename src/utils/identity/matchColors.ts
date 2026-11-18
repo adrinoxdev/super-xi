@@ -1,8 +1,8 @@
 import type { TeamIdentity } from '@/types/team'
 import { colorDistance, contrastRatio } from '@/utils/identity/crest'
 
-const INK = '#0F172A'
-const CARD = '#FFFFFF'
+const INK = '#F1F5F9'
+const CARD = '#0F2238'
 const MIN_CONTRAST = 3
 const MIN_DISTANCE = 110
 
@@ -15,7 +15,7 @@ export interface MatchColors {
 
 /**
  * Cores do painel de estatisticas. Prioriza a cor primaria de cada time; o usuario sempre
- * mantem a primaria. O adversario cai para a secundaria e depois para o tom escuro (ink)
+ * mantem a primaria. O adversario cai para a secundaria e depois para o tom claro (INK)
  * quando a primaria tem contraste < 3:1 com o cartao ou e parecida com a do usuario.
  */
 export function pickMatchColors(

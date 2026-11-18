@@ -23,7 +23,7 @@ const { finishMatchAndReturn } = useMatchSimulation()
       <button
         type="button"
         @click="finishMatchAndReturn"
-        class="shrink-0 px-5 py-2.5 min-h-11 md:min-h-0 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-white text-xs sm:text-sm font-bold"
+        class="shrink-0 px-5 py-2.5 min-h-11 md:min-h-0 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-night text-xs sm:text-sm font-bold"
       >
         Continuar Temporada
       </button>

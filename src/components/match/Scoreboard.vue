@@ -34,33 +34,33 @@ const rightScore = computed(() => (h.value ? match.matchState.opponentScore : ma
 </script>
 
 <template>
-  <div class="bg-ink text-white rounded-2xl p-4 sm:p-6 shadow-md space-y-4">
+  <div class="bg-night border border-borderline text-white rounded-2xl p-4 sm:p-6 shadow-md space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-      <span class="px-2.5 py-1 rounded-full bg-emeraldpro text-white font-bold uppercase">
+      <span class="px-2.5 py-1 rounded-full bg-emeraldpro text-night font-bold uppercase">
         {{ match.matchState.shootout ? (match.matchState.isFinished ? 'Fim de Jogo • Pênaltis' : 'Disputa de Pênaltis') : match.matchState.isFinished ? 'Fim de Jogo • ' + formatMinute(match.matchState.minute) : 'Ao Vivo • ' + formatMinute(match.matchState.minute) }}
       </span>
-      <span class="text-slate-300 font-medium min-w-0 break-words">{{ activeMatchCompetitionLabel }}</span>
+      <span class="text-ink-light font-medium min-w-0 break-words">{{ activeMatchCompetitionLabel }}</span>
     </div>
 
     <div v-if="match.matchState.shootout" class="space-y-2" aria-label="Disputa de pênaltis">
       <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs">
-        <span class="font-bold text-slate-300 truncate min-w-0 max-w-[30%]">{{ club.name }}</span>
+        <span class="font-bold text-ink-light truncate min-w-0 max-w-[30%]">{{ club.name }}</span>
         <span class="flex gap-1">
           <span
             v-for="(k, i) in userKicks"
             :key="'u' + i"
-            :class="['w-3 h-3 rounded-full', k.scored ? 'bg-emerald-400' : 'bg-red-500']"
+            :class="['w-3 h-3 rounded-full', k.scored ? 'bg-emeraldpro' : 'bg-dangerpro']"
           ></span>
         </span>
-        <span class="font-score font-extrabold text-amber-300 text-lg">{{ shootoutScore.user }} x {{ shootoutScore.opp }}</span>
+        <span class="font-score font-extrabold text-amberpro text-lg">{{ shootoutScore.user }} x {{ shootoutScore.opp }}</span>
         <span class="flex gap-1">
           <span
             v-for="(k, i) in oppKicks"
             :key="'o' + i"
-            :class="['w-3 h-3 rounded-full', k.scored ? 'bg-emerald-400' : 'bg-red-500']"
+            :class="['w-3 h-3 rounded-full', k.scored ? 'bg-emeraldpro' : 'bg-dangerpro']"
           ></span>
         </span>
-        <span class="font-bold text-slate-300 truncate min-w-0 max-w-[30%]">{{ activeMatchOpponent.name }}</span>
+        <span class="font-bold text-ink-light truncate min-w-0 max-w-[30%]">{{ activeMatchOpponent.name }}</span>
       </div>
     </div>
 
@@ -68,15 +68,15 @@ const rightScore = computed(() => (h.value ? match.matchState.opponentScore : ma
       <div class="flex flex-col items-center gap-1 min-w-0">
         <TeamCrest size="md" :name="leftName" :is-user="h" />
         <div class="font-bold text-sm sm:text-lg truncate max-w-full" :title="leftName">{{ leftName }}</div>
-        <div class="text-[11px] text-slate-400">OVER {{ leftPower }}</div>
+        <div class="text-[11px] text-ink-muted">OVER {{ leftPower }}</div>
       </div>
-      <div class="font-score font-extrabold text-3xl min-[400px]:text-4xl sm:text-5xl tracking-wider whitespace-nowrap text-emerald-400">
-        {{ leftScore }} <span class="text-slate-500 text-2xl">x</span> {{ rightScore }}
+      <div class="font-score font-extrabold text-3xl min-[400px]:text-4xl sm:text-5xl tracking-wider whitespace-nowrap text-emeraldpro">
+        {{ leftScore }} <span class="text-ink-muted text-2xl">x</span> {{ rightScore }}
       </div>
       <div class="flex flex-col items-center gap-1 min-w-0">
         <TeamCrest size="md" :name="rightName" :is-user="!h" />
         <div class="font-bold text-sm sm:text-lg truncate max-w-full" :title="rightName">{{ rightName }}</div>
-        <div class="text-[11px] text-slate-400">OVER {{ rightPower }}</div>
+        <div class="text-[11px] text-ink-muted">OVER {{ rightPower }}</div>
       </div>
     </div>
   </div>

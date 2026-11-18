@@ -204,26 +204,26 @@ export function zoneBadgeClass(stage: CompetitionStageType, rank: number, divisi
   if (stage === 'C_FINAL' || stage === 'C_THIRD') stage = 'C_QUADRANGULAR'
 
   if (stage === 'D_GROUPS') {
-    return rank <= 4 ? 'bg-emeraldpro text-white' : 'bg-dangerpro text-white'
+    return rank <= 4 ? 'bg-emeraldpro text-night' : 'bg-dangerpro text-night'
   }
   if (stage === 'C_FIRST_STAGE') {
-    if (rank <= 8) return 'bg-emeraldpro text-white'
-    if (rank >= 17) return 'bg-dangerpro text-white'
+    if (rank <= 8) return 'bg-emeraldpro text-night'
+    if (rank >= 17) return 'bg-dangerpro text-night'
     return 'bg-subtle text-ink'
   }
   if (stage === 'C_QUADRANGULAR') {
-    return rank <= 2 ? 'bg-emeraldpro text-white' : 'bg-dangerpro text-white'
+    return rank <= 2 ? 'bg-emeraldpro text-night' : 'bg-dangerpro text-night'
   }
   // Série A: 1º-4º Copa Condor de Ouro, 5º-6º Copa Condor de Prata, 17º-20º rebaixamento.
   if (division === 1) {
-    if (rank <= 4) return 'bg-emeraldpro text-white'
-    if (rank <= 6) return 'bg-amberpro text-white'
-    if (rank >= 17) return 'bg-dangerpro text-white'
+    if (rank <= 4) return 'bg-emeraldpro text-night'
+    if (rank <= 6) return 'bg-amberpro text-night'
+    if (rank >= 17) return 'bg-dangerpro text-night'
     return 'bg-subtle text-ink'
   }
   // Série B: 1º-4º acesso, 17º-20º rebaixamento.
-  if (rank <= 4) return 'bg-emeraldpro text-white'
-  if (rank >= 17) return 'bg-dangerpro text-white'
+  if (rank <= 4) return 'bg-emeraldpro text-night'
+  if (rank >= 17) return 'bg-dangerpro text-night'
   return 'bg-subtle text-ink'
 }
 

@@ -25,7 +25,7 @@ const { openCompareModal, signScoutedPlayer, dismissReport } = useScouting()
   <div
     :class="[
       'p-4 rounded-2xl border flex flex-col justify-between space-y-3',
-      rep.isGem ? 'bg-amberpro-soft/30 border-amberpro' : 'bg-subtle border-borderline'
+      rep.isGem ? 'bg-amberpro-soft border-amberpro' : 'bg-subtle border-borderline'
     ]"
   >
     <div class="space-y-2">

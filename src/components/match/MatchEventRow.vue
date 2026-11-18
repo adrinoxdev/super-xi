@@ -21,26 +21,28 @@ const PIXEL: Partial<Record<LiveMatchEvent['type'], EventIconKind>> = {
 
 const pixel = computed(() => PIXEL[props.ev.type])
 
+// Dinâmica de ticker: fundo neutro, faixa colorida à esquerda e tinta leve só nos lances que importam.
 const rowClass = computed(() => {
   switch (props.ev.type) {
-    case 'goal': return 'bg-emeraldpro-soft/60 border-emeraldpro font-bold'
-    case 'opp_goal': return 'bg-dangerpro-soft/60 border-dangerpro font-bold'
-    case 'red': return 'bg-dangerpro-soft/60 border-dangerpro font-bold'
-    case 'brawl': return 'bg-dangerpro-soft/60 border-dangerpro font-semibold'
-    case 'post': return 'bg-amberpro-soft/60 border-amberpro font-semibold'
-    case 'sub':
+    case 'goal': return 'bg-emeraldpro-soft border-l-emeraldpro font-bold'
+    case 'opp_goal': return 'bg-dangerpro-soft border-l-dangerpro font-bold'
+    case 'red': return 'bg-dangerpro-soft border-l-dangerpro font-bold'
+    case 'brawl':
+    case 'injury': return 'bg-subtle/40 border-l-dangerpro font-semibold'
+    case 'post':
     case 'penalty':
-    case 'yellow': return 'bg-amberpro-soft/60 border-amberpro font-semibold'
-    case 'injury': return 'bg-dangerpro-soft/60 border-dangerpro font-semibold'
-    case 'whistle': return 'bg-subtle border-borderline font-semibold'
-    case 'comment': return 'bg-transparent border-dashed border-borderline text-ink-muted italic'
-    default: return 'bg-subtle border-borderline'
+    case 'freekick': return 'bg-subtle/40 border-l-amberpro font-semibold'
+    case 'sub':
+    case 'yellow': return 'bg-subtle/40 border-l-amberpro font-semibold'
+    case 'whistle': return 'bg-subtle/40 border-l-ink-muted font-semibold'
+    case 'comment': return 'bg-transparent border-dashed !border-l-2 border-borderline text-ink-muted italic'
+    default: return 'bg-subtle/40 border-l-borderline'
   }
 })
 </script>
 
 <template>
-  <div :class="['p-3 rounded-xl border text-xs flex items-start gap-2.5', rowClass]">
+  <div :class="['p-3 rounded-xl border border-borderline border-l-4 text-xs flex items-start gap-2.5', rowClass]">
     <span class="font-score font-bold text-sm text-ink shrink-0 w-8">{{ formatMinute(ev.minute) }}</span>
     <span class="w-[22px] shrink-0 flex justify-center">
       <EventIcon v-if="pixel" :kind="pixel" :size="22" class="-my-0.5" />

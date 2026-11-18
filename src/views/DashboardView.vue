@@ -77,7 +77,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
       <button
         type="button"
         @click="router.push('/squad')"
-        class="px-3.5 py-2.5 md:py-1.5 rounded-xl bg-amberpro text-white text-xs font-bold hover:opacity-90 self-start sm:self-auto shrink-0"
+        class="px-3.5 py-2.5 md:py-1.5 rounded-xl bg-amberpro text-night text-xs font-bold hover:opacity-90 self-start sm:self-auto shrink-0"
       >
         Ver Propostas
       </button>
@@ -174,7 +174,7 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
           <div
             v-for="row in league.leagueStandings.slice(0, 6)"
             :key="row.teamId"
-            :class="['py-2 px-2 flex items-center justify-between gap-2 rounded-lg', row.isUser ? 'bg-emeraldpro-soft/60 font-bold' : '']"
+            :class="['py-2 px-2 flex items-center justify-between gap-2 rounded-lg', row.isUser ? 'bg-emeraldpro-soft font-bold' : '']"
           >
             <div class="flex items-center gap-2.5 min-w-0">
               <span class="w-5 shrink-0 text-center font-score font-bold text-sm text-ink-muted">{{ row.rank }}º</span>

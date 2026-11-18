@@ -56,7 +56,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
 
 <template>
   <Teleport to="body" :disabled="!isMobile">
-  <div :class="isMobile ? 'fixed inset-0 z-[55] bg-ink/50 flex items-end' : ''">
+  <div :class="isMobile ? 'fixed inset-0 z-[55] bg-night/70 flex items-end' : ''">
   <div class="bg-surface w-full flex flex-col max-h-[92dvh] rounded-t-2xl md:rounded-2xl md:block md:max-h-none border-2 border-amberpro shadow-md md:p-5 md:space-y-4 animate-pop">
     <div class="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-borderline md:border-0 md:p-0">
       <div class="min-w-0 flex-1 basis-60">
@@ -68,14 +68,14 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
         @click.prevent.stop="closeInMatchSubDrawer"
         :disabled="pending.length > 0"
         :title="pending.length ? 'Substitua o lesionado antes de retomar.' : undefined"
-        class="shrink-0 px-4 py-2 min-h-11 md:min-h-0 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-xs font-bold"
+        class="shrink-0 px-4 py-2 min-h-11 md:min-h-0 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-night text-xs font-bold"
       >
         Retomar Jogo
       </button>
     </div>
 
     <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 md:p-0 md:overflow-visible">
-    <div v-if="pending.length" class="p-3 rounded-xl bg-dangerpro-soft/60 border border-dangerpro/40 text-xs text-ink break-words" role="alert">
+    <div v-if="pending.length" class="p-3 rounded-xl bg-dangerpro-soft border border-dangerpro/40 text-xs text-ink break-words" role="alert">
       <strong class="text-dangerpro">Lesão em campo:</strong>
       {{ pending.map((p) => p.name).join(', ') }} precisa ser substituído para o jogo continuar. Essa troca não gasta substituição.
     </div>
@@ -135,7 +135,7 @@ const forcedSub = computed(() => !!squad.players.find((p) => p.id === subOutId.v
         type="button"
         @click.prevent.stop="confirmInMatchSubstitution"
         :disabled="!subOutId || !subInId || (!forcedSub && match.matchState.subsUsed >= 5)"
-        class="px-5 py-2.5 min-h-11 md:min-h-0 rounded-xl bg-amberpro disabled:opacity-40 text-white text-xs font-bold"
+        class="px-5 py-2.5 min-h-11 md:min-h-0 rounded-xl bg-amberpro disabled:opacity-40 text-night text-xs font-bold"
       >
         Confirmar Substituição
       </button>

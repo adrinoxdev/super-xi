@@ -25,7 +25,7 @@ const { toggleMatchSpeed, openInMatchSubDrawer } = useMatchSimulation()
           type="button"
           @click.prevent.stop="openInMatchSubDrawer"
           title="Substituições e postura tática"
-          class="px-3 py-2 min-h-10 md:min-h-0 md:py-1.5 rounded-lg bg-amberpro hover:opacity-90 text-white font-bold text-xs flex items-center gap-1"
+          class="px-3 py-2 min-h-10 md:min-h-0 md:py-1.5 rounded-lg bg-amberpro hover:opacity-90 text-night font-bold text-xs flex items-center gap-1"
         >
           <Repeat class="w-3.5 h-3.5" />
           Time & Tática (Trocas: {{ 5 - match.matchState.subsUsed }})

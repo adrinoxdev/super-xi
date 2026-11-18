@@ -14,9 +14,9 @@ export function scoreText(m: Pick<MatchRecord, 'userScore' | 'opponentScore' | '
 }
 
 export const OUTCOME_UI: Record<MatchOutcome, { letter: string; label: string; cls: string }> = {
-  win: { letter: 'V', label: 'Vitória', cls: 'bg-emeraldpro text-white' },
+  win: { letter: 'V', label: 'Vitória', cls: 'bg-emeraldpro text-night' },
   draw: { letter: 'E', label: 'Empate', cls: 'bg-subtle text-ink-muted border border-borderline' },
-  loss: { letter: 'D', label: 'Derrota', cls: 'bg-dangerpro text-white' }
+  loss: { letter: 'D', label: 'Derrota', cls: 'bg-dangerpro text-night' }
 }
 
 export const COMPETITION_NAMES: Record<MatchRecord['competition'], string> = {
