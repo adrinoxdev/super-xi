@@ -31,7 +31,7 @@ function pct(mod: number): string {
       :class="variant === 'compact' ? [
         'min-h-10 py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border text-center transition-all truncate',
         modelValue === key
-          ? 'bg-emeraldpro text-white border-emeraldpro shadow-sm'
+          ? 'bg-emeraldpro text-night border-emeraldpro shadow-sm'
           : 'bg-subtle text-ink-muted border-borderline hover:text-ink'
       ] : variant === 'cards' ? [
         'p-3 rounded-xl border text-left transition-all',
@@ -40,7 +40,7 @@ function pct(mod: number): string {
           : 'bg-subtle border-borderline text-ink-muted hover:text-ink'
       ] : [
         'px-3 py-2 min-h-10 md:min-h-0 md:py-1.5 rounded-lg text-xs font-bold border',
-        modelValue === key ? 'bg-emeraldpro text-white border-emeraldpro' : 'bg-subtle text-ink-muted border-borderline'
+        modelValue === key ? 'bg-emeraldpro text-night border-emeraldpro' : 'bg-subtle text-ink-muted border-borderline'
       ]"
     >
       <template v-if="variant === 'cards'">
