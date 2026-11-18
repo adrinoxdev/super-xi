@@ -53,30 +53,30 @@ const rows = computed(() => {
     <BaseCard v-if="!m" class="text-sm text-ink-muted text-center py-8">Partida não encontrada.</BaseCard>
 
     <template v-else>
-      <div class="bg-ink text-white rounded-2xl p-4 sm:p-6 shadow-md space-y-4">
+      <div class="bg-night border border-borderline text-white rounded-2xl p-4 sm:p-6 shadow-md space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span :class="['px-2.5 py-1 rounded-full font-bold uppercase', OUTCOME_UI[outcomeOf(m)].cls]">
             {{ OUTCOME_UI[outcomeOf(m)].label }} • Encerrada
           </span>
-          <span class="text-slate-300 font-medium min-w-0 break-words">{{ m.label.replace(' — ', ' • ') }} • Temp. {{ m.season }}</span>
+          <span class="text-ink-light font-medium min-w-0 break-words">{{ m.label.replace(' — ', ' • ') }} • Temp. {{ m.season }}</span>
         </div>
         <div class="grid grid-cols-3 items-center text-center py-2">
           <div class="flex flex-col items-center gap-1 min-w-0">
             <TeamCrest size="md" :name="left" :is-user="m.isHome" />
             <div class="font-bold text-sm sm:text-lg truncate max-w-full" :title="left">{{ left }}</div>
           </div>
-          <div class="font-score font-extrabold text-3xl min-[400px]:text-4xl sm:text-5xl tracking-wider whitespace-nowrap text-emerald-400">
-            {{ leftScore }} <span class="text-slate-500 text-2xl">x</span> {{ rightScore }}
+          <div class="font-score font-extrabold text-3xl min-[400px]:text-4xl sm:text-5xl tracking-wider whitespace-nowrap text-emeraldpro">
+            {{ leftScore }} <span class="text-ink-muted text-2xl">x</span> {{ rightScore }}
           </div>
           <div class="flex flex-col items-center gap-1 min-w-0">
             <TeamCrest size="md" :name="right" :is-user="!m.isHome" />
             <div class="font-bold text-sm sm:text-lg truncate max-w-full" :title="right">{{ right }}</div>
           </div>
         </div>
-        <p v-if="m.penalties" class="text-center text-sm font-bold text-amber-300">
+        <p v-if="m.penalties" class="text-center text-sm font-bold text-amberpro">
           Pênaltis: {{ m.isHome ? m.penalties.user : m.penalties.opp }} x {{ m.isHome ? m.penalties.opp : m.penalties.user }}
         </p>
-        <p class="text-[11px] text-slate-400 text-center">
+        <p class="text-[11px] text-ink-muted text-center">
           Formação {{ m.formation }} • Postura {{ m.mentality }} • {{ m.isHome ? 'Mandante' : 'Visitante' }}
         </p>
       </div>
@@ -105,7 +105,7 @@ const rows = computed(() => {
                 <span class="text-ink-muted">{{ r.label }}</span>
                 <span class="font-score font-bold text-ink">{{ r.opp }}</span>
               </div>
-              <div class="h-1.5 rounded-full bg-ink/80 overflow-hidden">
+              <div class="h-1.5 rounded-full bg-night overflow-hidden">
                 <div class="h-full bg-emeraldpro" :style="{ width: r.pct + '%' }"></div>
               </div>
             </div>

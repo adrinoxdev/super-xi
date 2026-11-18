@@ -101,7 +101,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
       </div>
     </div>
 
-    <div v-if="blockers.length" class="p-3 rounded-xl bg-dangerpro-soft/60 border border-dangerpro/40 text-xs text-ink break-words" role="alert">
+    <div v-if="blockers.length" class="p-3 rounded-xl bg-dangerpro-soft border border-dangerpro/40 text-xs text-ink break-words" role="alert">
       <strong class="text-dangerpro">Escalação irregular:</strong>
       {{ blockers.map((p) => p.name).join(', ') }} {{ blockers.length === 1 ? 'está suspenso' : 'estão suspensos' }} na {{ COMP_SHORT[match.activeMatchCompetition] }}.
       Troque em <strong>Ajustar Tática</strong> antes de iniciar a partida.

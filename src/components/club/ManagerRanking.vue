@@ -14,7 +14,7 @@ const { managerLeaderboard } = useClub()
       <div
         v-for="(mgr, idx) in managerLeaderboard"
         :key="mgr.name"
-        :class="mgr.isUser ? 'bg-emeraldpro-soft/70 border-emeraldpro font-bold' : 'bg-subtle border-borderline'"
+        :class="mgr.isUser ? 'bg-emeraldpro-soft border-emeraldpro font-bold' : 'bg-subtle border-borderline'"
         class="p-2.5 rounded-xl border flex items-center justify-between gap-2"
       >
         <span class="flex items-center gap-2 min-w-0">

@@ -41,7 +41,7 @@ const { signLoanPlayer } = useSquad()
           <div class="text-ink-muted break-words">{{ cand.age }} anos • Taxa: <span class="font-score">{{ formatCurrency(cand.loanFee) }}</span> • Salário: <span class="font-score">{{ formatCurrency(cand.wage) }}</span></div>
           <p v-if="wageWarning(cand.wage)" class="mt-1 text-[11px] text-amberpro font-semibold break-words">{{ wageWarning(cand.wage) }}</p>
         </div>
-        <button type="button" class="px-3.5 py-2 min-h-11 md:min-h-10 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white font-bold shrink-0"
+        <button type="button" class="px-3.5 py-2 min-h-11 md:min-h-10 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-night font-bold shrink-0"
           :disabled="squad.isFull"
           :title="squad.isFull ? squadFullTitle(squad.players.length, club.maxSquadCapacity) : undefined"
           @click="signLoanPlayer(cand)">

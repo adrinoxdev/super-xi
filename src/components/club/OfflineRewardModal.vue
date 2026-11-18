@@ -30,7 +30,7 @@ function claim() {
       </div>
     </div>
     <div class="font-score font-extrabold text-3xl text-emeraldpro text-center">+{{ formatCurrency(club.offlinePending.amount) }}</div>
-    <button type="button" class="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-white text-sm font-bold transition-colors" @click="claim">
+    <button type="button" class="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-night text-sm font-bold transition-colors" @click="claim">
       Coletar
     </button>
   </BaseModal>

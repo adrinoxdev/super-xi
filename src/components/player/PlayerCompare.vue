@@ -45,7 +45,7 @@ function sign() {
     </div>
 
     <div class="grid grid-cols-2 gap-3 text-xs">
-      <div class="min-w-0 p-2.5 sm:p-3.5 rounded-xl bg-emeraldpro-soft/50 border border-emeraldpro/40 space-y-1.5">
+      <div class="min-w-0 p-2.5 sm:p-3.5 rounded-xl bg-emeraldpro-soft border border-emeraldpro/40 space-y-1.5">
         <span class="text-[11px] font-bold uppercase text-emeraldpro block">Alvo do Scouting</span>
         <div class="flex justify-center py-1">
           <PlayerCard :player="report.player" size="sm" estimated mask-attrs :overall="report.estimatedOvr" />
@@ -79,7 +79,7 @@ function sign() {
       </button>
       <button
         type="button"
-        class="px-5 py-2 min-h-10 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-white text-xs font-bold"
+        class="px-5 py-2 min-h-10 rounded-xl bg-emeraldpro disabled:bg-borderline disabled:text-ink-muted disabled:cursor-not-allowed text-night text-xs font-bold"
         :disabled="squad.isFull"
         :title="squad.isFull ? squadFullTitle(squad.players.length, club.maxSquadCapacity) : undefined"
         @click="sign"

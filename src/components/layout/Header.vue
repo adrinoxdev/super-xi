@@ -26,7 +26,7 @@ const { resetCareer } = useSeason()
 </script>
 
 <template>
-  <header class="bg-surface/95 backdrop-blur border-b border-borderline sticky top-0 z-30 px-3 sm:px-6 py-2 md:py-0 md:h-20 flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-3">
+  <header class="bg-night/95 backdrop-blur border-b border-borderline sticky top-0 z-30 px-3 sm:px-6 py-2 md:py-0 md:h-20 flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-3">
     <div class="flex items-center justify-between gap-2 sm:gap-3 min-w-0 md:contents">
     <div class="flex items-center gap-2 min-w-0">
       <img :src="`${base}logo.png`" alt="Super XI" class="md:hidden h-9 w-auto shrink-0 select-none" draggable="false" />
@@ -40,7 +40,7 @@ const { resetCareer } = useSeason()
             :key="s.label"
             class="inline-flex items-center gap-1.5 bg-subtle border border-borderline rounded-md px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-muted"
           >
-            {{ s.label }} <b class="font-score text-xs text-ink">{{ s.value }}</b>
+            {{ s.label }} <b class="font-score text-xs text-gold">{{ s.value }}</b>
           </span>
         </div>
       </div>
@@ -71,7 +71,7 @@ const { resetCareer } = useSeason()
         v-if="!isMatchRoute && match.liveCompetitions.length"
         type="button"
         @click="goToMatchTab"
-        class="hidden md:flex bg-emeraldpro text-white px-3 py-1.5 rounded-xl items-center gap-1 text-xs font-bold shadow-sm"
+        class="hidden md:flex bg-emeraldpro text-night px-3 py-1.5 rounded-xl items-center gap-1 text-xs font-bold shadow-sm"
       >
         <PlayCircle class="w-3.5 h-3.5 shrink-0" />
         <span class="whitespace-nowrap">Voltar à partida</span>
@@ -95,7 +95,7 @@ const { resetCareer } = useSeason()
         v-if="!isMatchRoute && match.liveCompetitions.length"
         type="button"
         @click="goToMatchTab"
-        class="shrink-0 min-h-9 bg-emeraldpro text-white px-3 rounded-xl flex items-center gap-1 text-xs font-bold shadow-sm"
+        class="shrink-0 min-h-9 bg-emeraldpro text-night px-3 rounded-xl flex items-center gap-1 text-xs font-bold shadow-sm"
       >
         <PlayCircle class="w-3.5 h-3.5 shrink-0" />
         Voltar à partida
@@ -103,7 +103,7 @@ const { resetCareer } = useSeason()
       <button
         type="button"
         @click="router.push('/league')"
-        class="shrink-0 min-h-9 bg-emeraldpro-soft border border-emeraldpro/30 hover:bg-emeraldpro hover:text-white text-emeraldpro px-3 rounded-xl flex items-center gap-1 text-xs font-bold transition-colors"
+        class="shrink-0 min-h-9 bg-emeraldpro-soft border border-emeraldpro/30 hover:bg-emeraldpro hover:text-night text-emeraldpro-hover px-3 rounded-xl flex items-center gap-1 text-xs font-bold transition-colors"
         title="Abrir Liga Aurora"
       >
         <Trophy class="w-3.5 h-3.5 shrink-0" />
@@ -118,7 +118,7 @@ const { resetCareer } = useSeason()
         :key="s.label"
         class="shrink-0 inline-flex items-center gap-1.5 bg-subtle border border-borderline rounded-md px-2 py-1 text-[11px] uppercase tracking-wider text-ink-muted"
       >
-        {{ s.label }} <b class="font-score text-xs text-ink">{{ s.value }}</b>
+        {{ s.label }} <b class="font-score text-xs text-gold">{{ s.value }}</b>
       </span>
       <span class="shrink-0 font-score font-bold bg-subtle border border-borderline rounded-full px-2 py-0.5 text-[11px] text-ink">v{{ appVersion }}</span>
     </div>

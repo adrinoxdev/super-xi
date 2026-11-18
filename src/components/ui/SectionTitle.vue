@@ -14,7 +14,7 @@ withDefaults(defineProps<{ as?: 'h2' | 'h3'; size?: 'base' | 'responsive' }>(), 
   <component
     :is="as"
     :class="[sizeClasses[size], $slots.icon ? 'flex items-center gap-2' : '']"
-    class="font-bold text-ink"
+    class="font-extrabold text-ink uppercase title-band"
   >
     <slot name="icon" />
     <slot />

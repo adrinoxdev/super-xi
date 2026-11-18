@@ -69,7 +69,7 @@ const footer = computed(() => {
     <div
       v-for="side in sides"
       :key="side.key"
-      :class="['flex items-center gap-2 px-2.5 py-1.5', side.isUser ? 'bg-emeraldpro-soft/50' : '']"
+      :class="['flex items-center gap-2 px-2.5 py-1.5', side.isUser ? 'bg-emeraldpro-soft' : '']"
     >
       <TeamCrest class="shrink-0" size="xs" :team="side.id ?? undefined" :name="side.name" :is-user="side.isUser" />
       <span

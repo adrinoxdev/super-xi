@@ -10,7 +10,7 @@ const ui = useUiStore()
     <div
       v-if="ui.toast.visible"
       :class="[
-        'fixed top-[calc(0.75rem+env(safe-area-inset-top))] sm:top-4 right-3 sm:right-4 left-3 sm:left-auto w-fit ml-auto z-[60] px-4 py-3 rounded-xl shadow-lg border flex items-center gap-2.5 text-sm font-medium animate-pop max-w-[min(92vw,28rem)]',
+        'fixed top-[calc(0.75rem+env(safe-area-inset-top))] sm:top-4 right-3 sm:right-4 left-3 sm:left-auto w-fit ml-auto z-[60] px-4 py-3 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.55)] border flex items-center gap-2.5 text-sm font-medium animate-pop max-w-[min(92vw,28rem)]',
         ui.toast.type === 'success' ? 'bg-surface border-emeraldpro text-ink' :
         ui.toast.type === 'warning' ? 'bg-surface border-amberpro text-ink' :
         'bg-surface border-dangerpro text-ink'

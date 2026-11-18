@@ -43,7 +43,7 @@ const tabs = [
           :class="[
             'px-3 py-2.5 md:py-1.5 rounded-lg text-xs font-bold transition-all',
             t.id === 'supercups' ? 'flex items-center gap-1' : '',
-            compSubTab === t.id ? 'bg-emeraldpro text-white shadow-sm' : 'text-ink-muted hover:text-ink'
+            compSubTab === t.id ? 'bg-emeraldpro text-night shadow-sm' : 'text-ink-muted hover:text-ink'
           ]"
         >
           {{ t.label }}

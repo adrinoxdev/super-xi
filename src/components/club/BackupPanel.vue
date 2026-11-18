@@ -16,7 +16,7 @@ const { exportCareerCode, importCareerCode } = usePersistence()
       <button
         type="button"
         @click="exportCareerCode"
-        class="flex-1 sm:flex-none min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl bg-emeraldpro text-white text-xs font-bold"
+        class="flex-1 sm:flex-none min-h-[40px] sm:min-h-0 px-4 py-2 rounded-xl bg-emeraldpro text-night text-xs font-bold"
       >
         Gerar Código
       </button>
