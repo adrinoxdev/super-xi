@@ -44,7 +44,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <button
         type="button"
         :class="[
-          'px-4 py-2.5 min-h-11 rounded-xl text-white text-sm font-bold transition-colors',
+          'px-4 py-2.5 min-h-11 rounded-xl text-night text-sm font-bold transition-colors',
           ui.confirmDialog.danger ? 'bg-dangerpro hover:opacity-90' : 'bg-emeraldpro hover:bg-emeraldpro-hover'
         ]"
         @click="ui.resolveConfirm(true)"
