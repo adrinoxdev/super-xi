@@ -129,7 +129,7 @@ export const useSquadStore = defineStore('squad', () => {
   // Troca titulares lesionados ou suspensos pelo melhor reserva disponível para a posição. Sem reserva, o lesionado
   // segue no time com penalidade de overall e o suspenso deixa a vaga vazia (conta 0 na força do time).
   // `unavailable`: critério extra de indisponibilidade (ex.: suspenso na competição da partida). Devolve as trocas feitas.
-  function replaceInjuredStarters(unavailable: (p: Player) => boolean = () => false): Array<{ out: Player; in: Player }> {
+  function replaceInjuredStarters(unavailable: (p: Player) => boolean = () => false, opts?: { ignoreFatigue?: boolean }): Array<{ out: Player; in: Player }> {
     const swaps: Array<{ out: Player; in: Player }> = []
     const layout = FORMATIONS[formation.value] || FORMATIONS['4-3-3']
     starterIds.value.forEach((id, idx) => {
@@ -138,7 +138,7 @@ export const useSquadStore = defineStore('squad', () => {
       const role = layout[idx]?.role ?? p.position
       const rep = players.value
         .filter((q) => !q.injury && !unavailable(q) && !q.isLoanedOut && !starterIds.value.includes(q.id))
-        .sort((a, b) => getEffectiveOvr(b, role) - getEffectiveOvr(a, role))[0]
+        .sort((a, b) => getEffectiveOvr(b, role, opts) - getEffectiveOvr(a, role, opts))[0]
       if (rep) {
         starterIds.value[idx] = rep.id
         swaps.push({ out: p, in: rep })

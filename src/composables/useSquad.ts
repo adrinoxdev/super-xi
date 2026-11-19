@@ -102,8 +102,11 @@ export function useSquad() {
   // Suspensos na competição da próxima partida ficam fora da escalação automática.
   const suspendedNow = (p: Player) => isSuspendedFor(p, useMatchStore().activeMatchCompetition)
 
+  // Amistoso não depende da energia da liga: todos contam como descansados.
+  const fatigueOpts = () => ({ ignoreFatigue: useMatchStore().activeMatchCompetition === 'friendly' })
+
   function autoPickBestLineup(): void {
-    squad.setStarters(pickBestLineup(squad.players, squad.formation, suspendedNow))
+    squad.setStarters(pickBestLineup(squad.players, squad.formation, suspendedNow, fatigueOpts()))
     ui.selectedPitchSlotIndex = null
     ui.selectedRosterPlayerId = null
     saveGame()
@@ -114,15 +117,17 @@ export function useSquad() {
   async function autoPickBestFormation(): Promise<void> {
     const ratingOf = (f: FormationName, ids: string[]) =>
       calculateTeamStrength(
-        buildFormationSlots(f, ids.map((id) => squad.players.find((p) => p.id === id) ?? null))
+        buildFormationSlots(f, ids.map((id) => squad.players.find((p) => p.id === id) ?? null)),
+        undefined,
+        fatigueOpts()
       ).rating
     const current = squad.formation
-    let best = { formation: current, ids: pickBestLineup(squad.players, current, suspendedNow), rating: 0 }
+    let best = { formation: current, ids: pickBestLineup(squad.players, current, suspendedNow, fatigueOpts()), rating: 0 }
     best.rating = ratingOf(best.formation, best.ids)
     const currentRating = best.rating
     for (const f of squad.formationNames) {
       if (f === current) continue
-      const ids = pickBestLineup(squad.players, f, suspendedNow)
+      const ids = pickBestLineup(squad.players, f, suspendedNow, fatigueOpts())
       const rating = ratingOf(f, ids)
       if (rating > best.rating + 1e-9) best = { formation: f, ids, rating }
     }

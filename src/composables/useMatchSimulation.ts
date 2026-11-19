@@ -287,7 +287,7 @@ export function useMatchSimulation() {
 
   // Suspenso na competição sai da escalação: o melhor reserva disponível assume a vaga. Devolve as trocas feitas.
   function fixLineupFor(comp: MatchCompetition) {
-    const swaps = squad.replaceInjuredStarters((p) => isSuspendedFor(p, comp))
+    const swaps = squad.replaceInjuredStarters((p) => isSuspendedFor(p, comp), { ignoreFatigue: comp === 'friendly' })
     // Jogador de linha no gol (sobrou de uma expulsão do goleiro) e há goleiro disponível no banco: devolve o gol.
     const layout = FORMATIONS[squad.formation] || FORMATIONS['4-3-3']
     const gkIdx = layout.findIndex((slot) => slot.role === 'GK')
@@ -845,10 +845,11 @@ export function useMatchSimulation() {
       const layout = FORMATIONS[squad.formation] || FORMATIONS['4-3-3']
       const field = activeStarters(comp).filter((p) => p.position !== 'GK' && p.id !== gk.id)
       const backup = state.subsUsed < 5 ? squad.availableBenchList.find((p) => p.position === 'GK' && !p.injury && !isSuspendedFor(p, comp)) : undefined
+      const opts = { ignoreFatigue: comp === 'friendly' }
       const weakest = [...field].sort(
         (a, b) =>
-          getEffectiveOvr(a, layout[squad.starterIds.indexOf(a.id)]?.role ?? a.position) -
-          getEffectiveOvr(b, layout[squad.starterIds.indexOf(b.id)]?.role ?? b.position)
+          getEffectiveOvr(a, layout[squad.starterIds.indexOf(a.id)]?.role ?? a.position, opts) -
+          getEffectiveOvr(b, layout[squad.starterIds.indexOf(b.id)]?.role ?? b.position, opts)
       )[0]
       if (backup && weakest && squad.substituteStarter(weakest.id, backup.id)) {
         const slot = squad.starterIds.indexOf(backup.id)
@@ -1330,7 +1331,7 @@ export function useMatchSimulation() {
       p.injury.matchesLeft = Math.min(INJURY.aggravateCap, p.injury.matchesLeft + INJURY.aggravateMatches)
       ui.showToast(`${p.name} agravou a lesão por jogar machucado: agora são ${p.injury.matchesLeft} jogos fora.`, 'danger')
     })
-    squad.replaceInjuredStarters()
+    squad.replaceInjuredStarters(undefined, { ignoreFatigue: true })
   }
 
   // Fim do amistoso: fora da temporada. Sem disciplina, economia da partida, desgaste, evolução, marcos, histórico de
