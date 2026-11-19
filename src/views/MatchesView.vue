@@ -67,7 +67,7 @@ function dateLabel(ts: number): string {
           v-for="m in rows"
           :key="m.id"
           type="button"
-          @click="router.push('/matches/' + m.id)"
+          @click="router.push('/historico/' + m.id)"
           class="w-full text-left rounded-xl border border-borderline bg-surface hover:bg-subtle transition-colors px-3 sm:px-4 py-3 flex items-center gap-3"
         >
           <span

@@ -14,8 +14,10 @@ export const router = createRouter({
     { path: '/friendlies', name: 'friendlies', component: () => import('../views/FriendliesView.vue') },
     { path: '/scouting', name: 'scouting', component: () => import('../views/ScoutingView.vue') },
     { path: '/squad', name: 'squad', component: () => import('../views/SquadView.vue') },
-    { path: '/matches', name: 'matches', component: () => import('../views/MatchesView.vue') },
-    { path: '/matches/:id', name: 'match-record', component: () => import('../views/MatchRecordView.vue') },
+    { path: '/matches', redirect: '/historico' },
+    { path: '/matches/:id', redirect: (to) => '/historico/' + to.params.id },
+    { path: '/historico', name: 'matches', component: () => import('../views/MatchesView.vue') },
+    { path: '/historico/:id', name: 'match-record', component: () => import('../views/MatchRecordView.vue') },
     { path: '/pre-match', name: 'prematch', component: PreMatchView },
     { path: '/match', name: 'match', component: MatchView },
     { path: '/club', name: 'club', component: () => import('../views/ClubView.vue') }
