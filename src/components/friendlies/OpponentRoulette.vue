@@ -94,7 +94,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 gap-3">
+  <div class="grid grid-cols-1 gap-3">
     <template v-for="(opt, i) in options" :key="opt.botId">
       <OpponentCard
         v-if="revealed[i] !== false"
