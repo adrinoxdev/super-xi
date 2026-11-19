@@ -1,0 +1,4133 @@
+# Amistosos — plano de implementação
+
+> **Para agentes:** sub-skill recomendada: superpowers:subagent-driven-development (uma tarefa por subagente) ou superpowers:executing-plans. Os passos usam checkbox (`- [ ]`) para acompanhamento. Cada tarefa abaixo foi escrita para ser entregue sozinha a um subagente: leia só a seção da sua tarefa e as "Regras gerais".
+
+**Objetivo:** implementar a modalidade "Amistosos" do Super XI (fichas com recarga por tempo real, sorteio de adversários com roleta e limite de 3 sorteios, partida `friendly` no fluxo normal, fama estilo Elo, ranking de 101 clubes com bots simulados, tela `/friendlies`, item de navegação e BottomNav com 4 itens + menu "+").
+
+**Arquitetura:** regras em funções puras em `src/utils/friendlies/*` (recebem `now` e `rng`, sem `Date.now()`/`Math.random()` internos), estado numa store Pinia (`src/stores/friendlies.ts`) que fala com os adversários por uma interface trocável (`FriendlyOpponentProvider`, implementação local com bots), integração na simulação existente tratando `'friendly'` como mais uma `MatchCompetition` com ramos próprios em `useMatchSimulation.ts`.
+
+**Stack:** Vue 3.5 + Pinia 2 + vue-router 4 + TypeScript 5 + Tailwind 3 + Vite 5, ícones `lucide-vue-next`. Sem backend: tudo no save local.
+
+**Spec de origem (fonte da verdade):** `docs/superpowers/specs/2026-11-19-amistosos-design.md`. Seções citadas como "spec §N".
+
+---
+
+## Regras gerais (valem para todas as tarefas)
+
+### Git
+
+- Branch de trabalho: `feature/amistosos` (já existe). Antes de começar: `git branch --show-current` deve imprimir `feature/amistosos`. Se não imprimir, pare e avise.
+- Uma tarefa = um commit, mensagem exatamente a indicada na tarefa (padrão `tipo(escopo): mensagem`).
+- **Nunca** `git add -A` nem `git add .`: o repositório tem vários arquivos não rastreados em `docs/` que não pertencem a estas tarefas. Adicione só os arquivos listados na tarefa.
+- **Nunca** alterar `package.json` (nem a versão, nem scripts, nem dependências). Não instalar pacotes.
+- Sem merge, sem push, sem rebase, sem `--force`, sem `--no-verify`.
+
+### Qualidade
+
+- Portão único: `npm run build` (`vue-tsc && vite build`). Toda tarefa termina com ele passando (saída termina com `✓ built in ...`, sem erros de tipo).
+- Não existe test runner e **não será adicionado**. Para as funções puras e a store há um verificador próprio, criado na Tarefa 1: `node scripts/verify-friendlies/run.mjs <nome>` (usa o `vite` já instalado para carregar TypeScript com o alias `@/`; mesmo padrão de `scripts/verify-league/run.mjs`). `tsx` **não** está no projeto: não use `npx tsx`.
+- Comentários de código em português, curtos, explicando o porquê (padrão do repositório).
+
+### Dependências e paralelismo
+
+| Tarefa | Depende de | Pode rodar em paralelo com |
+|---|---|---|
+| 1 config, tipos, ranking, verificador | — | — |
+| 2 fichas | 1 | 3, 5 |
+| 3 fama | 1 | 2, 5 |
+| 4 sorteio | 1, 3 | 5 (se 5 ainda não terminou) |
+| 5 bots | 1 | 2, 3, 4 |
+| 6 provedor | 4, 5 | 9 |
+| 9 competição `friendly` | 1 | 2–6 |
+| 7 store + save | 2, 3, 4, 5, 6, **9** | 10 |
+| 8 ticker | 7, **9** | 10, 17 |
+| 10 força sem cansaço | 9 | 7, 8 |
+| 11 fluxo até o apito | 2, 7, 10 | 17 |
+| 12 regras ao vivo | 9, 11 (mesmo arquivo) | 17 |
+| 13 encerramento | 7, 12 (mesmo arquivo) | 17 |
+| 14 pré-jogo e resumo | 3, 11, 13 | 17 |
+| 15 tela | 2, 3, 4, 7, 10, 11 | 17 |
+| 16 roleta | 15 | 17 |
+| 17 navegação, subtítulo, cabeçalho | 7, 9 | 10–16 |
+| 18 BottomNav | 17 (mesmo arquivo `useNavigation.ts`) | — |
+| 19 verificação manual | todas | — |
+
+**Atenção à numeração:** as Tarefas 7 e 8 usam o literal `'friendly'` em `MatchCompetition`, que só existe depois da Tarefa 9. Por isso a ordem de execução recomendada roda a 9 antes da 7.
+
+**Ordem recomendada de execução:** 1 → (2, 3, 5 em paralelo) → 4 → 6 → 9 → (7 e 10 em paralelo) → 8 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19.
+
+Paralelismo só com cada subagente numa worktree isolada ou com os commits serializados pelo coordenador (dois agentes commitando no mesmo diretório disputam o índice do git).
+
+### Mapa de arquivos
+
+Novos:
+
+| Arquivo | Tarefa | Responsabilidade |
+|---|---|---|
+| `src/config/friendlies.ts` | 1 | `FRIENDLIES` (números da spec §6) e `FRIENDLY_BOT_NAME_PARTS` |
+| `src/types/friendlies.ts` | 1 | tipos da spec §5 + `FriendlyOutcome`, `FriendlyDrawContext`, `FriendlyOpponentProvider` |
+| `src/utils/friendlies/ranking.ts` | 1 | `userRank`, `rankedBots` (base comum de sorteio e ranking) |
+| `scripts/verify-friendlies/run.mjs`, `assert.ts` | 1 | verificador das funções puras |
+| `scripts/verify-friendlies/*.check.ts` | 1–7 | uma checagem por módulo |
+| `src/utils/friendlies/tokens.ts` | 2 | fichas |
+| `src/utils/friendlies/fame.ts` | 3 | Elo |
+| `src/utils/friendlies/draw.ts` | 4 | bônus de posição, OVER do rival, prêmio, sorteio |
+| `src/utils/friendlies/bots.ts` | 5 | geração, simulação, visão do ranking |
+| `src/utils/friendlies/localBotProvider.ts` | 6 | provedor local |
+| `src/stores/friendlies.ts` | 7 | store |
+| `src/composables/useFriendlies.ts` | 15 | orquestra a tela |
+| `src/views/FriendliesView.vue` | 15 | tela `/friendlies` |
+| `src/components/friendlies/TokenBar.vue`, `OpponentCard.vue`, `FriendlyRanking.vue`, `FriendlyHistory.vue` | 15 | peças da tela |
+| `src/components/friendlies/OpponentRoulette.vue` | 16 | roleta |
+| `src/components/layout/BottomNavMore.vue` | 18 | painel do "+" |
+
+Alterados: `src/config/index.ts`, `src/types/index.ts` (1); `src/composables/usePersistence.ts`, `src/App.vue` (7); `src/composables/useScouting.ts` (8); `src/types/match.ts`, `src/stores/match.ts`, `src/utils/player/suspension.ts`, `src/utils/match/matchResult.ts`, `src/components/match/MatchSwitcher.vue`, `src/utils/navigation/sectionMemory.ts` (9); `src/utils/match/calculateTeamStrength.ts`, `src/stores/squad.ts` (10); `src/composables/useMatchSimulation.ts` (11, 12, 13); `src/components/match/SubstitutionDrawer.vue` (12); `src/components/match/PreMatch.vue`, `src/components/match/PostMatchSummary.vue` (14); `src/router/index.ts` (15); `src/composables/useNavigation.ts` (17, 18), `src/composables/usePageSubtitle.ts`, `src/composables/useHeaderStats.ts` (17); `src/components/layout/BottomNav.vue` (18).
+
+### Ajustes em relação à spec (decididos neste plano)
+
+1. `userRank`/`rankedBots` ficam em `src/utils/friendlies/ranking.ts` (Tarefa 1) e `bots.ts` reexporta `userRank`. Motivo: `draw.ts` e `bots.ts` precisam deles e assim as Tarefas 4 e 5 não dependem uma da outra.
+2. `FRIENDLIES` ganha `bots.overFloor: 40`, `bots.overCeil: 92`, `draw.rankWindowGrow: 5` e `rankingTop: 10`: são números que a spec §6 escreve nas fórmulas; ficam no config em vez de soltos no código.
+3. O lugar `Bosque Real` da lista de nomes vira `Bosque das Garças` (com o prefixo `Real` geraria "Real Bosque Real"). Os 20 lugares foram conferidos: nenhum aparece em `src/` (inclui `TEAM_ID_BY_NAME` e `EXTRA_D_CLUBS`), em `docs/catalogo-nomes-ficticios.md` nem em `docs/identidades-times.md`.
+4. `friendlies.settle()` devolve `FriendlySummary | null` (não um `LastMatchSummary`): quem monta o `LastMatchSummary` com `friendly` é o `concludeMatch` (Tarefa 13). Assim a store (Tarefa 7) não depende do tipo alterado na Tarefa 9.
+5. Em `startLiveMatch`, o snapshot (adversário, mando, rótulo) é calculado **antes** de `beginMatch`, porque `beginMatch` limpa `options`/`selectedBotId` e o rótulo usa a posição do bot. `rawOpponentFor('friendly')` também cai em `friendlies.active` quando não há opção selecionada.
+6. `lineupShort(comp)` (novo, exportado por `useMatchSimulation`) cobre "menos de 11 titulares", já que `lineupBlockers` devolve atletas.
+7. `finishMatchAndReturn` de um amistoso devolve `activeMatchCompetition` para `'league'` quando não há outra partida aberta (senão o atalho "Partida" do cabeçalho abriria um pré-jogo de amistoso sem adversário).
+8. O composable `useFriendlies` (spec §4.1) não tem tarefa própria na spec §10: entra na Tarefa 15, que é a primeira a usá-lo.
+9. Recarregar a página no pré-jogo do amistoso: `activeMatchCompetition` não é salvo hoje (vale para as copas também), então o app volta ao pré-jogo da liga; em `/friendlies` as 3 opções, a seleção e o contador continuam e nenhuma ficha foi gasta. Comportamento aceito, igual ao das copas.
+
+---
+
+## Tarefa 1: config, tipos, ranking e verificador
+
+**Commit:** `feat(amistosos): config e tipos`
+
+**Arquivos:**
+- Criar: `src/config/friendlies.ts`
+- Criar: `src/types/friendlies.ts`
+- Criar: `src/utils/friendlies/ranking.ts`
+- Criar: `scripts/verify-friendlies/run.mjs`
+- Criar: `scripts/verify-friendlies/assert.ts`
+- Criar: `scripts/verify-friendlies/ranking.check.ts`
+- Alterar: `src/config/index.ts` (fim do arquivo)
+- Alterar: `src/types/index.ts` (fim do arquivo)
+
+- [ ] **Passo 1: criar `src/config/friendlies.ts`**
+
+```ts
+/** Amistosos: todos os números da modalidade (spec docs/superpowers/specs/2026-11-19-amistosos-design.md, seção 6). */
+export const FRIENDLIES = {
+  tokens: { max: 10, msPerToken: 6 * 60 * 1000, initial: 10 },
+  bots: {
+    count: 100,
+    fameTop: 1800,
+    fameCurve: 1.6,
+    fameJitter: 20,
+    fameMinStart: 10,
+    overMin: 48,
+    overSpan: 40,
+    overJitter: 4,
+    overFloor: 40,
+    overCeil: 92,
+    simStepMs: 60 * 60 * 1000,
+    simMaxSteps: 72,
+    simNoise: 6,
+    simPull: 0.03
+  },
+  draw: {
+    spread: 5,
+    rankBonusMax: 6,
+    rankBonusTop: 10,
+    rankBonusFrom: 50,
+    overMin: 35,
+    overMax: 99,
+    rankWindow: 15,
+    rankWindowGrow: 5,
+    options: 3,
+    maxDraws: 3
+  },
+  prize: { base: 8000, refOver: 50, perOver: 500, min: 8000, max: 25000, step: 500, paidWinsPerDay: 5 },
+  fame: { k: 30, scale: 20, minWin: 4, minLoss: 3, drawCap: 6, start: 0 },
+  rankingTop: 10,
+  recentMax: 20
+}
+
+/** Nomes dos bots: prefixo + lugar inventado (sem repetir clube da liga nem clube real). 10 x 20 = 200 combinações. */
+export const FRIENDLY_BOT_NAME_PARTS = {
+  prefixes: [
+    'Atlético',
+    'Esporte Clube',
+    'União',
+    'Grêmio Esportivo',
+    'Sociedade Esportiva',
+    'Associação',
+    'Racing',
+    'Sport Club',
+    'Real',
+    'Independente'
+  ],
+  places: [
+    'Pedra Funda',
+    'Vila Aurora',
+    'Lagoa Serena',
+    'Morro Azul',
+    'Campina Alta',
+    'Barra do Vento',
+    'Ribeira Dourada',
+    'Serra Velada',
+    'Porto Esmeralda',
+    'Vale Sereno',
+    'Alto do Ipê',
+    'Mata Funda',
+    'Cachoeira Mansa',
+    'Areia Branca do Sul',
+    'Bosque das Garças',
+    'Ilha Verde',
+    'Pontal da Brisa',
+    'Colina Rubra',
+    'Várzea Grande do Leste',
+    'Recanto do Sabiá'
+  ]
+}
+```
+
+- [ ] **Passo 2: criar `src/types/friendlies.ts`**
+
+```ts
+/** Bot do ranking de amistosos. id 'fb_1'..'fb_100'. `over` é interno (só move o ranking), não é exibido. */
+export interface FriendlyBot {
+  id: string
+  name: string
+  over: number
+  fame: number
+}
+
+/** Uma das 3 opções de um sorteio. `over` é o OVER do dia (exibido); `prize` já considera o limite diário. */
+export interface FriendlyOption {
+  botId: string
+  name: string
+  over: number
+  fame: number
+  rank: number
+  prize: number
+  fameWin: number
+  fameDraw: number
+  fameLoss: number
+}
+
+/** Desafio em andamento, gravado no apito inicial. */
+export interface FriendlyChallenge {
+  botId: string
+  botName: string
+  userOver: number
+  oppOver: number
+  prize: number
+  rankBefore: number
+  startedAt: number
+}
+
+/** Linha do histórico próprio (máx. 20, mais recente primeiro). */
+export interface FriendlyResult {
+  at: number
+  botName: string
+  oppOver: number
+  userScore: number
+  oppScore: number
+  fameDelta: number
+  prize: number
+}
+
+/** Resumo pós-jogo do amistoso (vai em LastMatchSummary.friendly). */
+export interface FriendlySummary {
+  prize: number
+  fameDelta: number
+  fameAfter: number
+  rankBefore: number
+  rankAfter: number
+  paidCapReached: boolean
+}
+
+export interface FriendlyRankingView {
+  top: Array<{ rank: number; name: string; fame: number; isUser: boolean }>
+  user: { rank: number; fame: number }
+}
+
+export type FriendlyOutcome = 'win' | 'draw' | 'loss'
+
+/** Dados do usuário que o sorteio precisa. `paidWinsLeft` pode ser Infinity (limite diário desligado). */
+export interface FriendlyDrawContext {
+  userOver: number
+  userFame: number
+  paidWinsLeft: number
+}
+
+/** Fonte dos adversários. Hoje: bots locais. Futuro: provedor remoto (jogadores reais), sem mudar a store. */
+export interface FriendlyOpponentProvider {
+  /** Avança o estado dos adversários até `now` (bots: simulação; futuro: busca remota). */
+  refresh(now: number): void
+  ranking(userFame: number): FriendlyRankingView
+  drawOptions(ctx: FriendlyDrawContext, rng: () => number): FriendlyOption[]
+  /** Aplica no adversário o efeito do resultado (bots: fama oposta). */
+  reportResult(botId: string, userFameDelta: number): void
+}
+
+/** Campo `friendlies` do save principal (aditivo, sem migração numerada). */
+export interface FriendliesSave {
+  v: 1
+  fame: number
+  tokens: number
+  tokenTickAt: number
+  seed: number
+  bots: FriendlyBot[]
+  botsSimAt: number
+  options: FriendlyOption[] | null
+  /** 0..3 sorteios feitos no desafio atual; zera só em beginMatch. */
+  drawsUsed: number
+  selectedBotId: string | null
+  active: FriendlyChallenge | null
+  /** day = dayStart(ts) de src/config/time.ts */
+  paidWins: { day: number; count: number }
+  recent: FriendlyResult[]
+}
+```
+
+- [ ] **Passo 3: criar `src/utils/friendlies/ranking.ts`**
+
+```ts
+import type { FriendlyBot } from '@/types/friendlies'
+
+/** Posição do usuário: 1 + bots com fama maior (empate favorece o usuário). Vai de 1 a bots.length + 1. */
+export function userRank(fame: number, bots: readonly FriendlyBot[]): number {
+  return 1 + bots.filter((b) => b.fame > fame).length
+}
+
+/** Bots em ordem de fama (desc., estável) com a posição no ranking que inclui o usuário. */
+export function rankedBots(bots: readonly FriendlyBot[], userFame: number): Array<{ bot: FriendlyBot; rank: number }> {
+  const uRank = userRank(userFame, bots)
+  return [...bots]
+    .sort((a, b) => b.fame - a.fame)
+    .map((bot, i) => ({ bot, rank: i + 1 >= uRank ? i + 2 : i + 1 }))
+}
+```
+
+- [ ] **Passo 4: reexports**
+
+Em `src/config/index.ts`, acrescentar no fim (depois de `export * from './time'`):
+
+```ts
+export * from './friendlies'
+```
+
+Em `src/types/index.ts`, acrescentar no fim (depois de `export * from './team'`):
+
+```ts
+export * from './friendlies'
+```
+
+- [ ] **Passo 5: criar o verificador `scripts/verify-friendlies/assert.ts`**
+
+```ts
+/** Checagens simples para as funções puras dos amistosos (sem test runner, ver spec §9). */
+export function createChecker() {
+  const fails: string[] = []
+  return {
+    fails,
+    eq(name: string, got: unknown, expected: unknown) {
+      const g = JSON.stringify(got)
+      const e = JSON.stringify(expected)
+      if (g !== e) fails.push(`${name}: esperado ${e}, veio ${g}`)
+    },
+    ok(name: string, cond: boolean, detail = '') {
+      if (!cond) fails.push(detail ? `${name}: ${detail}` : name)
+    }
+  }
+}
+```
+
+- [ ] **Passo 6: criar `scripts/verify-friendlies/run.mjs`**
+
+```js
+// Uso: node scripts/verify-friendlies/run.mjs [nome ...]   (sem nome: roda todos os que existirem)
+// Carrega os .check.ts pelo vite (alias @/ e TypeScript), como scripts/verify-league/run.mjs.
+import { createServer } from 'vite'
+import { existsSync } from 'node:fs'
+
+const ALL = ['ranking', 'tokens', 'fame', 'draw', 'bots', 'provider', 'store']
+const wanted = process.argv.slice(2)
+const names = wanted.length ? wanted : ALL
+const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'error' })
+let failed = 0
+try {
+  for (const name of names) {
+    const file = `scripts/verify-friendlies/${name}.check.ts`
+    if (!existsSync(file)) {
+      if (wanted.length) {
+        console.error(`FALTA ${file}`)
+        failed++
+      } else console.log(`- ${name}: ainda não existe, pulado`)
+      continue
+    }
+    const mod = await server.ssrLoadModule('/' + file)
+    const fails = mod.run()
+    if (fails.length) {
+      failed += fails.length
+      console.error(`FALHOU ${name}:\n  ` + fails.join('\n  '))
+    } else console.log(`OK ${name}`)
+  }
+} finally {
+  await server.close()
+}
+if (failed) process.exitCode = 1
+```
+
+- [ ] **Passo 7: criar `scripts/verify-friendlies/ranking.check.ts`**
+
+```ts
+import { createChecker } from './assert'
+import { rankedBots, userRank } from '@/utils/friendlies/ranking'
+import { FRIENDLIES, FRIENDLY_BOT_NAME_PARTS } from '@/config/friendlies'
+import type { FriendlyBot } from '@/types/friendlies'
+
+const bot = (n: number, fame: number): FriendlyBot => ({ id: `fb_${n}`, name: `Bot ${n}`, over: 60, fame })
+
+export function run(): string[] {
+  const c = createChecker()
+  const bots = [bot(1, 100), bot(2, 50), bot(3, 50), bot(4, 10)]
+  c.eq('userRank com fama 0', userRank(0, bots), 5)
+  c.eq('userRank: empate favorece o usuario', userRank(50, bots), 2)
+  c.eq('userRank acima de todos', userRank(500, bots), 1)
+  c.eq(
+    'rankedBots com usuario em 2o',
+    rankedBots(bots, 50).map((r) => [r.bot.id, r.rank]),
+    [['fb_1', 1], ['fb_2', 3], ['fb_3', 4], ['fb_4', 5]]
+  )
+  c.eq('rankedBots com usuario em ultimo', rankedBots(bots, 0).map((r) => r.rank), [1, 2, 3, 4])
+  c.eq('rankedBots com usuario em 1o', rankedBots(bots, 500).map((r) => r.rank), [2, 3, 4, 5])
+  c.ok(
+    'combinacoes de nome suficientes',
+    FRIENDLY_BOT_NAME_PARTS.prefixes.length * FRIENDLY_BOT_NAME_PARTS.places.length >= FRIENDLIES.bots.count
+  )
+  c.eq('lugares sem repeticao', new Set(FRIENDLY_BOT_NAME_PARTS.places).size, FRIENDLY_BOT_NAME_PARTS.places.length)
+  return c.fails
+}
+```
+
+- [ ] **Passo 8: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs ranking`
+Esperado: `OK ranking`.
+
+Rodar: `npm run build`
+Esperado: termina com `✓ built in ...`, sem erro de tipo.
+
+- [ ] **Passo 9: commit**
+
+```bash
+git add src/config/friendlies.ts src/types/friendlies.ts src/utils/friendlies/ranking.ts src/config/index.ts src/types/index.ts scripts/verify-friendlies/run.mjs scripts/verify-friendlies/assert.ts scripts/verify-friendlies/ranking.check.ts
+git commit -m "feat(amistosos): config e tipos"
+```
+
+**Pronto quando:** build passa, `OK ranking`, só os 8 arquivos acima no commit.
+
+**Não fazer:** não alterar `src/types/match.ts` (é da Tarefa 9); não usar `as const` no `FRIENDLIES` (as outras tarefas esperam `number`, não literais); não criar store nem componentes.
+
+---
+
+## Tarefa 2: funções puras de fichas
+
+**Commit:** `feat(amistosos): funcoes puras de fichas`
+**Depende de:** Tarefa 1 (`FRIENDLIES`, verificador).
+
+Regra (spec §2.1 e §6): máximo 10 fichas, +1 a cada 6 min de tempo real (inclusive offline: o primeiro cálculo aplica todo o tempo decorrido), mesmo padrão de `squad.regenStamina` em `src/stores/squad.ts`.
+
+**Arquivos:**
+- Criar: `src/utils/friendlies/tokens.ts`
+- Criar: `scripts/verify-friendlies/tokens.check.ts`
+
+- [ ] **Passo 1: escrever a checagem `scripts/verify-friendlies/tokens.check.ts`**
+
+```ts
+import { createChecker } from './assert'
+import { formatTokenCountdown, msToNextToken, regenTokens, spendToken } from '@/utils/friendlies/tokens'
+
+const MIN = 60 * 1000
+
+export function run(): string[] {
+  const c = createChecker()
+  c.eq('30 min parado com 7: enche e zera o relogio', regenTokens({ tokens: 7, tokenTickAt: 0 }, 30 * MIN), { tokens: 10, tokenTickAt: 30 * MIN })
+  c.eq('13 min com 5: +2 e guarda o resto', regenTokens({ tokens: 5, tokenTickAt: 0 }, 13 * MIN), { tokens: 7, tokenTickAt: 12 * MIN })
+  c.eq('menos de 6 min: nada muda', regenTokens({ tokens: 5, tokenTickAt: 0 }, 5 * MIN), { tokens: 5, tokenTickAt: 0 })
+  c.eq('relogio voltado: tokenTickAt = now', regenTokens({ tokens: 5, tokenTickAt: 1000 }, 500), { tokens: 5, tokenTickAt: 500 })
+  c.eq('cheio: tokenTickAt = now', regenTokens({ tokens: 10, tokenTickAt: 0 }, 999), { tokens: 10, tokenTickAt: 999 })
+  c.eq('acima do maximo volta a 10', regenTokens({ tokens: 14, tokenTickAt: 0 }, 50), { tokens: 10, tokenTickAt: 50 })
+  c.eq('gastar com 10 reinicia o relogio', spendToken({ tokens: 10, tokenTickAt: 0 }, 5000), { tokens: 9, tokenTickAt: 5000 })
+  c.eq('gastar com 4 mantem o relogio', spendToken({ tokens: 4, tokenTickAt: 100 }, 5000), { tokens: 3, tokenTickAt: 100 })
+  c.eq('sem ficha: null', spendToken({ tokens: 0, tokenTickAt: 0 }, 1), null)
+  c.eq('cheio: proxima em 0', msToNextToken({ tokens: 10, tokenTickAt: 0 }, 123), 0)
+  c.eq('proxima ficha', msToNextToken({ tokens: 3, tokenTickAt: 0 }, MIN), 5 * MIN)
+  c.eq('proxima nunca negativa', msToNextToken({ tokens: 3, tokenTickAt: 0 }, 99 * MIN), 0)
+  c.eq('mm:ss 5 min', formatTokenCountdown(5 * MIN), '05:00')
+  c.eq('mm:ss arredonda para cima', formatTokenCountdown(61001), '01:02')
+  c.eq('mm:ss zero', formatTokenCountdown(0), '00:00')
+  return c.fails
+}
+```
+
+- [ ] **Passo 2: rodar e ver falhar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs tokens`
+Esperado: erro de carregamento (módulo `@/utils/friendlies/tokens` não existe).
+
+- [ ] **Passo 3: criar `src/utils/friendlies/tokens.ts`**
+
+```ts
+import { FRIENDLIES } from '@/config/friendlies'
+
+export interface TokenState {
+  tokens: number
+  tokenTickAt: number
+}
+
+/**
+ * Recarga por tempo real (mesmo padrão de squad.regenStamina): soma só fichas inteiras e guarda o resto de tempo em
+ * tokenTickAt. Cheio, o relógio acompanha `now` para a próxima ficha não nascer "adiantada". Relógio do sistema voltado
+ * não dá ganho negativo.
+ */
+export function regenTokens(s: TokenState, now: number): TokenState {
+  const { max, msPerToken } = FRIENDLIES.tokens
+  if (s.tokens >= max) return { tokens: max, tokenTickAt: now }
+  const n = Math.floor((now - s.tokenTickAt) / msPerToken)
+  if (n <= 0) return { tokens: s.tokens, tokenTickAt: now < s.tokenTickAt ? now : s.tokenTickAt }
+  const tokens = Math.min(max, s.tokens + n)
+  return { tokens, tokenTickAt: tokens >= max ? now : s.tokenTickAt + n * msPerToken }
+}
+
+/** Gasta 1 ficha. Com o estoque cheio, a contagem da próxima começa agora. Sem ficha: null. */
+export function spendToken(s: TokenState, now: number): TokenState | null {
+  if (s.tokens <= 0) return null
+  return { tokens: s.tokens - 1, tokenTickAt: s.tokens >= FRIENDLIES.tokens.max ? now : s.tokenTickAt }
+}
+
+/** Milissegundos até a próxima ficha (0 com estoque cheio). */
+export function msToNextToken(s: TokenState, now: number): number {
+  if (s.tokens >= FRIENDLIES.tokens.max) return 0
+  return Math.max(0, s.tokenTickAt + FRIENDLIES.tokens.msPerToken - now)
+}
+
+/** "mm:ss" para contadores de ficha (segundos arredondados para cima). */
+export function formatTokenCountdown(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000))
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+```
+
+- [ ] **Passo 4: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs tokens` → `OK tokens`.
+Rodar: `npm run build` → `✓ built in ...`.
+
+- [ ] **Passo 5: commit**
+
+```bash
+git add src/utils/friendlies/tokens.ts scripts/verify-friendlies/tokens.check.ts
+git commit -m "feat(amistosos): funcoes puras de fichas"
+```
+
+**Pronto quando:** `OK tokens` e build passando.
+
+**Não fazer:** não usar `Date.now()` dentro das funções (recebem `now`); não mexer em store nem no ticker (Tarefas 7 e 8).
+
+---
+
+## Tarefa 3: funções puras de fama (Elo)
+
+**Commit:** `feat(amistosos): funcoes puras de fama elo`
+**Depende de:** Tarefa 1.
+
+Regra (spec §6): `E = 1 / (1 + 10^((oppOver − userOver) / 20))`; vitória `max(4, round(30·(1−E)))`; empate `clamp(round(30·(0.5−E)), −6, 6)`; derrota `−max(3, round(30·E))`; fama nunca abaixo de 0.
+
+**Arquivos:**
+- Criar: `src/utils/friendlies/fame.ts`
+- Criar: `scripts/verify-friendlies/fame.check.ts`
+
+- [ ] **Passo 1: escrever a checagem `scripts/verify-friendlies/fame.check.ts`**
+
+```ts
+import { createChecker } from './assert'
+import { applyFame, expectedScore, fameDelta, outcomeFromScore, signedFame } from '@/utils/friendlies/fame'
+
+// Tabela da spec §6: diferença oppOver − userOver → vitória / empate / derrota.
+const TABLE: Array<[number, number, number, number]> = [
+  [0, 15, 0, -15],
+  [5, 19, 4, -11],
+  [-5, 11, -4, -19],
+  [10, 23, 6, -7],
+  [20, 27, 6, -3]
+]
+
+export function run(): string[] {
+  const c = createChecker()
+  c.eq('E com OVERs iguais', expectedScore(60, 60), 0.5)
+  for (const [diff, w, d, l] of TABLE) {
+    c.eq(`vitoria diff ${diff}`, fameDelta(60, 60 + diff, 'win'), w)
+    c.eq(`empate diff ${diff}`, fameDelta(60, 60 + diff, 'draw'), d)
+    c.eq(`derrota diff ${diff}`, fameDelta(60, 60 + diff, 'loss'), l)
+  }
+  c.eq('vitoria minima 4', fameDelta(90, 40, 'win'), 4)
+  c.eq('derrota minima 3', fameDelta(40, 90, 'loss'), -3)
+  c.eq('fama nao fica negativa', applyFame(10, -15), 0)
+  c.eq('derrota com fama 0', applyFame(0, -3), 0)
+  c.eq('soma normal', applyFame(5, 4), 9)
+  c.eq('resultado vitoria', outcomeFromScore(2, 1), 'win')
+  c.eq('resultado empate', outcomeFromScore(1, 1), 'draw')
+  c.eq('resultado derrota', outcomeFromScore(0, 3), 'loss')
+  c.eq('sinal positivo', signedFame(19), '+19')
+  c.eq('sinal zero', signedFame(0), '0')
+  c.eq('sinal negativo', signedFame(-11), '−11')
+  return c.fails
+}
+```
+
+- [ ] **Passo 2: rodar e ver falhar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs fame` → erro de módulo ausente.
+
+- [ ] **Passo 3: criar `src/utils/friendlies/fame.ts`**
+
+```ts
+import type { FriendlyOutcome } from '@/types/friendlies'
+import { FRIENDLIES } from '@/config/friendlies'
+import { clamp } from '@/utils/core/random'
+
+/** Chance esperada de vitória do usuário pelo Elo sobre OVER (não sobre fama: decisão da spec §11). */
+export function expectedScore(userOver: number, oppOver: number): number {
+  return 1 / (1 + 10 ** ((oppOver - userOver) / FRIENDLIES.fame.scale))
+}
+
+/** Variação de fama do usuário. O bot recebe o oposto. */
+export function fameDelta(userOver: number, oppOver: number, outcome: FriendlyOutcome): number {
+  const { k, minWin, minLoss, drawCap } = FRIENDLIES.fame
+  const e = expectedScore(userOver, oppOver)
+  if (outcome === 'win') return Math.max(minWin, Math.round(k * (1 - e)))
+  if (outcome === 'draw') return clamp(Math.round(k * (0.5 - e)), -drawCap, drawCap) || 0
+  return -Math.max(minLoss, Math.round(k * e))
+}
+
+/** Fama nunca fica abaixo de 0 (usuário e bots). */
+export function applyFame(fame: number, delta: number): number {
+  return Math.max(0, fame + delta)
+}
+
+export function outcomeFromScore(userScore: number, oppScore: number): FriendlyOutcome {
+  return userScore > oppScore ? 'win' : userScore === oppScore ? 'draw' : 'loss'
+}
+
+/** "+19", "0", "−11" (sinal de menos tipográfico). */
+export function signedFame(n: number): string {
+  if (n > 0) return `+${n}`
+  if (n < 0) return `−${Math.abs(n)}`
+  return '0'
+}
+```
+
+- [ ] **Passo 4: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs fame` → `OK fame`.
+Rodar: `npm run build` → `✓ built in ...`.
+
+- [ ] **Passo 5: commit**
+
+```bash
+git add src/utils/friendlies/fame.ts scripts/verify-friendlies/fame.check.ts
+git commit -m "feat(amistosos): funcoes puras de fama elo"
+```
+
+**Pronto quando:** `OK fame` (todas as linhas da tabela batem) e build passando.
+
+**Não fazer:** não usar a fama dos times no Elo; não tocar em `club.reputation` (fama e reputação são separadas, spec §2.12).
+
+---
+
+## Tarefa 4: sorteio, bônus de posição e prêmio
+
+**Commit:** `feat(amistosos): sorteio, bonus de posicao e premio`
+**Depende de:** Tarefas 1 (`ranking.ts`, config, tipos) e 3 (`fameDelta`).
+
+Regras (spec §6): `rankBonus(rank) = rank ≤ 10 ? 6 : rank ≤ 50 ? round1(6·(51 − rank)/41) : 0`; `oppOver = clamp(round(userOver + rankBonus(rankDoUsuario) + U(−5, +5)), 35, 99)` (cada opção sorteia o seu); prêmio `clamp(roundTo500(8000 + (oppOver − 50)·500), 8000, 25000)`, 0 se o limite diário esgotou; 3 bots distintos entre os de posição a até ±15 da posição do usuário (janela cresce de 5 em 5 se faltar bot).
+
+**Arquivos:**
+- Criar: `src/utils/friendlies/draw.ts`
+- Criar: `scripts/verify-friendlies/draw.check.ts`
+
+- [ ] **Passo 1: escrever a checagem `scripts/verify-friendlies/draw.check.ts`**
+
+```ts
+import { createChecker } from './assert'
+import { drawOptions, friendlyPrize, opponentOver, rankBonus } from '@/utils/friendlies/draw'
+import { fameDelta } from '@/utils/friendlies/fame'
+import { mulberry32 } from '@/utils/core/random'
+import type { FriendlyBot } from '@/types/friendlies'
+
+export function run(): string[] {
+  const c = createChecker()
+  c.eq('bonus rank 1', rankBonus(1), 6)
+  c.eq('bonus rank 10', rankBonus(10), 6)
+  c.eq('bonus rank 11', rankBonus(11), 5.9)
+  c.eq('bonus rank 30', rankBonus(30), 3.1)
+  c.eq('bonus rank 50', rankBonus(50), 0.1)
+  c.eq('bonus rank 51', rankBonus(51), 0)
+  c.eq('bonus rank 101', rankBonus(101), 0)
+
+  c.eq('premio OVER 50', friendlyPrize(50), 8000)
+  c.eq('premio OVER 60', friendlyPrize(60), 13000)
+  c.eq('premio OVER 61', friendlyPrize(61), 13500)
+  c.eq('premio OVER 70', friendlyPrize(70), 18000)
+  c.eq('premio OVER 84', friendlyPrize(84), 25000)
+  c.eq('premio piso', friendlyPrize(40), 8000)
+  c.eq('premio teto', friendlyPrize(99), 25000)
+
+  c.eq('OVER do rival sem variacao', opponentOver(60, 101, () => 0.5), 60)
+  c.eq('OVER do rival no minimo da variacao', opponentOver(60, 101, () => 0), 55)
+  c.eq('OVER do rival no maximo da variacao', opponentOver(60, 101, () => 0.9999), 65)
+  c.eq('OVER do rival com bonus de top 10', opponentOver(60, 5, () => 0.5), 66)
+  c.eq('OVER do rival com teto 99', opponentOver(98, 1, () => 0.99), 99)
+  c.eq('OVER do rival com piso 35', opponentOver(20, 101, () => 0), 35)
+
+  const bots: FriendlyBot[] = Array.from({ length: 100 }, (_, i) => ({ id: `fb_${i + 1}`, name: `Bot ${i + 1}`, over: 60, fame: (100 - i) * 10 }))
+  const ctx = { userOver: 60, userFame: 0, paidWinsLeft: 0, bots }
+  const opts = drawOptions(ctx, mulberry32(1))
+  c.eq('3 opcoes', opts.length, 3)
+  c.ok('bots distintos', new Set(opts.map((o) => o.botId)).size === 3)
+  c.ok('janela de +-15 posicoes (usuario em 101)', opts.every((o) => o.rank >= 86 && o.rank <= 100), JSON.stringify(opts.map((o) => o.rank)))
+  c.ok('ordenadas por posicao', opts[0].rank <= opts[1].rank && opts[1].rank <= opts[2].rank)
+  c.ok('OVER do dia em [55, 65]', opts.every((o) => o.over >= 55 && o.over <= 65))
+  c.ok('premio 0 com limite esgotado', opts.every((o) => o.prize === 0))
+  c.ok(
+    'fama em jogo = fameDelta',
+    opts.every(
+      (o) => o.fameWin === fameDelta(60, o.over, 'win') && o.fameDraw === fameDelta(60, o.over, 'draw') && o.fameLoss === fameDelta(60, o.over, 'loss')
+    )
+  )
+  c.ok('fama e nome do proprio bot', opts.every((o) => {
+    const b = bots.find((x) => x.id === o.botId)
+    return !!b && b.fame === o.fame && b.name === o.name
+  }))
+  c.eq('deterministico com a mesma semente', drawOptions(ctx, mulberry32(1)), opts)
+  const paid = drawOptions({ ...ctx, paidWinsLeft: 5 }, mulberry32(2))
+  c.ok('premio pago = friendlyPrize', paid.every((o) => o.prize === friendlyPrize(o.over)))
+  const unlimited = drawOptions({ ...ctx, paidWinsLeft: Number.POSITIVE_INFINITY }, mulberry32(3))
+  c.ok('sem limite diario paga', unlimited.every((o) => o.prize > 0))
+  const few = drawOptions({ ...ctx, bots: bots.slice(0, 2) }, mulberry32(4))
+  c.eq('com 2 bots devolve 2', few.length, 2)
+  return c.fails
+}
+```
+
+- [ ] **Passo 2: rodar e ver falhar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs draw` → erro de módulo ausente.
+
+- [ ] **Passo 3: criar `src/utils/friendlies/draw.ts`**
+
+```ts
+import type { FriendlyBot, FriendlyDrawContext, FriendlyOption } from '@/types/friendlies'
+import { FRIENDLIES } from '@/config/friendlies'
+import { clamp, shuffle, type Rng } from '@/utils/core/random'
+import { fameDelta } from './fame'
+import { rankedBots, userRank } from './ranking'
+
+const round1 = (x: number) => Math.round(x * 10) / 10
+
+/** Bônus de posição do usuário: 6 no top 10, cai linearmente até ~0 na 50ª, 0 dali para baixo. */
+export function rankBonus(rank: number): number {
+  const { rankBonusMax, rankBonusTop, rankBonusFrom } = FRIENDLIES.draw
+  if (rank <= rankBonusTop) return rankBonusMax
+  if (rank <= rankBonusFrom) return round1((rankBonusMax * (rankBonusFrom + 1 - rank)) / (rankBonusFrom + 1 - rankBonusTop))
+  return 0
+}
+
+/** OVER do dia do rival: OVER do usuário + bônus da posição do usuário + variação uniforme em [−5, +5]. */
+export function opponentOver(userOver: number, rank: number, rng: Rng): number {
+  const { spread, overMin, overMax } = FRIENDLIES.draw
+  return clamp(Math.round(userOver + rankBonus(rank) + (rng() * 2 - 1) * spread), overMin, overMax)
+}
+
+/** Prêmio da vitória (antes do limite diário): escala com o OVER do rival, de 500 em 500. */
+export function friendlyPrize(oppOver: number): number {
+  const { base, refOver, perOver, min, max, step } = FRIENDLIES.prize
+  return clamp(Math.round((base + (oppOver - refOver) * perOver) / step) * step, min, max)
+}
+
+/**
+ * Um sorteio: bots distintos a até ±15 posições do usuário (a janela cresce de 5 em 5 se faltar bot), em ordem de
+ * posição. O cartão mostra a fama e a posição do bot e o OVER do dia (não o `over` interno).
+ */
+export function drawOptions(ctx: FriendlyDrawContext & { bots: readonly FriendlyBot[] }, rng: Rng): FriendlyOption[] {
+  const { rankWindow, rankWindowGrow, options } = FRIENDLIES.draw
+  const uRank = userRank(ctx.userFame, ctx.bots)
+  const ranked = rankedBots(ctx.bots, ctx.userFame)
+  let windowSize = rankWindow
+  let pool = ranked.filter((r) => Math.abs(r.rank - uRank) <= windowSize)
+  while (pool.length < options && pool.length < ranked.length) {
+    windowSize += rankWindowGrow
+    pool = ranked.filter((r) => Math.abs(r.rank - uRank) <= windowSize)
+  }
+  const picked = shuffle(pool, rng)
+    .slice(0, options)
+    .sort((a, b) => a.rank - b.rank)
+  const capped = ctx.paidWinsLeft <= 0
+  return picked.map(({ bot, rank }) => {
+    const over = opponentOver(ctx.userOver, uRank, rng)
+    return {
+      botId: bot.id,
+      name: bot.name,
+      over,
+      fame: bot.fame,
+      rank,
+      prize: capped ? 0 : friendlyPrize(over),
+      fameWin: fameDelta(ctx.userOver, over, 'win'),
+      fameDraw: fameDelta(ctx.userOver, over, 'draw'),
+      fameLoss: fameDelta(ctx.userOver, over, 'loss')
+    }
+  })
+}
+```
+
+- [ ] **Passo 4: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs draw` → `OK draw`.
+Rodar: `npm run build` → `✓ built in ...`.
+
+- [ ] **Passo 5: commit**
+
+```bash
+git add src/utils/friendlies/draw.ts scripts/verify-friendlies/draw.check.ts
+git commit -m "feat(amistosos): sorteio, bonus de posicao e premio"
+```
+
+**Pronto quando:** `OK draw` e build passando.
+
+**Não fazer:** não controlar aqui o limite de 3 sorteios (é da store, Tarefa 7); não usar `Math.random()` (recebe `rng`); não importar de `bots.ts`.
+
+---
+
+## Tarefa 5: geração e simulação dos bots
+
+**Commit:** `feat(amistosos): geracao e simulacao dos bots`
+**Depende de:** Tarefa 1.
+
+Regras (spec §6): `generateBots(seed)` com `mulberry32(seed)` de `src/utils/core/random.ts`; para `i = 0..99`: `fame = max(10, round(1800·(1 − i/100)^1.6) + randInt(−20, 20))`, `over = clamp(round(48 + 40·fame/1800) + randInt(−4, 4), 40, 92)`, nome = combinação única prefixo + lugar embaralhada pelo mesmo seed. Simulação: `steps = min(72, floor((now − botsSimAt)/1h))`, `botsSimAt += floor((now − botsSimAt)/1h)·1h`; por passo e bot: `alvo = (over − 48)/40·1800`, `Δ = randInt(−6,6) + randInt(−6,6) + round((alvo − fame)·0.03)`, `fame = max(0, fame + Δ)`. O `over` interno não muda.
+
+Os nomes já foram conferidos contra `docs/catalogo-nomes-ficticios.md`, `docs/identidades-times.md`, `TEAM_ID_BY_NAME` (`src/utils/identity/teamIdentities.ts`) e `EXTRA_D_CLUBS` (`src/utils/league/extraClubs.ts`); a checagem abaixo repete a conferência no código.
+
+**Arquivos:**
+- Criar: `src/utils/friendlies/bots.ts`
+- Criar: `scripts/verify-friendlies/bots.check.ts`
+
+- [ ] **Passo 1: escrever a checagem `scripts/verify-friendlies/bots.check.ts`**
+
+```ts
+import { createChecker } from './assert'
+import { allBotNames, generateBots, rankingView, simulateBots, userRank } from '@/utils/friendlies/bots'
+import { TEAM_ID_BY_NAME } from '@/utils/identity/teamIdentities'
+import { EXTRA_D_CLUBS } from '@/utils/league/extraClubs'
+import type { FriendlyBot } from '@/types/friendlies'
+
+const H = 60 * 60 * 1000
+
+export function run(): string[] {
+  const c = createChecker()
+  const bots = generateBots(42)
+  c.eq('100 bots', bots.length, 100)
+  c.eq('ids fb_1..fb_100', bots.map((b) => b.id), Array.from({ length: 100 }, (_, i) => `fb_${i + 1}`))
+  c.eq('nomes unicos', new Set(bots.map((b) => b.name)).size, 100)
+  c.ok('OVER interno em [40, 92]', bots.every((b) => b.over >= 40 && b.over <= 92))
+  c.ok('fama inicial >= 10', bots.every((b) => b.fame >= 10))
+  c.ok('topo ~1800', bots[0].fame >= 1780 && bots[0].fame <= 1820, String(bots[0].fame))
+  c.ok('10o ~1550', bots[9].fame >= 1528 && bots[9].fame <= 1568, String(bots[9].fame))
+  c.ok('100o entre 10 e 21', bots[99].fame >= 10 && bots[99].fame <= 21, String(bots[99].fame))
+  c.eq('mesma semente, mesmos bots', generateBots(42), bots)
+  c.ok('semente diferente muda', JSON.stringify(generateBots(43)) !== JSON.stringify(bots))
+  c.eq('usuario com fama 0 em 101', userRank(0, bots), 101)
+
+  const taken = new Set([...Object.keys(TEAM_ID_BY_NAME), ...EXTRA_D_CLUBS.map((x) => x.name)].map((n) => n.toLowerCase()))
+  c.ok('nenhum nome igual a clube existente', allBotNames().every((n) => !taken.has(n.toLowerCase())))
+
+  const same = simulateBots(bots, 0, 30 * 60 * 1000, () => 0.5)
+  c.eq('menos de 1h: simAt nao anda', same.simAt, 0)
+  c.eq('menos de 1h: bots iguais', same.bots, bots)
+  c.eq('3h10: simAt = 3h', simulateBots(bots, 0, 3 * H + 10 * 60 * 1000, Math.random).simAt, 3 * H)
+  c.eq('100h: excedente descartado, simAt = 100h', simulateBots(bots, 0, 100 * H, Math.random).simAt, 100 * H)
+  c.eq('relogio voltado: simAt = now', simulateBots(bots, 5 * H, 2 * H, Math.random).simAt, 2 * H)
+  c.ok('fama nunca negativa', simulateBots(bots, 0, 72 * H, Math.random).bots.every((b) => b.fame >= 0))
+  c.ok('over interno nao muda', simulateBots(bots, 0, 72 * H, Math.random).bots.every((b, i) => b.over === bots[i].over))
+  // rng 0.5 zera o ruído: só o puxão para o alvo age (OVER 88 → alvo 1800).
+  const pulled = simulateBots([{ id: 'fb_1', name: 'X', over: 88, fame: 0 }], 0, 72 * H, () => 0.5)
+  c.ok('puxao em direcao ao alvo', pulled.bots[0].fame > 500, String(pulled.bots[0].fame))
+  c.ok('nao muta a entrada', bots[0].fame === generateBots(42)[0].fame)
+
+  const small: FriendlyBot[] = [
+    { id: 'fb_1', name: 'A', over: 60, fame: 100 },
+    { id: 'fb_2', name: 'B', over: 60, fame: 50 },
+    { id: 'fb_3', name: 'C', over: 60, fame: 50 },
+    { id: 'fb_4', name: 'D', over: 60, fame: 10 }
+  ]
+  c.eq('rankingView', rankingView(small, { name: 'Voce', fame: 50 }), {
+    top: [
+      { rank: 1, name: 'A', fame: 100, isUser: false },
+      { rank: 2, name: 'Voce', fame: 50, isUser: true },
+      { rank: 3, name: 'B', fame: 50, isUser: false },
+      { rank: 4, name: 'C', fame: 50, isUser: false },
+      { rank: 5, name: 'D', fame: 10, isUser: false }
+    ],
+    user: { rank: 2, fame: 50 }
+  })
+  c.eq('rankingView corta no top 10', rankingView(bots, { name: 'Voce', fame: 0 }).top.length, 10)
+  c.eq('rankingView usuario fora do top', rankingView(bots, { name: 'Voce', fame: 0 }).user, { rank: 101, fame: 0 })
+  return c.fails
+}
+```
+
+- [ ] **Passo 2: rodar e ver falhar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs bots` → erro de módulo ausente.
+
+- [ ] **Passo 3: criar `src/utils/friendlies/bots.ts`**
+
+```ts
+import type { FriendlyBot, FriendlyRankingView } from '@/types/friendlies'
+import { FRIENDLIES, FRIENDLY_BOT_NAME_PARTS } from '@/config/friendlies'
+import { clamp, mulberry32, shuffle, type Rng } from '@/utils/core/random'
+import { rankedBots, userRank } from './ranking'
+
+export { userRank }
+
+const randIntWith = (rng: Rng, min: number, max: number) => Math.floor(rng() * (max - min + 1)) + min
+
+/** Todas as combinações prefixo + lugar (200). */
+export function allBotNames(): string[] {
+  return FRIENDLY_BOT_NAME_PARTS.prefixes.flatMap((p) => FRIENDLY_BOT_NAME_PARTS.places.map((pl) => `${p} ${pl}`))
+}
+
+/** 100 bots determinísticos pela semente: fama em curva (topo ~1800, 100º ~10) e OVER interno ligado à fama. */
+export function generateBots(seed: number): FriendlyBot[] {
+  const b = FRIENDLIES.bots
+  const rng = mulberry32(seed)
+  const names = shuffle(allBotNames(), rng).slice(0, b.count)
+  return Array.from({ length: b.count }, (_, i) => {
+    const fame = Math.max(b.fameMinStart, Math.round(b.fameTop * (1 - i / b.count) ** b.fameCurve) + randIntWith(rng, -b.fameJitter, b.fameJitter))
+    const over = clamp(Math.round(b.overMin + (b.overSpan * fame) / b.fameTop) + randIntWith(rng, -b.overJitter, b.overJitter), b.overFloor, b.overCeil)
+    return { id: `fb_${i + 1}`, name: names[i], over, fame }
+  })
+}
+
+/**
+ * Evolução dos bots desde `lastSimAt`: um passo por hora inteira, no máximo 72 (o excedente é descartado, o resto de
+ * tempo fica). Ruído ± e puxão de volta ao alvo do OVER interno: o ranking se mexe sem deriva infinita. Não muta a entrada.
+ */
+export function simulateBots(bots: readonly FriendlyBot[], lastSimAt: number, now: number, rng: Rng): { bots: FriendlyBot[]; simAt: number } {
+  const b = FRIENDLIES.bots
+  const elapsed = Math.floor((now - lastSimAt) / b.simStepMs)
+  if (elapsed <= 0) return { bots: bots.map((x) => ({ ...x })), simAt: now < lastSimAt ? now : lastSimAt }
+  const steps = Math.min(b.simMaxSteps, elapsed)
+  const next = bots.map((x) => ({ ...x }))
+  for (let s = 0; s < steps; s++) {
+    for (const bot of next) {
+      const target = ((bot.over - b.overMin) / b.overSpan) * b.fameTop
+      const delta = randIntWith(rng, -b.simNoise, b.simNoise) + randIntWith(rng, -b.simNoise, b.simNoise) + Math.round((target - bot.fame) * b.simPull)
+      bot.fame = Math.max(0, bot.fame + delta)
+    }
+  }
+  return { bots: next, simAt: lastSimAt + elapsed * b.simStepMs }
+}
+
+/** Top 10 do ranking (usuário incluído na posição dele) + a linha do usuário. */
+export function rankingView(bots: readonly FriendlyBot[], user: { name: string; fame: number }): FriendlyRankingView {
+  const uRank = userRank(user.fame, bots)
+  const rows = rankedBots(bots, user.fame).map((r) => ({ rank: r.rank, name: r.bot.name, fame: r.bot.fame, isUser: false }))
+  rows.splice(uRank - 1, 0, { rank: uRank, name: user.name, fame: user.fame, isUser: true })
+  return { top: rows.slice(0, FRIENDLIES.rankingTop), user: { rank: uRank, fame: user.fame } }
+}
+```
+
+- [ ] **Passo 4: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs bots` → `OK bots`.
+Rodar: `npm run build` → `✓ built in ...`.
+
+- [ ] **Passo 5: commit**
+
+```bash
+git add src/utils/friendlies/bots.ts scripts/verify-friendlies/bots.check.ts
+git commit -m "feat(amistosos): geracao e simulacao dos bots"
+```
+
+**Pronto quando:** `OK bots` e build passando.
+
+**Não fazer:** não usar timer nem `Date.now()`; não alterar `FRIENDLY_BOT_NAME_PARTS` (se a checagem de nomes falhar, pare e reporte o nome em conflito em vez de inventar outro).
+
+---
+
+## Tarefa 6: provedor local de adversários
+
+**Commit:** `feat(amistosos): provedor local de adversarios`
+**Depende de:** Tarefas 4 (`drawOptions`) e 5 (`simulateBots`, `rankingView`).
+
+A store (Tarefa 7) só fala com `FriendlyOpponentProvider` (`src/types/friendlies.ts`). Esta implementação local opera sobre os `bots` e o `botsSimAt` da store por meio de acessores, para a store continuar dona do estado reativo.
+
+**Arquivos:**
+- Criar: `src/utils/friendlies/localBotProvider.ts`
+- Criar: `scripts/verify-friendlies/provider.check.ts`
+
+- [ ] **Passo 1: escrever a checagem `scripts/verify-friendlies/provider.check.ts`**
+
+```ts
+import { createChecker } from './assert'
+import { createLocalBotProvider } from '@/utils/friendlies/localBotProvider'
+import { generateBots } from '@/utils/friendlies/bots'
+import { mulberry32 } from '@/utils/core/random'
+import type { FriendlyBot } from '@/types/friendlies'
+
+const H = 60 * 60 * 1000
+
+export function run(): string[] {
+  const c = createChecker()
+  let bots: FriendlyBot[] = generateBots(7)
+  let simAt = 0
+  const p = createLocalBotProvider({
+    getBots: () => bots,
+    setBots: (b) => (bots = b),
+    getSimAt: () => simAt,
+    setSimAt: (t) => (simAt = t),
+    rng: mulberry32(9)
+  })
+  p.refresh(2 * H + 5)
+  c.eq('refresh avanca o relogio dos bots', simAt, 2 * H)
+  const view = p.ranking(0)
+  c.eq('ranking: usuario em 101', view.user, { rank: 101, fame: 0 })
+  c.eq('ranking: usuario fora do top 10', view.top.some((r) => r.isUser), false)
+  const target = bots[0]
+  p.reportResult(target.id, 15)
+  c.eq('vitoria do usuario tira fama do bot', bots[0].fame, Math.max(0, target.fame - 15))
+  const second = bots[1]
+  p.reportResult(second.id, -10)
+  c.eq('derrota do usuario da fama ao bot', bots[1].fame, second.fame + 10)
+  const low = bots.findIndex((b) => b.fame < 5)
+  if (low >= 0) {
+    p.reportResult(bots[low].id, 50)
+    c.eq('fama do bot nao fica negativa', bots[low].fame, 0)
+  }
+  const opts = p.drawOptions({ userOver: 60, userFame: 0, paidWinsLeft: 5 }, mulberry32(1))
+  c.eq('drawOptions devolve 3', opts.length, 3)
+  c.ok('opcoes sao bots da store', opts.every((o) => bots.some((b) => b.id === o.botId)))
+  return c.fails
+}
+```
+
+- [ ] **Passo 2: rodar e ver falhar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs provider` → erro de módulo ausente.
+
+- [ ] **Passo 3: criar `src/utils/friendlies/localBotProvider.ts`**
+
+```ts
+import type { FriendlyBot, FriendlyOpponentProvider } from '@/types/friendlies'
+import type { Rng } from '@/utils/core/random'
+import { applyFame } from './fame'
+import { drawOptions } from './draw'
+import { rankingView, simulateBots } from './bots'
+
+/** Acesso ao estado dos bots guardado na store (a store continua dona do estado reativo e do save). */
+export interface LocalBotState {
+  getBots(): FriendlyBot[]
+  setBots(bots: FriendlyBot[]): void
+  getSimAt(): number
+  setSimAt(t: number): void
+  /** Sorteio da simulação do ranking (na store: Math.random). */
+  rng: Rng
+}
+
+/** Adversários simulados localmente. Para jogadores reais no futuro, troca-se por um provedor remoto. */
+export function createLocalBotProvider(state: LocalBotState): FriendlyOpponentProvider {
+  return {
+    refresh(now) {
+      const r = simulateBots(state.getBots(), state.getSimAt(), now, state.rng)
+      state.setBots(r.bots)
+      state.setSimAt(r.simAt)
+    },
+    ranking(userFame) {
+      // O nome do usuário é trocado pelo nome do clube na tela (FriendlyRanking).
+      return rankingView(state.getBots(), { name: 'Você', fame: userFame })
+    },
+    drawOptions(ctx, rng) {
+      return drawOptions({ ...ctx, bots: state.getBots() }, rng)
+    },
+    reportResult(botId, userFameDelta) {
+      state.setBots(state.getBots().map((b) => (b.id === botId ? { ...b, fame: applyFame(b.fame, -userFameDelta) } : b)))
+    }
+  }
+}
+```
+
+- [ ] **Passo 4: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs provider` → `OK provider`.
+Rodar: `npm run build` → `✓ built in ...`.
+
+- [ ] **Passo 5: commit**
+
+```bash
+git add src/utils/friendlies/localBotProvider.ts scripts/verify-friendlies/provider.check.ts
+git commit -m "feat(amistosos): provedor local de adversarios"
+```
+
+**Pronto quando:** `OK provider` e build passando.
+
+**Não fazer:** não importar Pinia nem stores aqui; não guardar estado próprio no provedor (tudo pelos acessores).
+
+---
+
+## Tarefa 7: store de amistosos com save
+
+**Commit:** `feat(amistosos): store de amistosos com save`
+**Depende de:** Tarefas 2, 3, 4, 5, 6 e **9** (o `App.vue` usa `match.isCompetitionLive('friendly')`, que só compila depois da Tarefa 9).
+
+Regras: spec §2 (fichas gastas só em `beginMatch`; até 3 sorteios por desafio, contador no save, zera só em `beginMatch`; limite diário de 5 vitórias pagas; fama e reputação separadas: **nunca** tocar em `club.reputation`), spec §5 (modelo e validação do `fromSave`), spec §8 (partida órfã).
+
+A store **não** chama `saveGame` (evita ciclo: `usePersistence` importa esta store). Quem salva é quem chama a ação (`useFriendlies`, `useMatchSimulation`, `App.vue`).
+
+**Arquivos:**
+- Criar: `src/stores/friendlies.ts`
+- Criar: `scripts/verify-friendlies/store.check.ts`
+- Alterar: `src/composables/usePersistence.ts`
+- Alterar: `src/App.vue`
+
+- [ ] **Passo 1: escrever a checagem `scripts/verify-friendlies/store.check.ts`**
+
+```ts
+import { createPinia, setActivePinia } from 'pinia'
+import { createChecker } from './assert'
+import { useFriendliesStore } from '@/stores/friendlies'
+import { useClubStore } from '@/stores/club'
+import { fameDelta } from '@/utils/friendlies/fame'
+import { friendlyPrize } from '@/utils/friendlies/draw'
+import { dayStart } from '@/config/time'
+
+export function run(): string[] {
+  setActivePinia(createPinia())
+  const c = createChecker()
+  const f = useFriendliesStore()
+  const club = useClubStore()
+  const now = Date.now()
+
+  c.eq('estado novo: fichas', f.tokens, 10)
+  c.eq('estado novo: fama', f.fame, 0)
+  c.eq('estado novo: 100 bots', f.bots.length, 100)
+  c.eq('estado novo: posicao 101', f.rank, 101)
+  c.eq('estado novo: 3 sorteios', f.drawsLeft, 3)
+
+  c.ok('1o sorteio', f.draw(60, now))
+  c.eq('3 opcoes', f.options?.length, 3)
+  c.eq('restam 2', f.drawsLeft, 2)
+  c.ok('2o sorteio', f.draw(60, now))
+  c.ok('3o sorteio', f.draw(60, now))
+  c.ok('4o sorteio recusado', !f.draw(60, now))
+  c.eq('restam 0', f.drawsLeft, 0)
+
+  const saved = JSON.parse(JSON.stringify(f.toSave()))
+  f.reset()
+  c.eq('reset zera sorteios', f.drawsUsed, 0)
+  f.fromSave(saved)
+  c.eq('recarregar mantem o contador', f.drawsUsed, 3)
+  c.eq('recarregar mantem as opcoes', f.options?.length, 3)
+
+  c.ok('beginMatch sem selecao falha', !f.beginMatch(60, now))
+  const pick = f.options![0]
+  c.ok('select', f.select(pick.botId))
+  c.eq('selectedOption', f.selectedOption?.botId, pick.botId)
+  const budget = club.budget
+  const reputation = club.reputation
+  c.ok('beginMatch', f.beginMatch(60, now))
+  c.eq('ficha gasta no apito', f.tokens, 9)
+  c.eq('sorteios zerados no apito', f.drawsUsed, 0)
+  c.eq('opcoes limpas', f.options, null)
+  c.eq('selecao limpa', f.selectedBotId, null)
+  c.eq('desafio gravado', f.active?.botId, pick.botId)
+  c.eq('premio fixado no apito', f.active?.prize, friendlyPrize(pick.over))
+  c.ok('sem sorteio com amistoso em andamento', !f.draw(60, now))
+
+  const s = f.settle(3, 0, now)
+  c.ok('settle devolve resumo', !!s)
+  c.eq('fama apos vitoria', f.fame, fameDelta(60, pick.over, 'win'))
+  c.eq('premio creditado', club.budget - budget, s?.prize)
+  c.eq('premio = friendlyPrize', s?.prize, friendlyPrize(pick.over))
+  c.eq('reputacao intacta', club.reputation, reputation)
+  c.eq('desafio limpo', f.active, null)
+  c.eq('historico com 1', f.recent.length, 1)
+  c.eq('vitoria paga contada', f.paidWins.count, 1)
+
+  f.paidWins = { day: dayStart(now), count: 5 }
+  c.eq('limite diario esgotado', f.paidWinsLeft(now), 0)
+  c.eq('virada do dia libera', f.paidWinsLeft(now + 2 * 24 * 60 * 60 * 1000), 5)
+
+  f.fromSave({ ...saved, tokens: 99, drawsUsed: 7, options: null, fame: -5, tokenTickAt: now + 1e9, botsSimAt: now + 1e9, bots: [] })
+  c.eq('tokens limitado a 10', f.tokens, 10)
+  c.eq('drawsUsed 0 sem opcoes', f.drawsUsed, 0)
+  c.eq('fama >= 0', f.fame, 0)
+  c.ok('tokenTickAt <= now', f.tokenTickAt <= Date.now())
+  c.ok('botsSimAt <= now', f.botsSimAt <= Date.now())
+  c.eq('bots regenerados', f.bots.length, 100)
+  f.fromSave(undefined)
+  c.eq('save antigo sem campo: estado novo', f.tokens, 10)
+  f.fromSave({ v: 2 })
+  c.eq('versao desconhecida: estado novo', f.fame, 0)
+
+  f.draw(60, now)
+  f.select(f.options![1].botId)
+  f.beginMatch(60, now)
+  c.ok('orfa resolvida', f.resolveOrphan(false))
+  c.eq('orfa: desafio limpo', f.active, null)
+  c.eq('orfa: ficha nao volta', f.tokens, 9)
+  c.ok('sem desafio nada a resolver', !f.resolveOrphan(false))
+  return c.fails
+}
+```
+
+- [ ] **Passo 2: rodar e ver falhar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs store` → erro de módulo ausente.
+
+- [ ] **Passo 3: criar `src/stores/friendlies.ts`**
+
+```ts
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import type { FriendliesSave, FriendlyBot, FriendlyChallenge, FriendlyOption, FriendlyResult, FriendlySummary } from '@/types/friendlies'
+import { FRIENDLIES } from '@/config/friendlies'
+import { dayStart } from '@/config/time'
+import { clamp } from '@/utils/core/random'
+import { msToNextToken, regenTokens as regenTokenState, spendToken, type TokenState } from '@/utils/friendlies/tokens'
+import { applyFame, fameDelta, outcomeFromScore } from '@/utils/friendlies/fame'
+import { friendlyPrize } from '@/utils/friendlies/draw'
+import { generateBots, userRank } from '@/utils/friendlies/bots'
+import { createLocalBotProvider } from '@/utils/friendlies/localBotProvider'
+import { useClubStore } from '@/stores/club'
+
+function freshState(now: number): FriendliesSave {
+  const seed = now
+  return {
+    v: 1,
+    fame: FRIENDLIES.fame.start,
+    tokens: FRIENDLIES.tokens.initial,
+    tokenTickAt: now,
+    seed,
+    bots: generateBots(seed),
+    botsSimAt: now,
+    options: null,
+    drawsUsed: 0,
+    selectedBotId: null,
+    active: null,
+    paidWins: { day: 0, count: 0 },
+    recent: []
+  }
+}
+
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
+const isStr = (v: unknown): v is string => typeof v === 'string'
+const nums = (o: Record<string, unknown>, keys: string[]) => keys.every((k) => isNum(o[k]))
+
+function isBot(v: unknown): v is FriendlyBot {
+  const o = v as Record<string, unknown> | null
+  return !!o && isStr(o.id) && isStr(o.name) && nums(o, ['over', 'fame'])
+}
+function isOption(v: unknown): v is FriendlyOption {
+  const o = v as Record<string, unknown> | null
+  return !!o && isStr(o.botId) && isStr(o.name) && nums(o, ['over', 'fame', 'rank', 'prize', 'fameWin', 'fameDraw', 'fameLoss'])
+}
+function isChallenge(v: unknown): v is FriendlyChallenge {
+  const o = v as Record<string, unknown> | null
+  return !!o && isStr(o.botId) && isStr(o.botName) && nums(o, ['userOver', 'oppOver', 'prize', 'rankBefore', 'startedAt'])
+}
+function isResult(v: unknown): v is FriendlyResult {
+  const o = v as Record<string, unknown> | null
+  return !!o && isStr(o.botName) && nums(o, ['at', 'oppOver', 'userScore', 'oppScore', 'fameDelta', 'prize'])
+}
+
+export const useFriendliesStore = defineStore('friendlies', () => {
+  const club = useClubStore()
+  const init = freshState(Date.now())
+
+  const fame = ref(init.fame)
+  const tokens = ref(init.tokens)
+  const tokenTickAt = ref(init.tokenTickAt)
+  const seed = ref(init.seed)
+  const bots = ref<FriendlyBot[]>(init.bots)
+  const botsSimAt = ref(init.botsSimAt)
+  const options = ref<FriendlyOption[] | null>(init.options)
+  const drawsUsed = ref(init.drawsUsed)
+  const selectedBotId = ref<string | null>(init.selectedBotId)
+  const active = ref<FriendlyChallenge | null>(init.active)
+  const paidWins = ref(init.paidWins)
+  const recent = ref<FriendlyResult[]>(init.recent)
+
+  // A store só fala com a interface do provedor (spec §4.3); o local opera sobre bots/botsSimAt daqui.
+  const provider = createLocalBotProvider({
+    getBots: () => bots.value,
+    setBots: (b) => (bots.value = b),
+    getSimAt: () => botsSimAt.value,
+    setSimAt: (t) => (botsSimAt.value = t),
+    rng: Math.random
+  })
+
+  const rank = computed(() => userRank(fame.value, bots.value))
+  const ranking = computed(() => provider.ranking(fame.value))
+  const drawsLeft = computed(() => Math.max(0, FRIENDLIES.draw.maxDraws - drawsUsed.value))
+  const selectedOption = computed(() => options.value?.find((o) => o.botId === selectedBotId.value) ?? null)
+  // club.clubNow é atualizado a cada 1 s pelo ticker (useScouting): o contador da tela anda sozinho.
+  const msToNext = computed(() => msToNextToken({ tokens: tokens.value, tokenTickAt: tokenTickAt.value }, club.clubNow))
+
+  function setTokens(s: TokenState) {
+    if (s.tokens !== tokens.value) tokens.value = s.tokens
+    if (s.tokenTickAt !== tokenTickAt.value) tokenTickAt.value = s.tokenTickAt
+  }
+
+  /** Vitórias pagas que ainda restam no dia de `now` (Infinity com o limite desligado). */
+  function paidWinsLeft(now: number): number {
+    const cap = FRIENDLIES.prize.paidWinsPerDay
+    if (cap <= 0) return Number.POSITIVE_INFINITY
+    const used = paidWins.value.day === dayStart(now) ? paidWins.value.count : 0
+    return Math.max(0, cap - used)
+  }
+
+  function regenTokens(now: number) {
+    setTokens(regenTokenState({ tokens: tokens.value, tokenTickAt: tokenTickAt.value }, now))
+  }
+
+  /** Avança o ranking dos bots até agora (chamado ao abrir /friendlies; sem timer em segundo plano). */
+  function refresh(now: number) {
+    provider.refresh(now)
+  }
+
+  /** Um sorteio do desafio atual. Recusa com 3 já feitos ou com amistoso em andamento. Não exige ficha. */
+  function draw(userOver: number, now: number): boolean {
+    if (active.value) return false
+    if (drawsUsed.value >= FRIENDLIES.draw.maxDraws) return false
+    options.value = provider.drawOptions({ userOver, userFame: fame.value, paidWinsLeft: paidWinsLeft(now) }, Math.random)
+    drawsUsed.value += 1
+    selectedBotId.value = null
+    return true
+  }
+
+  function select(botId: string): boolean {
+    if (!options.value?.some((o) => o.botId === botId)) return false
+    selectedBotId.value = botId
+    return true
+  }
+
+  /**
+   * Apito inicial: gasta 1 ficha, fixa o prêmio (recalculado agora, por causa da virada do dia), grava o desafio e
+   * zera o contador de sorteios. Devolve false sem opção escolhida, sem ficha ou com outro amistoso em andamento.
+   */
+  function beginMatch(userOver: number, now: number): boolean {
+    const opt = selectedOption.value
+    if (!opt || active.value) return false
+    const regen = regenTokenState({ tokens: tokens.value, tokenTickAt: tokenTickAt.value }, now)
+    const spent = spendToken(regen, now)
+    if (!spent) {
+      setTokens(regen)
+      return false
+    }
+    setTokens(spent)
+    active.value = {
+      botId: opt.botId,
+      botName: opt.name,
+      userOver,
+      oppOver: opt.over,
+      prize: paidWinsLeft(now) > 0 ? friendlyPrize(opt.over) : 0,
+      rankBefore: rank.value,
+      startedAt: now
+    }
+    options.value = null
+    selectedBotId.value = null
+    drawsUsed.value = 0
+    return true
+  }
+
+  /**
+   * Fim do amistoso: fama (Elo), prêmio da vitória (creditado no clube), fama oposta no bot, histórico próprio.
+   * Nunca toca em club.reputation (spec §2.12).
+   */
+  function settle(userScore: number, oppScore: number, now: number): FriendlySummary | null {
+    const a = active.value
+    if (!a) return null
+    const outcome = outcomeFromScore(userScore, oppScore)
+    const delta = fameDelta(a.userOver, a.oppOver, outcome)
+    const before = fame.value
+    fame.value = applyFame(before, delta)
+    let prize = 0
+    if (outcome === 'win' && a.prize > 0) {
+      prize = a.prize
+      const today = dayStart(now)
+      paidWins.value = { day: today, count: (paidWins.value.day === today ? paidWins.value.count : 0) + 1 }
+      club.earn(prize)
+    }
+    provider.reportResult(a.botId, delta)
+    const applied = fame.value - before
+    recent.value = [
+      { at: now, botName: a.botName, oppOver: a.oppOver, userScore, oppScore, fameDelta: applied, prize },
+      ...recent.value
+    ].slice(0, FRIENDLIES.recentMax)
+    active.value = null
+    return {
+      prize,
+      fameDelta: applied,
+      fameAfter: fame.value,
+      rankBefore: a.rankBefore,
+      rankAfter: rank.value,
+      paidCapReached: outcome === 'win' && a.prize === 0 && FRIENDLIES.prize.paidWinsPerDay > 0
+    }
+  }
+
+  /** Boot: desafio gravado sem partida ao vivo (save ao vivo perdido) não conta. Devolve true se limpou. */
+  function resolveOrphan(isLive: boolean): boolean {
+    if (!active.value || isLive) return false
+    active.value = null
+    return true
+  }
+
+  function apply(s: FriendliesSave) {
+    fame.value = s.fame
+    tokens.value = s.tokens
+    tokenTickAt.value = s.tokenTickAt
+    seed.value = s.seed
+    bots.value = s.bots
+    botsSimAt.value = s.botsSimAt
+    options.value = s.options
+    drawsUsed.value = s.drawsUsed
+    selectedBotId.value = s.selectedBotId
+    active.value = s.active
+    paidWins.value = s.paidWins
+    recent.value = s.recent
+  }
+
+  function toSave(): FriendliesSave {
+    return {
+      v: 1,
+      fame: fame.value,
+      tokens: tokens.value,
+      tokenTickAt: tokenTickAt.value,
+      seed: seed.value,
+      bots: bots.value,
+      botsSimAt: botsSimAt.value,
+      options: options.value,
+      drawsUsed: drawsUsed.value,
+      selectedBotId: selectedBotId.value,
+      active: active.value,
+      paidWins: paidWins.value,
+      recent: recent.value
+    }
+  }
+
+  /** Campo ausente ou de outra versão: estado novo. Presente: valida campo a campo (spec §5, Persistência). */
+  function fromSave(raw: unknown) {
+    const now = Date.now()
+    const d = raw as Partial<Record<keyof FriendliesSave, unknown>> | null | undefined
+    if (!d || typeof d !== 'object' || d.v !== 1) {
+      apply(freshState(now))
+      return
+    }
+    const seedV = isNum(d.seed) ? d.seed : now
+    const botsV =
+      Array.isArray(d.bots) && d.bots.length === FRIENDLIES.bots.count && d.bots.every(isBot) ? (d.bots as FriendlyBot[]) : generateBots(seedV)
+    const optionsV = Array.isArray(d.options) && d.options.length && d.options.every(isOption) ? (d.options as FriendlyOption[]) : null
+    // Sem opções não há desafio em curso: o contador volta a 0 (o usuário não fica travado sem nada para escolher).
+    const drawsV = optionsV && isNum(d.drawsUsed) ? clamp(Math.round(d.drawsUsed), 0, FRIENDLIES.draw.maxDraws) : 0
+    const pw = d.paidWins as { day?: unknown; count?: unknown } | null | undefined
+    apply({
+      v: 1,
+      fame: isNum(d.fame) ? Math.max(0, Math.round(d.fame)) : 0,
+      tokens: isNum(d.tokens) ? clamp(Math.floor(d.tokens), 0, FRIENDLIES.tokens.max) : FRIENDLIES.tokens.initial,
+      tokenTickAt: isNum(d.tokenTickAt) ? Math.min(d.tokenTickAt, now) : now,
+      seed: seedV,
+      bots: botsV,
+      botsSimAt: isNum(d.botsSimAt) ? Math.min(d.botsSimAt, now) : now,
+      options: optionsV,
+      drawsUsed: drawsV,
+      selectedBotId: optionsV && isStr(d.selectedBotId) && optionsV.some((o) => o.botId === d.selectedBotId) ? d.selectedBotId : null,
+      active: isChallenge(d.active) ? d.active : null,
+      paidWins: pw && isNum(pw.day) && isNum(pw.count) ? { day: pw.day, count: Math.max(0, Math.round(pw.count)) } : { day: 0, count: 0 },
+      recent: Array.isArray(d.recent) ? (d.recent.filter(isResult) as FriendlyResult[]).slice(0, FRIENDLIES.recentMax) : []
+    })
+  }
+
+  /** Nova carreira (clearSave): volta ao estado novo. */
+  function reset() {
+    apply(freshState(Date.now()))
+  }
+
+  return {
+    fame,
+    tokens,
+    tokenTickAt,
+    seed,
+    bots,
+    botsSimAt,
+    options,
+    drawsUsed,
+    selectedBotId,
+    active,
+    paidWins,
+    recent,
+    rank,
+    ranking,
+    drawsLeft,
+    selectedOption,
+    msToNext,
+    paidWinsLeft,
+    regenTokens,
+    refresh,
+    draw,
+    select,
+    beginMatch,
+    settle,
+    resolveOrphan,
+    toSave,
+    fromSave,
+    reset
+  }
+})
+```
+
+- [ ] **Passo 4: rodar a checagem**
+
+Rodar: `node scripts/verify-friendlies/run.mjs store` → `OK store`.
+
+- [ ] **Passo 5: persistência em `src/composables/usePersistence.ts`**
+
+5a. Import (junto dos outros imports de store, depois de `import { useCompetitionsStore } from '@/stores/competitions'`):
+
+```ts
+import { useFriendliesStore } from '@/stores/friendlies'
+```
+
+5b. Dentro de `usePersistence()`, depois de `const competitions = useCompetitionsStore()`:
+
+```ts
+  const friendlies = useFriendliesStore()
+```
+
+5c. Em `saveGame`, localizar:
+
+```ts
+          staffContracts: club.staffContracts,
+          ...competitions.toSave()
+```
+
+substituir por:
+
+```ts
+          staffContracts: club.staffContracts,
+          ...competitions.toSave(),
+          // Campo aditivo (sem trocar STORAGE_KEY nem migração numerada): saves antigos ganham estado novo no load.
+          friendlies: friendlies.toSave()
+```
+
+5d. Em `loadGame`, localizar:
+
+```ts
+        competitions.ensureBrackets()
+```
+
+substituir por:
+
+```ts
+        competitions.ensureBrackets()
+        friendlies.fromSave(p.friendlies)
+```
+
+5e. Em `clearSave`, localizar:
+
+```ts
+    club.resetClub()
+    scouting.reset()
+    match.resetMatchState()
+```
+
+substituir por:
+
+```ts
+    club.resetClub()
+    scouting.reset()
+    match.resetMatchState()
+    friendlies.reset()
+```
+
+- [ ] **Passo 6: partida órfã no boot em `src/App.vue`**
+
+6a. Imports: depois de `import { useMatchSimulation } from '@/composables/useMatchSimulation'`, acrescentar:
+
+```ts
+import { useMatchStore } from '@/stores/match'
+import { useUiStore } from '@/stores/ui'
+import { useFriendliesStore } from '@/stores/friendlies'
+```
+
+6b. Depois de `const { restoreLiveMatches } = useMatchSimulation()`, acrescentar:
+
+```ts
+const match = useMatchStore()
+const ui = useUiStore()
+const friendlies = useFriendliesStore()
+```
+
+6c. Localizar:
+
+```ts
+  if (loadGame()) restoreLiveMatches()
+  else initializeFreshCareer()
+```
+
+substituir por:
+
+```ts
+  if (loadGame()) {
+    restoreLiveMatches()
+    // Amistoso gravado como em andamento que não voltou (save ao vivo ausente ou corrompido): não conta e a ficha não volta.
+    if (friendlies.resolveOrphan(match.isCompetitionLive('friendly'))) {
+      ui.showToast('O amistoso anterior foi interrompido e não contou.', 'warning')
+      saveGame()
+    }
+  } else initializeFreshCareer()
+```
+
+- [ ] **Passo 7: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs` → todas as linhas `OK ...` (ranking, tokens, fame, draw, bots, provider, store).
+Rodar: `npm run build` → `✓ built in ...`.
+
+- [ ] **Passo 8: commit**
+
+```bash
+git add src/stores/friendlies.ts scripts/verify-friendlies/store.check.ts src/composables/usePersistence.ts src/App.vue
+git commit -m "feat(amistosos): store de amistosos com save"
+```
+
+**Pronto quando:** `OK store`, todas as outras checagens seguem OK, build passa.
+
+**Não fazer:** não chamar `saveGame`/`usePersistence` dentro da store; não alterar `STORAGE_KEY` nem criar migração em `src/migrations/`; não mexer em `club.reputation`; não chamar a store a partir de `useSeason.applyEndOfSeason` (fim de temporada não afeta amistosos).
+
+---
+
+## Tarefa 8: recarga de fichas no ticker
+
+**Commit:** `feat(amistosos): recarga de fichas no ticker`
+**Depende de:** Tarefas 7 (store) e 9 (literal `'friendly'`).
+
+Regras (spec §2.1 e §2.5): fichas recarregam a cada segundo pelo ticker de 1 s (`useScouting().startMissionTicker`, iniciado em `src/App.vue`); a energia só congela se houver partida ao vivo **de outra competição** (amistoso ao vivo não congela a recuperação natural).
+
+**Arquivos:**
+- Alterar: `src/composables/useScouting.ts`
+
+- [ ] **Passo 1: import**
+
+Depois de `import { useClubStore } from '@/stores/club'`, acrescentar:
+
+```ts
+import { useFriendliesStore } from '@/stores/friendlies'
+```
+
+- [ ] **Passo 2: instância da store**
+
+Dentro de `useScouting()`, depois de `const scouting = useScoutingStore()`, acrescentar:
+
+```ts
+  const friendlies = useFriendliesStore()
+```
+
+- [ ] **Passo 3: ticker**
+
+Localizar:
+
+```ts
+      // Partida ao vivo congela a recuperação: a energia não muda no meio do jogo.
+      if (match.liveCompetitions.length) club.staminaTickAt = nowTick.value
+      else squad.regenStamina(nowTick.value)
+```
+
+substituir por:
+
+```ts
+      // Partida ao vivo congela a recuperação: a energia não muda no meio do jogo. O amistoso não congela (todos jogam
+      // como se tivessem energia 100 e o jogo não consome nem recupera energia).
+      if (match.liveCompetitions.some((c) => c !== 'friendly')) club.staminaTickAt = nowTick.value
+      else squad.regenStamina(nowTick.value)
+      // Fichas de amistoso: +1 a cada 6 min de tempo real; o primeiro tick depois de abrir aplica o tempo offline.
+      friendlies.regenTokens(nowTick.value)
+```
+
+- [ ] **Passo 4: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`.
+Manual (`npm run dev`): no DevTools, editar `super_xi_full_save_v7` com `friendlies.tokens = 5` e `friendlies.tokenTickAt` = agora − 30 min; recarregar; depois de 1 s o estado da store mostra 10 fichas (ou ver na tela quando a Tarefa 15 existir).
+
+- [ ] **Passo 5: commit**
+
+```bash
+git add src/composables/useScouting.ts
+git commit -m "feat(amistosos): recarga de fichas no ticker"
+```
+
+**Pronto quando:** build passa; com só um amistoso ao vivo a energia continua recuperando.
+
+**Não fazer:** não criar outro `setInterval`; não chamar `saveGame` a cada tick.
+
+---
+
+## Tarefa 9: competição `friendly` no tipo e nas sessões
+
+**Commit:** `feat(partida): competicao friendly no tipo e nas sessoes`
+**Depende de:** Tarefa 1 (`FriendlySummary`).
+
+Com `'friendly'` em `MatchCompetition` e em `COMPETITIONS_ORDER`, `saveLiveMatch`/`restoreLiveMatches`, `liveCompetitions`, `openCompetitions` e `MatchSwitcher` passam a cobrir o amistoso sem código novo (spec §4.2). `isSuspendedFor(p, 'friendly')` = suspenso em qualquer competição (regra 4).
+
+**Arquivos:**
+- Alterar: `src/types/match.ts`
+- Alterar: `src/stores/match.ts`
+- Alterar: `src/utils/player/suspension.ts`
+- Alterar: `src/utils/match/matchResult.ts`
+- Alterar: `src/components/match/MatchSwitcher.vue`
+- Alterar: `src/utils/navigation/sectionMemory.ts`
+
+- [ ] **Passo 1: `src/types/match.ts`**
+
+1a. Primeira linha do arquivo (antes de `export type TacticalMentality`):
+
+```ts
+import type { FriendlySummary } from './friendlies'
+
+```
+
+1b. Localizar:
+
+```ts
+export type MatchCompetition = 'league' | 'cup' | 'continental' | 'supercup' | 'recopa'
+```
+
+substituir por:
+
+```ts
+export type MatchCompetition = 'league' | 'cup' | 'continental' | 'supercup' | 'recopa' | 'friendly'
+```
+
+1c. Em `LastMatchSummary`, localizar:
+
+```ts
+  /** Títulos dos marcos de progressão atingidos nesta partida. */
+  milestones?: string[]
+}
+```
+
+substituir por:
+
+```ts
+  /** Títulos dos marcos de progressão atingidos nesta partida. */
+  milestones?: string[]
+  /** Só em amistoso: prêmio, fama e posição (ticket, sponsor, wages, interest e maintenance ficam 0). */
+  friendly?: FriendlySummary
+}
+```
+
+- [ ] **Passo 2: `src/stores/match.ts`**
+
+2a. Localizar:
+
+```ts
+export const COMPETITIONS_ORDER: MatchCompetition[] = ['league', 'cup', 'continental', 'supercup', 'recopa']
+```
+
+substituir por:
+
+```ts
+export const COMPETITIONS_ORDER: MatchCompetition[] = ['league', 'cup', 'continental', 'supercup', 'recopa', 'friendly']
+```
+
+2b. Localizar:
+
+```ts
+    supercup: newSession(),
+    recopa: newSession()
+  })
+```
+
+substituir por:
+
+```ts
+    supercup: newSession(),
+    recopa: newSession(),
+    friendly: newSession()
+  })
+```
+
+- [ ] **Passo 3: `src/utils/player/suspension.ts`**
+
+Localizar o bloco do topo:
+
+```ts
+export const COMP_SHORT: Record<MatchCompetition, string> = {
+  league: 'Liga',
+  cup: 'Taça Cacique',
+  continental: 'Copa Condor',
+  supercup: 'Supercopa',
+  recopa: 'Recopa'
+}
+
+const ORDER = Object.keys(COMP_SHORT) as MatchCompetition[]
+
+/** O atleta está suspenso para a próxima partida desta competição? */
+export function isSuspendedFor(p: Pick<Player, 'suspension'>, comp: MatchCompetition): boolean {
+  return (p.suspension?.[comp] ?? 0) > 0
+}
+```
+
+substituir por:
+
+```ts
+export const COMP_SHORT: Record<MatchCompetition, string> = {
+  league: 'Liga',
+  cup: 'Taça Cacique',
+  continental: 'Copa Condor',
+  supercup: 'Supercopa',
+  recopa: 'Recopa',
+  friendly: 'Amistoso'
+}
+
+// Amistoso não tem suspensão própria: fora da lista para suspensionsOf/yellowsOf não mostrarem "suspenso no Amistoso".
+const ORDER = (Object.keys(COMP_SHORT) as MatchCompetition[]).filter((c) => c !== 'friendly')
+
+/** O atleta está suspenso para a próxima partida desta competição? No amistoso: suspenso em qualquer competição. */
+export function isSuspendedFor(p: Pick<Player, 'suspension'>, comp: MatchCompetition): boolean {
+  if (comp === 'friendly') return Object.values(p.suspension ?? {}).some((n) => (n ?? 0) > 0)
+  return (p.suspension?.[comp] ?? 0) > 0
+}
+```
+
+- [ ] **Passo 4: `src/utils/match/matchResult.ts`**
+
+Localizar:
+
+```ts
+  supercup: 'Supercopa',
+  recopa: 'Recopa'
+}
+```
+
+substituir por:
+
+```ts
+  supercup: 'Supercopa',
+  recopa: 'Recopa',
+  friendly: 'Amistoso'
+}
+```
+
+(O filtro de `src/views/MatchesView.vue` só lista competições presentes no histórico; amistoso não entra em `matchHistory`, então não aparece filtro novo.)
+
+- [ ] **Passo 5: `src/components/match/MatchSwitcher.vue`**
+
+Localizar:
+
+```ts
+  supercup: 'Supercopa',
+  recopa: 'Recopa'
+}
+```
+
+substituir por:
+
+```ts
+  supercup: 'Supercopa',
+  recopa: 'Recopa',
+  friendly: 'Amistoso'
+}
+```
+
+- [ ] **Passo 6: `src/utils/navigation/sectionMemory.ts`**
+
+Substituir o arquivo inteiro por:
+
+```ts
+import type { MatchCompetition } from '@/types/match'
+
+export type MatchNavId = 'league' | 'competitions' | 'friendlies'
+
+/** A partida é subpágina: o item de navegação "dono" dela é o da competição que está sendo jogada. */
+export function navIdForCompetition(comp: MatchCompetition): MatchNavId {
+  if (comp === 'league') return 'league'
+  if (comp === 'friendly') return 'friendlies'
+  return 'competitions'
+}
+
+export interface SectionMemory {
+  path: string
+  /** Competição da partida, quando a última tela da seção foi o pré-jogo ou a partida. */
+  comp?: MatchCompetition
+}
+
+/** Última tela visitada em cada seção que tem partida (Liga, Competições e Amistosos). Fora do estado reativo de propósito. */
+export const sectionMemory: Partial<Record<MatchNavId, SectionMemory>> = {}
+
+const MAIN_PATHS: Record<string, MatchNavId> = { '/league': 'league', '/competitions': 'competitions', '/friendlies': 'friendlies' }
+
+/** Chamado a cada navegação: guarda onde o usuário estava dentro da seção. */
+export function rememberSection(path: string, activeComp: MatchCompetition): void {
+  if (path === '/match' || path === '/pre-match') {
+    sectionMemory[navIdForCompetition(activeComp)] = { path, comp: activeComp }
+    return
+  }
+  const id = MAIN_PATHS[path]
+  if (id) sectionMemory[id] = { path }
+}
+```
+
+- [ ] **Passo 7: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`. Se o `vue-tsc` apontar outro `Record<MatchCompetition, ...>` sem a chave `friendly`, acrescente `friendly` com o rótulo `'Amistoso'` nesse objeto e cite o arquivo no relatório (a busca feita para este plano só achou os quatro acima).
+Rodar: `node scripts/verify-friendlies/run.mjs` → nada quebrou (`OK` em todas as checagens existentes).
+
+- [ ] **Passo 8: commit**
+
+```bash
+git add src/types/match.ts src/stores/match.ts src/utils/player/suspension.ts src/utils/match/matchResult.ts src/components/match/MatchSwitcher.vue src/utils/navigation/sectionMemory.ts
+git commit -m "feat(partida): competicao friendly no tipo e nas sessoes"
+```
+
+**Pronto quando:** build passa; nenhuma tela existente muda de comportamento (nada inicia amistoso ainda).
+
+**Não fazer:** não mexer em `useMatchSimulation.ts` (Tarefas 11–13); não adicionar item de navegação (Tarefa 17).
+
+---
+
+## Tarefa 10: força do time sem cansaço
+
+**Commit:** `feat(partida): forca do time sem cansaco`
+**Depende de:** Tarefa 9 (`isSuspendedFor(p, 'friendly')`).
+
+Regra 5: no amistoso todos jogam como se tivessem energia 100 (sem o −3 de `stamina < 60`). O padrão das demais competições não muda.
+
+**Arquivos:**
+- Alterar: `src/utils/match/calculateTeamStrength.ts`
+- Alterar: `src/stores/squad.ts`
+
+- [ ] **Passo 1: `getEffectiveOvr` com opção**
+
+Em `src/utils/match/calculateTeamStrength.ts`, localizar:
+
+```ts
+export function getEffectiveOvr(player: Player | null, slotRole: PlayerPosition): number {
+  if (!player) return 0
+  const posPenalty = positionPenalty(player.position, slotRole)
+  const fatiguePenalty = (player.stamina ?? 100) < 60 ? -3 : 0
+```
+
+substituir por:
+
+```ts
+/** `ignoreFatigue`: amistoso, todos jogam como se tivessem energia 100. */
+export interface StrengthOpts {
+  ignoreFatigue?: boolean
+}
+
+export function getEffectiveOvr(player: Player | null, slotRole: PlayerPosition, opts?: StrengthOpts): number {
+  if (!player) return 0
+  const posPenalty = positionPenalty(player.position, slotRole)
+  const fatiguePenalty = !opts?.ignoreFatigue && (player.stamina ?? 100) < 60 ? -3 : 0
+```
+
+- [ ] **Passo 2: `calculateTeamStrength` repassando a opção**
+
+Localizar:
+
+```ts
+export function calculateTeamStrength(
+  slots: Array<{ player: Player | null; role: PlayerPosition }>,
+  unavailable?: ReadonlySet<string>
+): TeamStrengthBreakdown {
+```
+
+substituir por:
+
+```ts
+export function calculateTeamStrength(
+  slots: Array<{ player: Player | null; role: PlayerPosition }>,
+  unavailable?: ReadonlySet<string>,
+  opts?: StrengthOpts
+): TeamStrengthBreakdown {
+```
+
+e, no mesmo corpo, localizar:
+
+```ts
+    const eff = slot.player && !out ? getEffectiveOvr(slot.player, slot.role) : 0 // vaga vazia (ou indisponível) conta como 0
+```
+
+substituir por:
+
+```ts
+    const eff = slot.player && !out ? getEffectiveOvr(slot.player, slot.role, opts) : 0 // vaga vazia (ou indisponível) conta como 0
+```
+
+- [ ] **Passo 3: `src/stores/squad.ts`**
+
+3a. Imports: depois de `import { useClubStore } from '@/stores/club'`, acrescentar:
+
+```ts
+import { isSuspendedFor } from '@/utils/player/suspension'
+```
+
+3b. Localizar:
+
+```ts
+  const teamStrength = computed(() => calculateTeamStrength(pitchSlots.value))
+```
+
+substituir por:
+
+```ts
+  const teamStrength = computed(() => calculateTeamStrength(pitchSlots.value))
+  // OVER do amistoso: a mesma escalação com energia 100 (regra 5 da spec de amistosos).
+  const freshTeamStrength = computed(() => calculateTeamStrength(pitchSlots.value, undefined, { ignoreFatigue: true }))
+  // Atletas que podem jogar amistoso: sem lesão, sem suspensão em nenhuma competição e não emprestados.
+  const friendlyEligibleCount = computed(
+    () => players.value.filter((p) => !p.injury && !p.isLoanedOut && !isSuspendedFor(p, 'friendly')).length
+  )
+```
+
+3c. No `return` da store, localizar:
+
+```ts
+    teamStrength,
+```
+
+substituir por:
+
+```ts
+    teamStrength,
+    freshTeamStrength,
+    friendlyEligibleCount,
+```
+
+- [ ] **Passo 4: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`.
+Rodar: `node scripts/verify-league/run.mjs` → `OK: saida identica a baseline` (o padrão de força não mudou). Se a baseline não existir no seu checkout, registre isso no relatório e siga só com o build.
+
+- [ ] **Passo 5: commit**
+
+```bash
+git add src/utils/match/calculateTeamStrength.ts src/stores/squad.ts
+git commit -m "feat(partida): forca do time sem cansaco"
+```
+
+**Pronto quando:** build passa e a força das outras competições continua idêntica.
+
+**Não fazer:** não mudar `teamStrength`; não mexer em `pickBestLineup` nem em `regenStamina`.
+
+---
+
+## Tarefa 11: fluxo do amistoso na simulação (até o apito)
+
+**Commit:** `feat(partida): fluxo do amistoso na simulacao`
+**Depende de:** Tarefas 2 (`formatTokenCountdown`), 7 (store), 10 (`freshTeamStrength`, opção `ignoreFatigue`).
+
+Arquivo único: `src/composables/useMatchSimulation.ts`. Spec §4.4 até `startLiveMatch`. Ajuste deste plano: o snapshot é calculado **antes** de `beginMatch` (que limpa a opção escolhida) e `rawOpponentFor` cai em `friendlies.active`.
+
+**Arquivos:**
+- Alterar: `src/composables/useMatchSimulation.ts`
+
+- [ ] **Passo 1: imports**
+
+Depois de `import { useUiStore } from '@/stores/ui'`, acrescentar:
+
+```ts
+import { useFriendliesStore } from '@/stores/friendlies'
+import { formatTokenCountdown } from '@/utils/friendlies/tokens'
+```
+
+- [ ] **Passo 2: instância da store**
+
+Dentro de `useMatchSimulation()`, localizar:
+
+```ts
+  const ui = useUiStore()
+  const { saveGame } = usePersistence()
+```
+
+substituir por:
+
+```ts
+  const ui = useUiStore()
+  const friendlies = useFriendliesStore()
+  const { saveGame } = usePersistence()
+```
+
+- [ ] **Passo 3: `rawOpponentFor`**
+
+Localizar:
+
+```ts
+  function rawOpponentFor(comp: MatchCompetition): MatchOpponent {
+    if (comp === 'supercup') {
+```
+
+substituir por:
+
+```ts
+  function rawOpponentFor(comp: MatchCompetition): MatchOpponent {
+    if (comp === 'friendly') {
+      // Opção escolhida na roleta; depois do apito vale o desafio gravado. Sem nenhum, um rival neutro só para os computeds.
+      const opt = friendlies.selectedOption
+      if (opt) return { name: opt.name, power: opt.over, style: 'Amistoso' }
+      const a = friendlies.active
+      if (a) return { name: a.botName, power: a.oppOver, style: 'Amistoso' }
+      return { name: 'Adversário', power: Math.round(squad.freshTeamStrength.rating), style: 'Amistoso' }
+    }
+    if (comp === 'supercup') {
+```
+
+- [ ] **Passo 4: `rawLabelFor`**
+
+Localizar:
+
+```ts
+  function rawLabelFor(comp: MatchCompetition): string {
+    if (comp === 'supercup') return 'Supercopa Soberana • Final Única'
+```
+
+substituir por:
+
+```ts
+  function rawLabelFor(comp: MatchCompetition): string {
+    if (comp === 'friendly') {
+      const opt = friendlies.selectedOption
+      return opt ? 'Amistoso • Ranking #' + opt.rank : 'Amistoso'
+    }
+    if (comp === 'supercup') return 'Supercopa Soberana • Final Única'
+```
+
+- [ ] **Passo 5: `userBaseRating`**
+
+Localizar:
+
+```ts
+  function userBaseRating(comp: MatchCompetition): number {
+    const ids = unavailableIds(comp)
+    return ids.size ? calculateTeamStrength(squad.pitchSlots, ids).rating : squad.teamStrength.rating
+  }
+```
+
+substituir por:
+
+```ts
+  function userBaseRating(comp: MatchCompetition): number {
+    const ids = unavailableIds(comp)
+    // Amistoso: todos jogam como se tivessem energia 100, sem a penalidade de cansaço.
+    if (comp === 'friendly') return calculateTeamStrength(squad.pitchSlots, ids, { ignoreFatigue: true }).rating
+    return ids.size ? calculateTeamStrength(squad.pitchSlots, ids).rating : squad.teamStrength.rating
+  }
+```
+
+- [ ] **Passo 6: `lineupBlockers` e `lineupShort`**
+
+Localizar:
+
+```ts
+  function lineupBlockers(comp: MatchCompetition) {
+    const starters = new Set(squad.starterIds)
+```
+
+substituir por:
+
+```ts
+  function lineupBlockers(comp: MatchCompetition) {
+    // Amistoso: titular lesionado ou suspenso em qualquer competição bloqueia sempre, haja reserva ou não.
+    if (comp === 'friendly') return squad.currentStartersList.filter((p) => !!p.injury || isSuspendedFor(p, comp))
+    const starters = new Set(squad.starterIds)
+```
+
+E logo depois do fim da função `lineupBlockers` (antes do comentário `// Suspenso na competição sai da escalação...`), acrescentar:
+
+```ts
+  /** Amistoso exige 11 titulares escalados. */
+  function lineupShort(comp: MatchCompetition): boolean {
+    return comp === 'friendly' && squad.currentStartersList.length < 11
+  }
+
+```
+
+- [ ] **Passo 7: `prepareMatch`**
+
+Localizar:
+
+```ts
+    if (!competitions.isCompetitionPlayable(comp)) {
+      ui.showToast('Competição já encerrada.', 'warning')
+      router.push(comp === 'league' ? '/league' : '/competitions')
+      return
+    }
+    clearMatchTimer(comp)
+    discardInProgressGoals(comp)
+    match.activeMatchCompetition = comp
+    match.resetMatchState(comp)
+    fixLineupFor(comp).forEach((sw) =>
+      ui.showToast(`Desfalque na ${COMP_SHORT[comp]}: ${sw.out.name} está suspenso e ${sw.in.name} assume a vaga.`, 'warning')
+    )
+    router.push('/pre-match')
+```
+
+substituir por:
+
+```ts
+    if (!competitions.isCompetitionPlayable(comp)) {
+      ui.showToast('Competição já encerrada.', 'warning')
+      router.push(comp === 'league' ? '/league' : '/competitions')
+      return
+    }
+    if (comp === 'friendly' && !friendlies.selectedOption) {
+      ui.showToast('Sorteie um adversário.', 'warning')
+      router.push('/friendlies')
+      return
+    }
+    clearMatchTimer(comp)
+    discardInProgressGoals(comp)
+    match.activeMatchCompetition = comp
+    match.resetMatchState(comp)
+    fixLineupFor(comp).forEach((sw) =>
+      ui.showToast(
+        comp === 'friendly'
+          ? `Desfalque no Amistoso: ${sw.out.name} está lesionado ou suspenso e ${sw.in.name} assume a vaga.`
+          : `Desfalque na ${COMP_SHORT[comp]}: ${sw.out.name} está suspenso e ${sw.in.name} assume a vaga.`,
+        'warning'
+      )
+    )
+    router.push('/pre-match')
+```
+
+- [ ] **Passo 8: `startLiveMatch`**
+
+Localizar:
+
+```ts
+    const blockers = lineupBlockers(comp)
+    if (blockers.length) {
+      ui.showToast(`${blockers.map((p) => p.name).join(', ')} ${blockers.length === 1 ? 'está suspenso' : 'estão suspensos'} na ${COMP_SHORT[comp]}. Substitua antes de iniciar.`, 'danger')
+      return
+    }
+    discardInProgressGoals(comp)
+    // Congela adversário, mando e rótulo antes de ativar a sessão (depois do apito o estado das competições avança).
+    match.sessions[comp].snapshot = { opponent: { ...rawOpponentFor(comp) }, isHome: rawIsHomeFor(comp), label: rawLabelFor(comp) }
+```
+
+substituir por:
+
+```ts
+    const blockers = lineupBlockers(comp)
+    if (blockers.length) {
+      const names = blockers.map((p) => p.name).join(', ')
+      ui.showToast(
+        comp === 'friendly'
+          ? `${names} ${blockers.length === 1 ? 'está lesionado ou suspenso' : 'estão lesionados ou suspensos'}. Substitua antes de iniciar o amistoso.`
+          : `${names} ${blockers.length === 1 ? 'está suspenso' : 'estão suspensos'} na ${COMP_SHORT[comp]}. Substitua antes de iniciar.`,
+        'danger'
+      )
+      return
+    }
+    if (lineupShort(comp)) {
+      ui.showToast('São precisos 11 titulares para iniciar o amistoso.', 'danger')
+      return
+    }
+    // Congela adversário, mando e rótulo antes de ativar a sessão (depois do apito o estado das competições avança).
+    // No amistoso, antes de beginMatch: ele limpa a opção escolhida, que dá o nome e a posição do rival.
+    const frozen = { opponent: { ...rawOpponentFor(comp) }, isHome: rawIsHomeFor(comp), label: rawLabelFor(comp) }
+    if (comp === 'friendly') {
+      if (!friendlies.selectedOption) {
+        ui.showToast('Sorteie um adversário.', 'warning')
+        router.push('/friendlies')
+        return
+      }
+      // A ficha é gasta no apito inicial; grava o desafio e zera os sorteios.
+      if (!friendlies.beginMatch(squad.freshTeamStrength.rating, Date.now())) {
+        ui.showToast(`Sem fichas. Próxima em ${formatTokenCountdown(friendlies.msToNext)}.`, 'warning')
+        return
+      }
+      saveGame()
+    }
+    discardInProgressGoals(comp)
+    match.sessions[comp].snapshot = frozen
+```
+
+- [ ] **Passo 9: exportar `lineupShort`**
+
+No `return` final de `useMatchSimulation`, localizar:
+
+```ts
+    lineupBlockers,
+```
+
+substituir por:
+
+```ts
+    lineupBlockers,
+    lineupShort,
+```
+
+- [ ] **Passo 10: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`.
+Rodar: `node scripts/verify-friendlies/run.mjs` → todas `OK`.
+
+- [ ] **Passo 11: commit**
+
+```bash
+git add src/composables/useMatchSimulation.ts
+git commit -m "feat(partida): fluxo do amistoso na simulacao"
+```
+
+**Pronto quando:** build passa; liga e copas seguem com o mesmo fluxo (as mudanças só valem para `comp === 'friendly'`).
+
+**Não fazer:** não mexer em `simulateMatchTick`, `rollLiveInjury`, `needsShootout`, `concludeMatch` nem `finishMatchAndReturn` (Tarefas 12 e 13); não alterar `rawIsHomeFor`/`homeBonusApplies` (já dão mando `true` sem bônus no amistoso).
+
+---
+
+## Tarefa 12: regras ao vivo do amistoso
+
+**Commit:** `feat(partida): regras ao vivo do amistoso`
+**Depende de:** Tarefas 9 e 11 (mesmo arquivo `useMatchSimulation.ts`; rode depois da 11 para não conflitar).
+
+Regras (spec §2.6–2.9, §4.4): amistoso não credita gols/assistências (estatísticas de temporada e carreira intactas; logs `matchGoalLogs/matchAssistLogs` vazios); lesão ao vivo sem efeito de cansaço e sem o `+1` (o amistoso não desconta jogo); sem pênaltis; no painel de substituição, reserva lesionado não entra.
+
+**Arquivos:**
+- Alterar: `src/composables/useMatchSimulation.ts`
+- Alterar: `src/components/match/SubstitutionDrawer.vue`
+
+- [ ] **Passo 1: helper `credit` (nível de módulo)**
+
+Em `src/composables/useMatchSimulation.ts`, localizar:
+
+```ts
+/** Mando de +3 OVER só vale na liga e no continental; Copa, Supercopa e Recopa não dão mando ao usuário. */
+export function homeBonusApplies(comp: MatchCompetition | null | undefined): boolean {
+```
+
+substituir por:
+
+```ts
+/** Amistoso não credita gols nem assistências: nada entra nas estatísticas de temporada/carreira nem nos logs da partida. */
+function credit(comp: MatchCompetition, fn: () => void) {
+  if (comp !== 'friendly') fn()
+}
+
+/** Mando de +3 OVER só vale na liga e no continental; Copa, Supercopa e Recopa não dão mando ao usuário. */
+export function homeBonusApplies(comp: MatchCompetition | null | undefined): boolean {
+```
+
+- [ ] **Passo 2: gol de falta (em `simulateMatchTick`, função `freeKick`)**
+
+Localizar:
+
+```ts
+          if (kicker) {
+            club.recordGoal(kicker)
+            ;(matchGoalLogs[comp] ??= []).push(kicker.id)
+          }
+```
+
+substituir por:
+
+```ts
+          if (kicker) {
+            credit(comp, () => {
+              club.recordGoal(kicker)
+              ;(matchGoalLogs[comp] ??= []).push(kicker.id)
+            })
+          }
+```
+
+- [ ] **Passo 3: gol de jogada**
+
+Localizar:
+
+```ts
+          if (shooter && !ownGoal) {
+            club.recordGoal(shooter)
+            ;(matchGoalLogs[comp] ??= []).push(shooter.id)
+```
+
+substituir por:
+
+```ts
+          if (shooter && !ownGoal) {
+            credit(comp, () => {
+              club.recordGoal(shooter)
+              ;(matchGoalLogs[comp] ??= []).push(shooter.id)
+            })
+```
+
+- [ ] **Passo 4: assistência**
+
+Localizar:
+
+```ts
+                assisterName = assister.name
+                club.recordAssist(assister)
+                ;(matchAssistLogs[comp] ??= []).push(assister.id)
+```
+
+substituir por:
+
+```ts
+                assisterName = assister.name
+                credit(comp, () => {
+                  club.recordAssist(assister)
+                  ;(matchAssistLogs[comp] ??= []).push(assister.id)
+                })
+```
+
+- [ ] **Passo 5: gol de pênalti**
+
+Localizar:
+
+```ts
+        if (taker) {
+          club.recordGoal(taker)
+          ;(matchGoalLogs[comp] ??= []).push(taker.id)
+        }
+```
+
+substituir por:
+
+```ts
+        if (taker) {
+          credit(comp, () => {
+            club.recordGoal(taker)
+            ;(matchGoalLogs[comp] ??= []).push(taker.id)
+          })
+        }
+```
+
+Conferência: depois dos passos 2–5, `grep -n "club.record\(Goal\|Assist\)" src/composables/useMatchSimulation.ts` deve mostrar só chamadas dentro de `credit(comp, () => { ... })`.
+
+- [ ] **Passo 6: `rollLiveInjury`**
+
+Localizar:
+
+```ts
+      const tired = Math.max(0, 60 - (p.stamina ?? 100)) / 60
+```
+
+substituir por:
+
+```ts
+      // Amistoso: todos jogam com energia 100, então o cansaço não aumenta a chance de lesão.
+      const tired = comp === 'friendly' ? 0 : Math.max(0, 60 - (p.stamina ?? 100)) / 60
+```
+
+e localizar:
+
+```ts
+      // +1: o fim desta partida já desconta um jogo de quem for substituído.
+      p.injury = { matchesLeft: matches + 1 }
+```
+
+substituir por:
+
+```ts
+      // +1: o fim desta partida já desconta um jogo de quem for substituído. O amistoso não desconta jogo, então sem o +1.
+      p.injury = { matchesLeft: comp === 'friendly' ? matches : matches + 1 }
+```
+
+- [ ] **Passo 7: `needsShootout`**
+
+Localizar:
+
+```ts
+  function needsShootout(comp: MatchCompetition, u: number, o: number): boolean {
+    if (comp === 'cup' || comp === 'supercup' || comp === 'recopa') return u === o
+```
+
+substituir por:
+
+```ts
+  function needsShootout(comp: MatchCompetition, u: number, o: number): boolean {
+    if (comp === 'friendly') return false // amistoso: sem prorrogação nem pênaltis
+    if (comp === 'cup' || comp === 'supercup' || comp === 'recopa') return u === o
+```
+
+- [ ] **Passo 8: `src/components/match/SubstitutionDrawer.vue`**
+
+Localizar:
+
+```ts
+// Suspenso na competição desta partida não pode entrar.
+const benchCandidates = computed(() => squad.availableBenchList.filter((p) => !isSuspendedFor(p, match.activeMatchCompetition)))
+```
+
+substituir por:
+
+```ts
+// Suspenso na competição desta partida não pode entrar. No amistoso, lesionado também não.
+const benchCandidates = computed(() =>
+  squad.availableBenchList.filter(
+    (p) => !isSuspendedFor(p, match.activeMatchCompetition) && !(match.activeMatchCompetition === 'friendly' && p.injury)
+  )
+)
+```
+
+- [ ] **Passo 9: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`.
+
+- [ ] **Passo 10: commit**
+
+```bash
+git add src/composables/useMatchSimulation.ts src/components/match/SubstitutionDrawer.vue
+git commit -m "feat(partida): regras ao vivo do amistoso"
+```
+
+**Pronto quando:** build passa; as 4 chamadas de crédito estão protegidas; amistoso empatado não vai para pênaltis.
+
+**Não fazer:** não mudar a narração nem o sorteio de cartões (cartões valem dentro da partida); não tocar em `concludeMatch` (Tarefa 13).
+
+---
+
+## Tarefa 13: encerramento do amistoso
+
+**Commit:** `feat(partida): encerramento do amistoso`
+**Depende de:** Tarefas 7 (`friendlies.settle`) e 12 (mesmo arquivo).
+
+Spec §4.4 (`concludeMatch('friendly')`): ramo próprio que retorna cedo. Limpa logs e cartões (sem `applyDiscipline`), agrava lesão de quem ficou em campo lesionado (`INJURY.aggravateMatches`, teto `aggravateCap`), ninguém cumpre jogo de lesão antiga, `friendlies.settle`, monta o `LastMatchSummary` com `friendly`, salva. **Não** chama `settleMatch`, `applyPostMatchProgression`, marcos, `addMatchRecord` nem `generateIncomingTransferOffer`. Não toca em `club.reputation`.
+
+**Arquivos:**
+- Alterar: `src/composables/useMatchSimulation.ts`
+
+- [ ] **Passo 1: funções do encerramento**
+
+Localizar o início de `concludeMatch`:
+
+```ts
+  function concludeMatch(comp: MatchCompetition = match.activeMatchCompetition) {
+    const session = match.sessions[comp]
+```
+
+substituir por:
+
+```ts
+  // Amistoso: lesionado que ficou em campo agrava; ninguém cumpre jogo de lesão antiga (senão vira cura por farm).
+  function applyFriendlyInjuries() {
+    squad.players.forEach((p) => {
+      if (!p.injury || !squad.starterIds.includes(p.id)) return
+      p.injury.matchesLeft = Math.min(INJURY.aggravateCap, p.injury.matchesLeft + INJURY.aggravateMatches)
+      ui.showToast(`${p.name} agravou a lesão por jogar machucado: agora são ${p.injury.matchesLeft} jogos fora.`, 'danger')
+    })
+    squad.replaceInjuredStarters()
+  }
+
+  // Fim do amistoso: fora da temporada. Sem disciplina, economia da partida, desgaste, evolução, marcos, histórico de
+  // partidas nem propostas; club.reputation não muda (a fama é separada).
+  function concludeFriendly() {
+    const comp: MatchCompetition = 'friendly'
+    const session = match.sessions[comp]
+    matchGoalLogs[comp] = []
+    matchAssistLogs[comp] = []
+    delete matchCards[comp]
+    applyFriendlyInjuries()
+    const fs = friendlies.settle(session.matchState.userScore, session.matchState.opponentScore, Date.now())
+    const prize = fs?.prize ?? 0
+    session.lastMatchSummary = {
+      ticket: 0,
+      sponsor: 0,
+      winBonus: prize,
+      wages: 0,
+      net: prize,
+      interest: 0,
+      maintenance: 0,
+      ...(fs ? { friendly: fs } : {})
+    }
+    saveGame()
+    saveLiveMatch()
+  }
+
+  function concludeMatch(comp: MatchCompetition = match.activeMatchCompetition) {
+    if (comp === 'friendly') {
+      concludeFriendly()
+      return
+    }
+    const session = match.sessions[comp]
+```
+
+- [ ] **Passo 2: `finishMatchAndReturn`**
+
+Localizar:
+
+```ts
+    router.push(comp === 'league' ? '/league' : '/competitions')
+    // Se outra partida segue aberta, ela vira o alvo do item "Partidas"; senão, competição encerrada volta para a liga.
+    const other = match.openCompetitions.find((c) => c !== comp)
+    if (other) match.activeMatchCompetition = other
+    else if (!competitions.isCompetitionPlayable(comp)) match.activeMatchCompetition = 'league'
+```
+
+substituir por:
+
+```ts
+    router.push(comp === 'league' ? '/league' : comp === 'friendly' ? '/friendlies' : '/competitions')
+    // Se outra partida segue aberta, ela vira o alvo do item "Partidas"; senão, competição encerrada volta para a liga.
+    // Amistoso encerrado também volta para a liga: o próximo exige novo sorteio, não há pré-jogo a reabrir.
+    const other = match.openCompetitions.find((c) => c !== comp)
+    if (other) match.activeMatchCompetition = other
+    else if (comp === 'friendly' || !competitions.isCompetitionPlayable(comp)) match.activeMatchCompetition = 'league'
+```
+
+- [ ] **Passo 3: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`.
+Conferência: em `concludeFriendly` não há chamada a `settleMatch`, `applyDiscipline`, `applyPostMatchProgression`, `club.addMilestones`, `match.addMatchRecord`, `market.generateIncomingTransferOffer` nem `club.reputation`.
+
+- [ ] **Passo 4: commit**
+
+```bash
+git add src/composables/useMatchSimulation.ts
+git commit -m "feat(partida): encerramento do amistoso"
+```
+
+**Pronto quando:** build passa e o ramo `friendly` retorna antes de qualquer efeito de temporada.
+
+**Não fazer:** não alterar o ramo das outras competições; a rota `/friendlies` só existe na Tarefa 15 (até lá o `router.push('/friendlies')` não tem destino, o que é esperado nesta etapa).
+
+---
+
+## Tarefa 14: pré-jogo e resumo do amistoso
+
+**Commit:** `feat(partida): pre-jogo e resumo do amistoso`
+**Depende de:** Tarefas 3 (`signedFame`), 11 (`lineupShort`), 13 (summary com `friendly`).
+
+**Arquivos:**
+- Alterar: `src/components/match/PreMatch.vue`
+- Substituir: `src/components/match/PostMatchSummary.vue`
+
+- [ ] **Passo 1: `PreMatch.vue`, script**
+
+1a. Localizar:
+
+```ts
+import { ECONOMY, MATCH_SIM } from '@/config'
+import { useSquadStore } from '@/stores/squad'
+import { COMP_SHORT } from '@/utils/player/suspension'
+```
+
+substituir por:
+
+```ts
+import { ECONOMY, FRIENDLIES, MATCH_SIM } from '@/config'
+import { useSquadStore } from '@/stores/squad'
+import { useFriendliesStore } from '@/stores/friendlies'
+import { COMP_SHORT } from '@/utils/player/suspension'
+import { formatTokenCountdown } from '@/utils/friendlies/tokens'
+import { signedFame } from '@/utils/friendlies/fame'
+```
+
+1b. Localizar:
+
+```ts
+  lineupBlockers,
+  startLiveMatch
+} = useMatchSimulation()
+```
+
+substituir por:
+
+```ts
+  lineupBlockers,
+  lineupShort,
+  startLiveMatch
+} = useMatchSimulation()
+```
+
+1c. Localizar:
+
+```ts
+const squad = useSquadStore()
+// Titulares suspensos na competição que ainda dá para trocar: a partida só começa depois de escalar outro.
+const blockers = computed(() => lineupBlockers(match.activeMatchCompetition))
+const homeBonus = computed(() => homeBonusApplies(match.activeMatchCompetition))
+const estimate = computed(() =>
+  estimateOutcome(squad.teamStrength.rating, activeMatchOpponent.value.power, {
+```
+
+substituir por:
+
+```ts
+const squad = useSquadStore()
+const friendlies = useFriendliesStore()
+const isFriendly = computed(() => match.activeMatchCompetition === 'friendly')
+// Titulares suspensos na competição que ainda dá para trocar: a partida só começa depois de escalar outro.
+// No amistoso: lesionados ou suspensos em qualquer competição, sempre.
+const blockers = computed(() => lineupBlockers(match.activeMatchCompetition))
+const short = computed(() => lineupShort(match.activeMatchCompetition))
+const noToken = computed(() => isFriendly.value && friendlies.tokens < 1)
+const startDisabled = computed(() => blockers.value.length > 0 || short.value || noToken.value)
+const startTitle = computed(() => {
+  if (blockers.value.length) return isFriendly.value ? 'Escalação irregular: troque o lesionado ou suspenso em Ajustar Tática.' : 'Escalação irregular: substitua o suspenso em Ajustar Tática.'
+  if (short.value) return 'São precisos 11 titulares.'
+  if (noToken.value) return `Sem fichas — próxima em ${formatTokenCountdown(friendlies.msToNext)}`
+  return undefined
+})
+const friendlyOption = computed(() => friendlies.selectedOption)
+const homeBonus = computed(() => homeBonusApplies(match.activeMatchCompetition))
+// Amistoso: estimativa com o OVER de energia 100.
+const estimate = computed(() =>
+  estimateOutcome(isFriendly.value ? squad.freshTeamStrength.rating : squad.teamStrength.rating, activeMatchOpponent.value.power, {
+```
+
+- [ ] **Passo 2: `PreMatch.vue`, botão Iniciar**
+
+Localizar:
+
+```vue
+        <BaseButton
+          @click="startLiveMatch"
+          :disabled="blockers.length > 0"
+          :title="blockers.length ? 'Escalação irregular: substitua o suspenso em Ajustar Tática.' : undefined"
+```
+
+substituir por:
+
+```vue
+        <BaseButton
+          @click="startLiveMatch"
+          :disabled="startDisabled"
+          :title="startTitle"
+```
+
+- [ ] **Passo 3: `PreMatch.vue`, avisos**
+
+Localizar:
+
+```vue
+    <div v-if="blockers.length" class="p-3 rounded-xl bg-dangerpro-soft border border-dangerpro/40 text-xs text-ink break-words" role="alert">
+      <strong class="text-dangerpro">Escalação irregular:</strong>
+      {{ blockers.map((p) => p.name).join(', ') }} {{ blockers.length === 1 ? 'está suspenso' : 'estão suspensos' }} na {{ COMP_SHORT[match.activeMatchCompetition] }}.
+      Troque em <strong>Ajustar Tática</strong> antes de iniciar a partida.
+    </div>
+```
+
+substituir por:
+
+```vue
+    <p v-if="isFriendly" class="text-xs text-ink-muted break-words">
+      Custa 1 ficha (<strong class="text-ink">{{ friendlies.tokens }}/{{ FRIENDLIES.tokens.max }}</strong>).
+      <template v-if="noToken"> Sem fichas — próxima em <strong class="text-ink">{{ formatTokenCountdown(friendlies.msToNext) }}</strong>.</template>
+    </p>
+
+    <div v-if="blockers.length" class="p-3 rounded-xl bg-dangerpro-soft border border-dangerpro/40 text-xs text-ink break-words" role="alert">
+      <strong class="text-dangerpro">Escalação irregular:</strong>
+      <template v-if="isFriendly">
+        {{ blockers.map((p) => p.name).join(', ') }} {{ blockers.length === 1 ? 'está lesionado ou suspenso' : 'estão lesionados ou suspensos' }}.
+      </template>
+      <template v-else>
+        {{ blockers.map((p) => p.name).join(', ') }} {{ blockers.length === 1 ? 'está suspenso' : 'estão suspensos' }} na {{ COMP_SHORT[match.activeMatchCompetition] }}.
+      </template>
+      Troque em <strong>Ajustar Tática</strong> antes de iniciar a partida.
+    </div>
+
+    <div v-if="short" class="p-3 rounded-xl bg-dangerpro-soft border border-dangerpro/40 text-xs text-ink break-words" role="alert">
+      <strong class="text-dangerpro">Escalação incompleta:</strong> são precisos 11 titulares para o amistoso.
+    </div>
+```
+
+- [ ] **Passo 4: `PreMatch.vue`, bilheteria/patrocínio viram prêmio/fama no amistoso**
+
+Localizar:
+
+```vue
+      <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Bilheteria Estimada</span>
+```
+
+substituir por:
+
+```vue
+      <template v-if="isFriendly">
+        <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
+          <span class="text-[11px] font-bold uppercase text-ink-muted block">Prêmio da Vitória</span>
+          <strong class="font-score text-lg text-emeraldpro block mt-0.5">+{{ formatCurrency(friendlyOption?.prize ?? 0) }}</strong>
+          <span class="text-[11px] text-ink-muted">{{ friendlyOption && friendlyOption.prize === 0 ? 'Limite diário de vitórias pagas atingido' : 'Só na vitória' }}</span>
+        </ListRow>
+        <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
+          <span class="text-[11px] font-bold uppercase text-ink-muted block">Fama em Jogo</span>
+          <strong class="font-score text-lg text-ink block mt-0.5">
+            {{ friendlyOption ? `${signedFame(friendlyOption.fameWin)} / ${signedFame(friendlyOption.fameDraw)} / ${signedFame(friendlyOption.fameLoss)}` : '—' }}
+          </strong>
+          <span class="text-[11px] text-ink-muted">Vitória / Empate / Derrota</span>
+        </ListRow>
+      </template>
+      <ListRow v-if="!isFriendly" padding="p-3.5" layout="block" class="min-w-0 break-words">
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Bilheteria Estimada</span>
+```
+
+e localizar:
+
+```vue
+      <ListRow padding="p-3.5" layout="block" class="min-w-0 break-words">
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Cota Patrocínio</span>
+```
+
+substituir por:
+
+```vue
+      <ListRow v-if="!isFriendly" padding="p-3.5" layout="block" class="min-w-0 break-words">
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Cota Patrocínio</span>
+```
+
+- [ ] **Passo 5: substituir `src/components/match/PostMatchSummary.vue` inteiro**
+
+```vue
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useMatchStore } from '@/stores/match'
+import { useMatchSimulation } from '@/composables/useMatchSimulation'
+import { formatCurrency } from '@/utils/format/formatCurrency'
+import { signedFame } from '@/utils/friendlies/fame'
+import { FRIENDLIES } from '@/config'
+import Badge from '@/components/ui/Badge.vue'
+
+const match = useMatchStore()
+const { finishMatchAndReturn } = useMatchSimulation()
+// Amistoso: bloco próprio no lugar da grade financeira (sem bilheteria, patrocínio nem folha).
+const friendly = computed(() => match.lastMatchSummary?.friendly ?? null)
+</script>
+
+<template>
+  <div v-if="match.lastMatchSummary" class="bg-surface rounded-2xl p-4 sm:p-5 border-2 border-emeraldpro shadow-sm space-y-4 animate-pop">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="min-w-0">
+        <span class="text-xs font-bold uppercase text-emeraldpro">{{ friendly ? 'Resultado do Amistoso' : 'Relatório Financeiro da Partida' }}</span>
+        <h3 v-if="friendly" class="text-lg font-extrabold text-ink break-words">
+          Fama:
+          <span :class="friendly.fameDelta > 0 ? 'text-emeraldpro' : friendly.fameDelta < 0 ? 'text-dangerpro' : 'text-ink'">
+            {{ signedFame(friendly.fameDelta) }}
+          </span>
+        </h3>
+        <h3 v-else class="text-lg font-extrabold text-ink break-words">
+          Balanço Líquido:
+          <span :class="match.lastMatchSummary.net >= 0 ? 'text-emeraldpro' : 'text-dangerpro'">
+            {{ match.lastMatchSummary.net >= 0 ? '+' : '' }}{{ formatCurrency(match.lastMatchSummary.net) }}
+          </span>
+        </h3>
+      </div>
+      <button
+        type="button"
+        @click="finishMatchAndReturn"
+        class="shrink-0 px-5 py-2.5 min-h-11 md:min-h-0 rounded-xl bg-emeraldpro hover:bg-emeraldpro-hover text-night text-xs sm:text-sm font-bold"
+      >
+        {{ friendly ? 'Voltar aos Amistosos' : 'Continuar Temporada' }}
+      </button>
+    </div>
+
+    <template v-if="friendly">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div class="min-w-0 p-3 rounded-xl bg-subtle break-words">
+          <span class="text-ink-muted block">Prêmio</span>
+          <strong class="text-emeraldpro font-bold">+{{ formatCurrency(friendly.prize) }}</strong>
+        </div>
+        <div class="min-w-0 p-3 rounded-xl bg-subtle break-words">
+          <span class="text-ink-muted block">Fama</span>
+          <strong class="font-bold" :class="friendly.fameDelta > 0 ? 'text-emeraldpro' : friendly.fameDelta < 0 ? 'text-dangerpro' : 'text-ink'">
+            {{ signedFame(friendly.fameDelta) }}
+          </strong>
+        </div>
+        <div class="min-w-0 p-3 rounded-xl bg-subtle break-words">
+          <span class="text-ink-muted block">Fama atual</span>
+          <strong class="text-ink font-bold">{{ friendly.fameAfter }}</strong>
+        </div>
+        <div class="min-w-0 p-3 rounded-xl bg-subtle break-words">
+          <span class="text-ink-muted block">Posição</span>
+          <strong class="text-ink font-bold">#{{ friendly.rankBefore }} → #{{ friendly.rankAfter }}</strong>
+        </div>
+      </div>
+      <p
+        v-if="friendly.paidCapReached"
+        class="min-w-0 p-3 rounded-xl border border-amberpro/40 bg-amberpro-soft text-xs text-amberpro font-semibold break-words"
+      >
+        Limite diário de {{ FRIENDLIES.prize.paidWinsPerDay }} vitórias pagas atingido: esta vitória rendeu só fama. O limite renova à meia-noite.
+      </p>
+    </template>
+
+    <template v-else>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div class="min-w-0 p-3 rounded-xl bg-subtle break-words">
+          <span class="text-ink-muted block">Bilheteria</span>
+          <strong class="text-emeraldpro font-bold">+{{ formatCurrency(match.lastMatchSummary.ticket) }}</strong>
+        </div>
+        <div class="min-w-0 p-3 rounded-xl bg-subtle break-words">
+          <span class="text-ink-muted block">Patrocínio</span>
+          <strong class="text-emeraldpro font-bold">+{{ formatCurrency(match.lastMatchSummary.sponsor) }}</strong>
+        </div>
+        <div class="min-w-0 p-3 rounded-xl bg-subtle break-words">
+          <span class="text-ink-muted block">Bônus Resultado</span>
+          <strong class="text-emeraldpro font-bold">+{{ formatCurrency(match.lastMatchSummary.winBonus) }}</strong>
+        </div>
+        <div class="min-w-0 p-3 rounded-xl bg-subtle break-words">
+          <span class="text-ink-muted block">Folha Salarial</span>
+          <strong class="text-ink font-bold">-{{ formatCurrency(match.lastMatchSummary.wages) }}</strong>
+        </div>
+        <div v-if="(match.lastMatchSummary.maintenance ?? 0) > 0" class="min-w-0 p-3 rounded-xl bg-subtle break-words">
+          <span class="text-ink-muted block">Manutenção</span>
+          <strong class="text-ink font-bold">-{{ formatCurrency(match.lastMatchSummary.maintenance ?? 0) }}</strong>
+        </div>
+        <div v-if="(match.lastMatchSummary.interest ?? 0) > 0" class="min-w-0 p-3 rounded-xl bg-subtle break-words">
+          <span class="text-ink-muted block">Juros da dívida</span>
+          <strong class="text-dangerpro font-bold">-{{ formatCurrency(match.lastMatchSummary.interest ?? 0) }}</strong>
+        </div>
+      </div>
+
+      <div
+        v-if="match.lastMatchSummary.evolutions?.length || match.lastMatchSummary.milestones?.length"
+        class="flex flex-wrap gap-1.5 min-w-0"
+        aria-label="Evolução da partida"
+      >
+        <Badge
+          v-for="(e, i) in match.lastMatchSummary.evolutions ?? []"
+          :key="'ev' + i"
+          tone="success-strong"
+          size="sm"
+          class="max-w-full min-w-0 truncate"
+          :title="'+1 OVER: ' + e.name + ' (' + e.overall + ')'"
+        >
+          +1 OVER: {{ e.name }}
+        </Badge>
+        <Badge
+          v-for="(m, i) in match.lastMatchSummary.milestones ?? []"
+          :key="'ms' + i"
+          tone="success-outline"
+          size="sm"
+          class="max-w-full min-w-0 break-words"
+        >
+          Marco: {{ m }}
+        </Badge>
+      </div>
+
+      <p
+        v-if="match.lastMatchSummary.forcedSale"
+        class="min-w-0 p-3 rounded-xl border border-dangerpro/40 bg-dangerpro/10 text-xs text-dangerpro font-semibold break-words"
+      >
+        Venda forçada: {{ match.lastMatchSummary.forcedSale.name }} foi vendido por
+        {{ formatCurrency(match.lastMatchSummary.forcedSale.price) }} para cobrir a dívida.
+      </p>
+    </template>
+  </div>
+</template>
+```
+
+- [ ] **Passo 6: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`.
+Conferência visual (`npm run dev`): pré-jogo da liga igual ao de antes (bilheteria e patrocínio aparecem; botão "Continuar Temporada" no resumo).
+
+- [ ] **Passo 7: commit**
+
+```bash
+git add src/components/match/PreMatch.vue src/components/match/PostMatchSummary.vue
+git commit -m "feat(partida): pre-jogo e resumo do amistoso"
+```
+
+**Pronto quando:** build passa; para competições que não são amistoso o markup visível é o mesmo de antes.
+
+**Não fazer:** não mudar o cálculo de `estimateOutcome`; não mexer em `MatchView.vue`.
+
+---
+
+## Tarefa 15: tela, fichas, ranking e histórico
+
+**Commit:** `feat(amistosos): tela, fichas, ranking e historico`
+**Depende de:** Tarefas 2, 3, 4, 7, 10, 11 (e 13 para o fluxo completo).
+
+Spec §7 (FriendliesView, OpponentCard, fluxo) e §8. Esta tarefa mostra as 3 opções numa grade simples; a Tarefa 16 troca a grade pela roleta animada (deixe o `spinKey`/`spinning` já prontos na view).
+
+**Arquivos:**
+- Criar: `src/composables/useFriendlies.ts`
+- Criar: `src/components/friendlies/TokenBar.vue`
+- Criar: `src/components/friendlies/OpponentCard.vue`
+- Criar: `src/components/friendlies/FriendlyRanking.vue`
+- Criar: `src/components/friendlies/FriendlyHistory.vue`
+- Criar: `src/views/FriendliesView.vue`
+- Alterar: `src/router/index.ts`
+
+- [ ] **Passo 1: `src/composables/useFriendlies.ts`**
+
+```ts
+import { computed } from 'vue'
+import { router } from '@/router'
+import { useFriendliesStore } from '@/stores/friendlies'
+import { useMatchStore } from '@/stores/match'
+import { useSquadStore } from '@/stores/squad'
+import { useUiStore } from '@/stores/ui'
+import { formatTokenCountdown } from '@/utils/friendlies/tokens'
+import { rankBonus } from '@/utils/friendlies/draw'
+import { usePersistence } from './usePersistence'
+import { useMatchSimulation } from './useMatchSimulation'
+
+const ELIGIBLE_NEEDED = 11
+const NO_DRAWS = 'Sem sorteios restantes: escolha um dos 3 adversários.'
+
+/** Orquestra a tela de amistosos: store + pré-jogo + toasts + save. */
+export function useFriendlies() {
+  const friendlies = useFriendliesStore()
+  const match = useMatchStore()
+  const squad = useSquadStore()
+  const ui = useUiStore()
+  const { saveGame } = usePersistence()
+  const { prepareMatch } = useMatchSimulation()
+
+  /** OVER do amistoso: escalação atual com energia 100, sem arredondar (exibido arredondado). */
+  const userOver = computed(() => squad.freshTeamStrength.rating)
+  const isLive = computed(() => match.isCompetitionLive('friendly'))
+  const currentRankBonus = computed(() => rankBonus(friendlies.rank))
+  const nextTokenIn = computed(() => formatTokenCountdown(friendlies.msToNext))
+  const challengeBlock = computed<string | null>(() => {
+    if (isLive.value) return 'Há um amistoso em andamento.'
+    if (squad.friendlyEligibleCount < ELIGIBLE_NEEDED) return 'São precisos 11 atletas sem lesão e sem suspensão.'
+    return null
+  })
+
+  /** Ao abrir a tela: fichas em dia e ranking dos bots simulado até agora (sem timer em segundo plano). */
+  function open() {
+    const now = Date.now()
+    friendlies.regenTokens(now)
+    friendlies.refresh(now)
+    saveGame()
+  }
+
+  function runDraw(): boolean {
+    if (!friendlies.draw(userOver.value, Date.now())) {
+      ui.showToast(NO_DRAWS, 'warning')
+      return false
+    }
+    saveGame()
+    return true
+  }
+
+  /** "Desafiar": com opções salvas, não sorteia (devolve false); senão faz o 1º sorteio. true = sorteou (a tela anima). */
+  function challenge(): boolean {
+    if (challengeBlock.value) {
+      ui.showToast(challengeBlock.value, 'warning')
+      return false
+    }
+    if (friendlies.options) return false
+    return runDraw()
+  }
+
+  /** "Re-sortear": consome 1 dos 3 sorteios do desafio. */
+  function redraw(): boolean {
+    if (challengeBlock.value) {
+      ui.showToast(challengeBlock.value, 'warning')
+      return false
+    }
+    if (friendlies.drawsLeft <= 0) {
+      ui.showToast(NO_DRAWS, 'warning')
+      return false
+    }
+    return runDraw()
+  }
+
+  function watchLive() {
+    match.activeMatchCompetition = 'friendly'
+    router.push('/match')
+  }
+
+  /** "Jogar": escolhe a opção e abre o pré-jogo. A ficha só é gasta no apito inicial. */
+  function play(botId: string) {
+    if (isLive.value) {
+      watchLive()
+      return
+    }
+    if (friendlies.tokens < 1) {
+      ui.showToast(`Sem fichas. Próxima em ${nextTokenIn.value}.`, 'warning')
+      return
+    }
+    if (!friendlies.select(botId)) return
+    saveGame()
+    prepareMatch('friendly')
+  }
+
+  return { userOver, isLive, currentRankBonus, nextTokenIn, challengeBlock, open, challenge, redraw, play, watchLive }
+}
+```
+
+- [ ] **Passo 2: `src/components/friendlies/TokenBar.vue`**
+
+```vue
+<script setup lang="ts">
+import BaseCard from '@/components/ui/BaseCard.vue'
+
+// 10 fichas (cheias/vazias) e o contador da próxima; o contador some com o estoque cheio (nextIn = null).
+defineProps<{ tokens: number; max: number; nextIn: string | null }>()
+</script>
+
+<template>
+  <BaseCard padding="p-4" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="min-w-0">
+      <span class="text-[11px] font-bold uppercase text-ink-muted block">Fichas</span>
+      <div class="flex flex-wrap gap-1.5 mt-1.5" role="img" :aria-label="`${tokens} de ${max} fichas`">
+        <span
+          v-for="i in max"
+          :key="i"
+          class="w-5 h-5 rounded-full border-2"
+          :class="i <= tokens ? 'bg-gold border-gold shadow-[0_0_6px_rgba(251,191,36,0.5)]' : 'bg-night border-borderline'"
+        ></span>
+      </div>
+    </div>
+    <p class="text-xs text-ink-muted shrink-0">
+      <strong class="font-score text-lg text-ink">{{ tokens }}/{{ max }}</strong>
+      <span v-if="nextIn"> • Próxima ficha em <strong class="text-ink">{{ nextIn }}</strong></span>
+    </p>
+  </BaseCard>
+</template>
+```
+
+- [ ] **Passo 3: `src/components/friendlies/OpponentCard.vue`**
+
+```vue
+<script setup lang="ts">
+import { computed } from 'vue'
+import type { FriendlyOption } from '@/types/friendlies'
+import TeamCrest from '@/components/ui/TeamCrest.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import { formatCurrency } from '@/utils/format/formatCurrency'
+import { signedFame } from '@/utils/friendlies/fame'
+
+const props = defineProps<{
+  option: FriendlyOption
+  /** OVER do amistoso do usuário (sem arredondar). */
+  userOver: number
+  disabled: boolean
+  /** Motivo exibido no botão quando desabilitado (ex.: "Sem fichas — próxima em 04:12"). */
+  blockLabel: string | null
+}>()
+const emit = defineEmits<{ play: [botId: string] }>()
+
+// Selo de diferença: rival mais forte em vermelho (+3), mais fraco em verde (−2).
+const diff = computed(() => props.option.over - Math.round(props.userOver))
+const diffLabel = computed(() => (diff.value > 0 ? `+${diff.value}` : `−${Math.abs(diff.value)}`))
+</script>
+
+<template>
+  <div class="rounded-2xl border border-borderline bg-subtle p-4 flex flex-col gap-3 min-w-0">
+    <div class="flex items-center gap-3 min-w-0">
+      <TeamCrest :name="option.name" size="md" />
+      <div class="min-w-0">
+        <p class="font-extrabold text-ink truncate" :title="option.name">{{ option.name }}</p>
+        <p class="text-[11px] text-ink-muted">Ranking #{{ option.rank }} • Fama {{ option.fame }}</p>
+      </div>
+    </div>
+    <div class="flex items-baseline gap-2">
+      <span class="text-[11px] font-bold uppercase text-ink-muted">OVER do dia</span>
+      <strong class="font-score text-2xl text-ink">{{ option.over }}</strong>
+      <span v-if="diff !== 0" class="text-xs font-bold" :class="diff > 0 ? 'text-dangerpro' : 'text-emeraldpro'">{{ diffLabel }}</span>
+    </div>
+    <p class="text-xs text-ink break-words">
+      <template v-if="option.prize > 0">Prêmio: <strong class="text-emeraldpro">{{ formatCurrency(option.prize) }}</strong></template>
+      <template v-else>Prêmio: <strong>R$ 0</strong> — limite diário de vitórias pagas atingido</template>
+    </p>
+    <p class="text-xs text-ink">
+      Fama:
+      <strong class="text-emeraldpro">{{ signedFame(option.fameWin) }}</strong> /
+      <strong>{{ signedFame(option.fameDraw) }}</strong> /
+      <strong class="text-dangerpro">{{ signedFame(option.fameLoss) }}</strong>
+      <span class="text-ink-muted">(V/E/D)</span>
+    </p>
+    <BaseButton
+      class="mt-auto px-4 py-3 min-h-12 text-sm disabled:cursor-not-allowed"
+      :disabled="disabled"
+      @click="emit('play', option.botId)"
+    >
+      {{ disabled && blockLabel ? blockLabel : 'Jogar (1 ficha)' }}
+    </BaseButton>
+  </div>
+</template>
+```
+
+- [ ] **Passo 4: `src/components/friendlies/FriendlyRanking.vue`**
+
+```vue
+<script setup lang="ts">
+import { computed } from 'vue'
+import { Trophy } from 'lucide-vue-next'
+import type { FriendlyRankingView } from '@/types/friendlies'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
+import TeamCrest from '@/components/ui/TeamCrest.vue'
+
+const props = defineProps<{ view: FriendlyRankingView; userName: string; total: number }>()
+// Usuário no top 10: só a tabela. Fora: tabela + linha dele destacada embaixo.
+const userInTop = computed(() => props.view.top.some((r) => r.isUser))
+</script>
+
+<template>
+  <BaseCard class="space-y-3">
+    <SectionTitle>
+      <template #icon><Trophy class="w-4 h-4 text-gold shrink-0" /></template>
+      Ranking de Fama
+    </SectionTitle>
+    <ol class="divide-y divide-borderline">
+      <li
+        v-for="row in view.top"
+        :key="row.rank"
+        class="flex items-center gap-3 py-2 px-2 min-w-0"
+        :class="row.isUser ? 'bg-emeraldpro-soft rounded-lg' : ''"
+      >
+        <span class="w-9 font-score font-bold text-ink-muted shrink-0">#{{ row.rank }}</span>
+        <TeamCrest v-if="row.isUser" is-user size="xs" />
+        <TeamCrest v-else :name="row.name" size="xs" />
+        <span class="flex-1 min-w-0 truncate text-sm text-ink" :class="row.isUser ? 'font-extrabold' : ''">{{ row.isUser ? userName : row.name }}</span>
+        <span class="font-score font-bold text-ink shrink-0">{{ row.fame }}</span>
+      </li>
+    </ol>
+    <div v-if="!userInTop" class="flex items-center gap-3 py-2 px-2 rounded-lg bg-emeraldpro-soft border border-emeraldpro/40 min-w-0">
+      <span class="w-9 font-score font-bold text-ink shrink-0">#{{ view.user.rank }}</span>
+      <TeamCrest is-user size="xs" />
+      <span class="flex-1 min-w-0 truncate text-sm font-extrabold text-ink">{{ userName }}</span>
+      <span class="font-score font-bold text-ink shrink-0">{{ view.user.fame }}</span>
+    </div>
+    <p class="text-[11px] text-ink-muted">{{ total }} clubes no ranking. A fama dos rivais muda com o tempo.</p>
+  </BaseCard>
+</template>
+```
+
+- [ ] **Passo 5: `src/components/friendlies/FriendlyHistory.vue`**
+
+```vue
+<script setup lang="ts">
+import { History } from 'lucide-vue-next'
+import type { FriendlyResult } from '@/types/friendlies'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
+import TeamCrest from '@/components/ui/TeamCrest.vue'
+import { OUTCOME_UI } from '@/utils/match/matchResult'
+import { outcomeFromScore, signedFame } from '@/utils/friendlies/fame'
+import { formatCurrency } from '@/utils/format/formatCurrency'
+
+defineProps<{ results: FriendlyResult[] }>()
+</script>
+
+<template>
+  <BaseCard class="space-y-3">
+    <SectionTitle>
+      <template #icon><History class="w-4 h-4 text-emeraldpro shrink-0" /></template>
+      Últimos Amistosos
+    </SectionTitle>
+    <p v-if="!results.length" class="text-sm text-ink-muted">Nenhum amistoso jogado ainda.</p>
+    <ul v-else class="divide-y divide-borderline">
+      <li v-for="r in results" :key="r.at" class="flex items-center gap-3 py-2 min-w-0">
+        <span
+          class="w-6 h-6 rounded-full text-[11px] font-extrabold flex items-center justify-center shrink-0"
+          :class="OUTCOME_UI[outcomeFromScore(r.userScore, r.oppScore)].cls"
+          :title="OUTCOME_UI[outcomeFromScore(r.userScore, r.oppScore)].label"
+        >{{ OUTCOME_UI[outcomeFromScore(r.userScore, r.oppScore)].letter }}</span>
+        <TeamCrest :name="r.botName" size="xs" />
+        <span class="flex-1 min-w-0 truncate text-sm text-ink" :title="r.botName">{{ r.botName }}</span>
+        <span class="font-score font-bold text-ink shrink-0">{{ r.userScore }} x {{ r.oppScore }}</span>
+        <span class="w-10 text-right text-xs font-bold shrink-0" :class="r.fameDelta > 0 ? 'text-emeraldpro' : r.fameDelta < 0 ? 'text-dangerpro' : 'text-ink-muted'">
+          {{ signedFame(r.fameDelta) }}
+        </span>
+        <span class="hidden sm:inline w-24 text-right text-xs text-ink-muted shrink-0">{{ r.prize > 0 ? '+' + formatCurrency(r.prize) : '—' }}</span>
+      </li>
+    </ul>
+  </BaseCard>
+</template>
+```
+
+- [ ] **Passo 6: `src/views/FriendliesView.vue`**
+
+```vue
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { Dices, RefreshCw, Swords } from 'lucide-vue-next'
+import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import SectionTitle from '@/components/ui/SectionTitle.vue'
+import TokenBar from '@/components/friendlies/TokenBar.vue'
+import OpponentCard from '@/components/friendlies/OpponentCard.vue'
+import FriendlyRanking from '@/components/friendlies/FriendlyRanking.vue'
+import FriendlyHistory from '@/components/friendlies/FriendlyHistory.vue'
+import { useFriendliesStore } from '@/stores/friendlies'
+import { useClubStore } from '@/stores/club'
+import { useFriendlies } from '@/composables/useFriendlies'
+import { FRIENDLIES } from '@/config'
+
+const friendlies = useFriendliesStore()
+const club = useClubStore()
+const { userOver, isLive, currentRankBonus, nextTokenIn, challengeBlock, open, challenge, redraw, play, watchLive } = useFriendlies()
+
+const total = FRIENDLIES.bots.count + 1
+// spinKey sobe a cada sorteio novo (a roleta da Tarefa 16 anima); spinning trava "Jogar" e "Re-sortear" durante a animação.
+const spinKey = ref(0)
+const spinning = ref(false)
+const optionsEl = ref<HTMLElement | null>(null)
+
+const tokenBarNext = computed(() => (friendlies.tokens < FRIENDLIES.tokens.max ? nextTokenIn.value : null))
+const bonusLabel = computed(() => '+' + currentRankBonus.value.toFixed(1).replace('.', ','))
+const playBlock = computed<string | null>(() => {
+  if (isLive.value) return 'Amistoso em andamento'
+  if (friendlies.tokens < 1) return `Sem fichas — próxima em ${nextTokenIn.value}`
+  return challengeBlock.value
+})
+const playDisabled = computed(() => !!playBlock.value || spinning.value)
+const redrawDisabled = computed(() => friendlies.drawsLeft <= 0 || spinning.value || !!challengeBlock.value)
+
+onMounted(open)
+
+function onChallenge() {
+  if (isLive.value) {
+    watchLive()
+    return
+  }
+  if (challenge()) spinKey.value++
+  // Com opções já sorteadas, "Desafiar" só leva até elas (não sorteia de novo).
+  if (friendlies.options) optionsEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function onRedraw() {
+  if (redraw()) spinKey.value++
+}
+</script>
+
+<template>
+  <section class="space-y-4 animate-pop">
+    <TokenBar :tokens="friendlies.tokens" :max="FRIENDLIES.tokens.max" :next-in="tokenBarNext" />
+
+    <BaseCard class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="min-w-0">
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Fama</span>
+        <strong class="font-score text-2xl text-gold">{{ friendlies.fame }}</strong>
+      </div>
+      <div class="min-w-0">
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Posição</span>
+        <strong class="font-score text-2xl text-ink">#{{ friendlies.rank }}</strong>
+        <span class="text-xs text-ink-muted"> de {{ total }}</span>
+      </div>
+      <div class="min-w-0">
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">OVER do amistoso</span>
+        <strong class="font-score text-2xl text-ink">{{ Math.round(userOver) }}</strong>
+        <span class="block text-[11px] text-ink-muted">energia 100</span>
+      </div>
+      <div class="min-w-0">
+        <span class="text-[11px] font-bold uppercase text-ink-muted block">Bônus de posição</span>
+        <strong class="font-score text-2xl text-ink">{{ bonusLabel }}</strong>
+        <span class="block text-[11px] text-ink-muted">no OVER dos rivais</span>
+      </div>
+    </BaseCard>
+
+    <BaseCard class="space-y-3">
+      <SectionTitle>
+        <template #icon><Swords class="w-4 h-4 text-emeraldpro shrink-0" /></template>
+        Desafio
+      </SectionTitle>
+      <BaseButton class="w-full sm:w-auto px-6 py-3 min-h-12 text-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed" :disabled="!isLive && !!challengeBlock" @click="onChallenge">
+        <Dices class="w-4 h-4" />
+        {{ isLive ? 'Acompanhar amistoso' : 'Desafiar' }}
+      </BaseButton>
+      <p v-if="!isLive && challengeBlock" class="text-xs text-dangerpro">{{ challengeBlock }}</p>
+      <p v-else class="text-xs text-ink-muted">Sortear não gasta ficha. A ficha é gasta só quando a partida começa.</p>
+    </BaseCard>
+
+    <div v-if="friendlies.options" ref="optionsEl" class="space-y-3 scroll-mt-24">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <OpponentCard
+          v-for="opt in friendlies.options"
+          :key="opt.botId"
+          :option="opt"
+          :user-over="userOver"
+          :disabled="playDisabled"
+          :block-label="playBlock"
+          @play="play"
+        />
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <BaseButton variant="secondary" class="px-4 py-2.5 min-h-12 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="redrawDisabled" @click="onRedraw">
+          <RefreshCw class="w-4 h-4" />
+          Re-sortear
+        </BaseButton>
+        <span class="text-xs" :class="friendlies.drawsLeft > 0 ? 'text-ink-muted' : 'text-amberpro font-bold'">
+          {{ friendlies.drawsLeft > 0 ? `Sorteios restantes: ${friendlies.drawsLeft}` : 'Sem sorteios restantes: escolha um dos 3 adversários' }}
+        </span>
+      </div>
+    </div>
+
+    <FriendlyRanking :view="friendlies.ranking" :user-name="club.name" :total="total" />
+    <FriendlyHistory :results="friendlies.recent" />
+  </section>
+</template>
+```
+
+- [ ] **Passo 7: rota em `src/router/index.ts`**
+
+Localizar:
+
+```ts
+    { path: '/competitions', name: 'competitions', component: () => import('../views/CompetitionsView.vue') },
+```
+
+substituir por:
+
+```ts
+    { path: '/competitions', name: 'competitions', component: () => import('../views/CompetitionsView.vue') },
+    { path: '/friendlies', name: 'friendlies', component: () => import('../views/FriendliesView.vue') },
+```
+
+- [ ] **Passo 8: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`.
+Manual (`npm run dev`, abrir `#/friendlies` pela URL; o item de menu vem na Tarefa 17):
+1. 10 fichas, fama 0, `#101 de 101`, ranking com top 10 + sua linha.
+2. "Desafiar" mostra 3 cartões e "Sorteios restantes: 2"; "Re-sortear" duas vezes → "Sem sorteios restantes..." e botão desabilitado; recarregar → continua igual.
+3. "Jogar" → pré-jogo com o rival; voltar → as 3 opções seguem. "Iniciar" → fichas 9, partida roda, resumo "Resultado do Amistoso", "Voltar aos Amistosos" volta a `/friendlies` sem opções, com 3 sorteios.
+
+- [ ] **Passo 9: commit**
+
+```bash
+git add src/composables/useFriendlies.ts src/components/friendlies/TokenBar.vue src/components/friendlies/OpponentCard.vue src/components/friendlies/FriendlyRanking.vue src/components/friendlies/FriendlyHistory.vue src/views/FriendliesView.vue src/router/index.ts
+git commit -m "feat(amistosos): tela, fichas, ranking e historico"
+```
+
+**Pronto quando:** build passa e o roteiro manual do passo 8 funciona de ponta a ponta.
+
+**Não fazer:** não implementar animação aqui (Tarefa 16); não adicionar item de navegação (Tarefa 17); não gastar ficha fora de `startLiveMatch`.
+
+---
+
+## Tarefa 16: roleta animada
+
+**Commit:** `feat(amistosos): roleta animada`
+**Depende de:** Tarefa 15.
+
+Spec §7 (Roleta): o resultado já está salvo antes da animação (só visual); 3 slots lado a lado (≥ 640 px) ou empilhados; cada slot rola nomes e OVERs de bots trocando a cada 60 ms e desacelerando; param em sequência aos 900, 1300 e 1700 ms; ao parar viram o `OpponentCard` com `animate-pop` e brilho dourado; `prefers-reduced-motion: reduce` revela na hora; durante a animação "Jogar" e "Re-sortear" ficam desabilitados.
+
+**Arquivos:**
+- Criar: `src/components/friendlies/OpponentRoulette.vue`
+- Alterar: `src/views/FriendliesView.vue`
+
+- [ ] **Passo 1: criar `src/components/friendlies/OpponentRoulette.vue`**
+
+```vue
+<script setup lang="ts">
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import type { FriendlyBot, FriendlyOption } from '@/types/friendlies'
+import OpponentCard from './OpponentCard.vue'
+
+const props = defineProps<{
+  options: FriendlyOption[]
+  /** Bots do ranking: nomes que rolam nos slots. */
+  bots: FriendlyBot[]
+  /** Sobe a cada sorteio novo: dispara a animação. Ao montar não anima (recarregar mostra as opções salvas). */
+  spinKey: number
+  userOver: number
+  disabled: boolean
+  blockLabel: string | null
+}>()
+const emit = defineEmits<{ play: [botId: string]; spinning: [value: boolean] }>()
+
+const STOP_MS = [900, 1300, 1700]
+// false = slot ainda rolando. Ausente (undefined) conta como revelado.
+const revealed = ref<boolean[]>([])
+const glow = ref<boolean[]>([])
+const reels = ref<Array<{ name: string; over: number }>>([])
+let timers: ReturnType<typeof setTimeout>[] = []
+
+const rolling = computed(() => revealed.value.some((r) => r === false))
+
+function clearTimers() {
+  timers.forEach(clearTimeout)
+  timers = []
+}
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+}
+
+function randomReel(i: number) {
+  const bot = props.bots[Math.floor(Math.random() * props.bots.length)]
+  const base = props.options[i]?.over ?? 60
+  return { name: bot?.name ?? '???', over: Math.max(35, Math.min(99, base + Math.floor(Math.random() * 11) - 5)) }
+}
+
+function revealAll() {
+  revealed.value = props.options.map(() => true)
+  glow.value = props.options.map(() => false)
+  emit('spinning', false)
+}
+
+function spin() {
+  clearTimers()
+  const n = props.options.length
+  if (!n) return
+  if (prefersReducedMotion() || !props.bots.length) {
+    revealAll()
+    return
+  }
+  revealed.value = props.options.map(() => false)
+  glow.value = props.options.map(() => false)
+  reels.value = props.options.map((_, i) => randomReel(i))
+  emit('spinning', true)
+  const start = performance.now()
+  props.options.forEach((_, i) => {
+    const stopAt = STOP_MS[i] ?? STOP_MS[STOP_MS.length - 1] + 400 * (i - STOP_MS.length + 1)
+    const tick = () => {
+      const elapsed = performance.now() - start
+      if (elapsed >= stopAt) {
+        revealed.value[i] = true
+        glow.value[i] = true
+        timers.push(setTimeout(() => (glow.value[i] = false), 700))
+        if (!revealed.value.some((r) => r === false)) emit('spinning', false)
+        return
+      }
+      reels.value[i] = randomReel(i)
+      // Troca a cada 60 ms no começo e desacelera até ~180 ms perto de parar.
+      timers.push(setTimeout(tick, 60 + Math.round((elapsed / stopAt) * 120)))
+    }
+    tick()
+  })
+}
+
+watch(() => props.spinKey, spin)
+
+onBeforeUnmount(() => {
+  clearTimers()
+  emit('spinning', false)
+})
+</script>
+
+<template>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <template v-for="(opt, i) in options" :key="opt.botId">
+      <OpponentCard
+        v-if="revealed[i] !== false"
+        :option="opt"
+        :user-over="userOver"
+        :disabled="disabled || rolling"
+        :block-label="blockLabel"
+        class="animate-pop transition-shadow duration-500"
+        :class="glow[i] ? 'ring-2 ring-gold shadow-[0_0_18px_rgba(251,191,36,0.45)]' : ''"
+        @play="emit('play', $event)"
+      />
+      <div
+        v-else
+        class="rounded-2xl border-2 border-dashed border-gold/50 bg-night p-4 min-h-[13.5rem] flex flex-col items-center justify-center gap-2 overflow-hidden min-w-0"
+        aria-hidden="true"
+      >
+        <span class="text-[11px] font-bold uppercase text-gold">Sorteando…</span>
+        <span class="font-extrabold text-ink text-center truncate max-w-full">{{ reels[i]?.name }}</span>
+        <span class="font-score text-2xl text-ink-muted">{{ reels[i]?.over }}</span>
+      </div>
+    </template>
+    <p class="sr-only" aria-live="polite">{{ rolling ? 'Sorteando adversários' : 'Adversários sorteados' }}</p>
+  </div>
+</template>
+```
+
+- [ ] **Passo 2: usar a roleta em `src/views/FriendliesView.vue`**
+
+2a. No script, localizar:
+
+```ts
+import OpponentCard from '@/components/friendlies/OpponentCard.vue'
+```
+
+substituir por:
+
+```ts
+import OpponentRoulette from '@/components/friendlies/OpponentRoulette.vue'
+```
+
+2b. No template, localizar:
+
+```vue
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <OpponentCard
+          v-for="opt in friendlies.options"
+          :key="opt.botId"
+          :option="opt"
+          :user-over="userOver"
+          :disabled="playDisabled"
+          :block-label="playBlock"
+          @play="play"
+        />
+      </div>
+```
+
+substituir por:
+
+```vue
+      <OpponentRoulette
+        :options="friendlies.options"
+        :bots="friendlies.bots"
+        :spin-key="spinKey"
+        :user-over="userOver"
+        :disabled="playDisabled"
+        :block-label="playBlock"
+        @play="play"
+        @spinning="spinning = $event"
+      />
+```
+
+- [ ] **Passo 3: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`.
+Manual (`npm run dev`, `#/friendlies`):
+1. "Desafiar": os 3 slots rolam e param em sequência (~0,9 s, 1,3 s, 1,7 s) com brilho dourado; "Jogar" e "Re-sortear" ficam desabilitados até o último parar.
+2. Recarregar no meio: as 3 opções aparecem direto (já estavam salvas).
+3. DevTools → Rendering → "Emulate CSS prefers-reduced-motion: reduce": "Re-sortear" revela na hora.
+4. Largura 360 px: slots empilhados, sem rolagem horizontal.
+
+- [ ] **Passo 4: commit**
+
+```bash
+git add src/components/friendlies/OpponentRoulette.vue src/views/FriendliesView.vue
+git commit -m "feat(amistosos): roleta animada"
+```
+
+**Pronto quando:** build passa e os 4 itens manuais conferem.
+
+**Não fazer:** não sortear dentro do componente (o resultado vem da store); não criar keyframes novos (usar `animate-pop` de `src/styles/main.css`).
+
+---
+
+## Tarefa 17: navegação, subtítulo e cabeçalho
+
+**Commit:** `feat(amistosos): navegacao, subtitulo e cabecalho`
+**Depende de:** Tarefas 7 (store) e 9 (`navIdForCompetition('friendly') = 'friendlies'`). A rota `/friendlies` vem da Tarefa 15.
+
+Spec §4.2: item "Amistosos" (ícone `Swords`) entre "Competições" e "Scouting", badge com as fichas; subtítulo `'Fichas e ranking'`; cabeçalho com Fichas, Fama e Posição **só** em `/friendlies` (as demais rotas seguem com `club.reputation`).
+
+**Arquivos:**
+- Alterar: `src/composables/useNavigation.ts`
+- Alterar: `src/composables/usePageSubtitle.ts`
+- Alterar: `src/composables/useHeaderStats.ts`
+
+- [ ] **Passo 1: `useNavigation.ts`**
+
+1a. Localizar:
+
+```ts
+import { Award, Building2, History, LayoutDashboard, Radar, Shield, Trophy } from 'lucide-vue-next'
+import { useCompetitionsStore } from '@/stores/competitions'
+```
+
+substituir por:
+
+```ts
+import { Award, Building2, History, LayoutDashboard, Radar, Shield, Swords, Trophy } from 'lucide-vue-next'
+import { useCompetitionsStore } from '@/stores/competitions'
+import { useFriendliesStore } from '@/stores/friendlies'
+```
+
+1b. Localizar:
+
+```ts
+  const match = useMatchStore()
+
+  const matchPath = computed(() => (match.isMatchActive ? '/match' : '/pre-match'))
+```
+
+substituir por:
+
+```ts
+  const match = useMatchStore()
+  const friendlies = useFriendliesStore()
+
+  const matchPath = computed(() => (match.isMatchActive ? '/match' : '/pre-match'))
+```
+
+1c. Localizar (fim do item `competitions`, início do item `scouting`):
+
+```ts
+        badge: competitions.hasPendingFinal || competitions.hasPendingThirdPlace ? '!' : null
+      },
+      {
+        id: 'scouting',
+```
+
+substituir por:
+
+```ts
+        badge: competitions.hasPendingFinal || competitions.hasPendingThirdPlace ? '!' : null
+      },
+      {
+        id: 'friendlies',
+        label: 'Amistosos',
+        shortLabel: 'Amist.',
+        icon: Swords,
+        path: '/friendlies',
+        badge: friendlies.tokens > 0 ? friendlies.tokens : null
+      },
+      {
+        id: 'scouting',
+```
+
+(O `live` do item já funciona: `navIdForCompetition('friendly')` devolve `'friendlies'`. O "Voltar" do pré-jogo/partida do amistoso usa `matchOwner`, que agora encontra este item.)
+
+- [ ] **Passo 2: `usePageSubtitle.ts`**
+
+Localizar:
+
+```ts
+  '/competitions': 'Copas e finais',
+```
+
+substituir por:
+
+```ts
+  '/competitions': 'Copas e finais',
+  '/friendlies': 'Fichas e ranking',
+```
+
+- [ ] **Passo 3: `useHeaderStats.ts`**
+
+3a. Localizar:
+
+```ts
+import { useSquadStore } from '@/stores/squad'
+```
+
+substituir por:
+
+```ts
+import { useSquadStore } from '@/stores/squad'
+import { useFriendliesStore } from '@/stores/friendlies'
+import { FRIENDLIES } from '@/config'
+```
+
+3b. Localizar:
+
+```ts
+  const match = useMatchStore()
+  const { opponentFor, labelFor } = useMatchSimulation()
+```
+
+substituir por:
+
+```ts
+  const match = useMatchStore()
+  const friendlies = useFriendliesStore()
+  const { opponentFor, labelFor } = useMatchSimulation()
+```
+
+3c. Localizar:
+
+```ts
+      case '/competitions':
+        return [
+```
+
+substituir por:
+
+```ts
+      case '/friendlies':
+        // A fama só aparece aqui; as demais telas seguem com a reputação (fama e reputação são separadas).
+        return [
+          { label: 'Fichas', value: `${friendlies.tokens}/${FRIENDLIES.tokens.max}` },
+          { label: 'Fama', value: friendlies.fame },
+          { label: 'Posição', value: `#${friendlies.rank} de ${FRIENDLIES.bots.count + 1}` }
+        ]
+      case '/competitions':
+        return [
+```
+
+- [ ] **Passo 4: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`.
+Manual (`npm run dev`, largura ≥ 768 px): Sidebar mostra "Amistosos" entre "Competições" e "Scouting" com badge `10`; em `/friendlies` o título é "Amistosos", subtítulo "Fichas e ranking" e os chips do cabeçalho são Fichas/Fama/Posição; em `/club` o chip "Reputação" continua igual; com amistoso ao vivo e saindo da partida, o item mostra "AO VIVO".
+
+- [ ] **Passo 5: commit**
+
+```bash
+git add src/composables/useNavigation.ts src/composables/usePageSubtitle.ts src/composables/useHeaderStats.ts
+git commit -m "feat(amistosos): navegacao, subtitulo e cabecalho"
+```
+
+**Pronto quando:** build passa e o roteiro manual confere.
+
+**Não fazer:** não mexer em `BottomNav.vue` nem acrescentar `primary` (Tarefa 18); não trocar a reputação pela fama em nenhuma outra rota.
+
+---
+
+## Tarefa 18: BottomNav com 4 itens e menu "+"
+
+**Commit:** `feat(layout): bottomnav com 4 itens e menu +`
+**Depende de:** Tarefa 17 (mesmo arquivo `useNavigation.ts`, item `friendlies`).
+
+Spec §7 (BottomNav, decisão do dono): ordem **Início · Liga · [+] · Copas · Elenco**. Principais (`primary: true`): `dashboard`, `league`, `competitions`, `squad`. No "+" (`primary: false`), na ordem de `navItems`: Amistosos, Scouting, Partidas, Clube. "+" com ícone `Plus` e rótulo "Mais"; painel que sobe da base, fecha ao escolher item, ao tocar fora, com `Esc` e ao trocar de rota. Acessibilidade: `aria-label="Mais opções"`, `aria-expanded`, `aria-controls`; painel `role="dialog"` com `aria-label="Mais opções de navegação"`; foco no primeiro item ao abrir e de volta no "+" ao fechar; alvos ≥ 48 px. Estado do "+": dourado se o item ativo está no menu (ou com o painel aberto); ponto "ao vivo" se algum item do menu está ao vivo; badge "!" se algum item do menu tem badge, **exceto** as fichas de amistoso. Cabe em 360 px com `grid-cols-5`. A Sidebar continua usando `navItems` inteiro.
+
+**Arquivos:**
+- Alterar: `src/composables/useNavigation.ts`
+- Substituir: `src/components/layout/BottomNav.vue`
+- Criar: `src/components/layout/BottomNavMore.vue`
+
+- [ ] **Passo 1: `NavItem.primary`**
+
+Em `src/composables/useNavigation.ts`, localizar:
+
+```ts
+  active: boolean
+  live: boolean
+}
+```
+
+substituir por:
+
+```ts
+  active: boolean
+  live: boolean
+  /** Item fixo da BottomNav (4 telas de uso diário); os demais ficam no menu "+". */
+  primary: boolean
+}
+```
+
+- [ ] **Passo 2: marcar cada item**
+
+No array `base`, acrescentar `primary` em cada item:
+
+- `dashboard`: trocar `{ id: 'dashboard', label: 'Início', shortLabel: 'Início', icon: LayoutDashboard, path: '/', badge: null },` por `{ id: 'dashboard', label: 'Início', shortLabel: 'Início', icon: LayoutDashboard, path: '/', badge: null, primary: true },`
+- `league`: trocar `{ id: 'league', label: 'Liga', shortLabel: 'Liga', icon: Trophy, path: '/league', badge: league.serieMeta.code },` por `{ id: 'league', label: 'Liga', shortLabel: 'Liga', icon: Trophy, path: '/league', badge: league.serieMeta.code, primary: true },`
+- `competitions`: trocar a linha `badge: competitions.hasPendingFinal || competitions.hasPendingThirdPlace ? '!' : null` por:
+
+```ts
+        badge: competitions.hasPendingFinal || competitions.hasPendingThirdPlace ? '!' : null,
+        primary: true
+```
+
+- `friendlies`: trocar a linha `badge: friendlies.tokens > 0 ? friendlies.tokens : null` por:
+
+```ts
+        badge: friendlies.tokens > 0 ? friendlies.tokens : null,
+        primary: false
+```
+
+- `scouting`: trocar a linha `badge: scouting.visibleReports.length || null` por:
+
+```ts
+        badge: scouting.visibleReports.length || null,
+        primary: false
+```
+
+- `squad`: trocar a linha `badge: market.incomingOffers.length || null` por:
+
+```ts
+        badge: market.incomingOffers.length || null,
+        primary: true
+```
+
+- `matches`: trocar `{ id: 'matches', label: 'Partidas', shortLabel: 'Jogos', icon: History, path: '/matches', badge: null },` por `{ id: 'matches', label: 'Partidas', shortLabel: 'Jogos', icon: History, path: '/matches', badge: null, primary: false },`
+- `club`: trocar `{ id: 'club', label: 'Clube', shortLabel: 'Clube', icon: Building2, path: '/club', badge: null }` por `{ id: 'club', label: 'Clube', shortLabel: 'Clube', icon: Building2, path: '/club', badge: null, primary: false }`
+
+- [ ] **Passo 3: listas filtradas**
+
+Localizar:
+
+```ts
+  const currentPageTitle = computed(() => {
+```
+
+substituir por:
+
+```ts
+  // BottomNav: 4 itens fixos + menu "+" com o resto (a Sidebar usa navItems inteiro).
+  const primaryNavItems = computed(() => navItems.value.filter((i) => i.primary))
+  const moreNavItems = computed(() => navItems.value.filter((i) => !i.primary))
+
+  const currentPageTitle = computed(() => {
+```
+
+e localizar:
+
+```ts
+  return { navItems, currentPageTitle, isMatchRoute, matchOwner, goToMatchTab, goTo }
+```
+
+substituir por:
+
+```ts
+  return { navItems, primaryNavItems, moreNavItems, currentPageTitle, isMatchRoute, matchOwner, goToMatchTab, goTo }
+```
+
+- [ ] **Passo 4: criar `src/components/layout/BottomNavMore.vue`**
+
+```vue
+<script setup lang="ts">
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import type { NavItem } from '@/composables/useNavigation'
+
+const props = defineProps<{ open: boolean; items: NavItem[] }>()
+const emit = defineEmits<{ close: []; select: [item: NavItem] }>()
+const panel = ref<HTMLElement | null>(null)
+
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    emit('close')
+  }
+}
+
+// Aberto: Esc fecha e o foco vai ao primeiro item.
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      document.addEventListener('keydown', onKey)
+      await nextTick()
+      panel.value?.querySelector<HTMLButtonElement>('button')?.focus()
+    } else document.removeEventListener('keydown', onKey)
+  }
+)
+onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
+</script>
+
+<template>
+  <div v-if="open" class="md:hidden fixed inset-0 z-30 bg-night/60" aria-hidden="true" @click="emit('close')"></div>
+  <div
+    v-if="open"
+    id="bottom-nav-more"
+    ref="panel"
+    role="dialog"
+    aria-label="Mais opções de navegação"
+    class="md:hidden fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-50 bg-surface border border-borderline rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] p-2 animate-pop"
+  >
+    <ul class="grid grid-cols-1 gap-1">
+      <li v-for="item in items" :key="item.id">
+        <button
+          type="button"
+          @click="emit('select', item)"
+          :class="[
+            'w-full min-h-12 flex items-center justify-between gap-3 px-3.5 rounded-xl text-sm font-semibold transition-colors',
+            item.active ? 'bg-emeraldpro text-night' : 'text-ink hover:bg-subtle'
+          ]"
+        >
+          <span class="flex items-center gap-3 min-w-0">
+            <component :is="item.icon" class="w-5 h-5 shrink-0" />
+            <span class="truncate">{{ item.label }}</span>
+          </span>
+          <span class="flex items-center gap-2 shrink-0">
+            <span
+              v-if="item.live"
+              :class="[
+                'flex items-center gap-1.5 text-[10px] font-extrabold px-2 py-0.5 rounded-full',
+                item.active ? 'bg-night text-emeraldpro-hover' : 'bg-emeraldpro-soft text-emeraldpro-hover'
+              ]"
+            >
+              <span class="relative flex w-1.5 h-1.5">
+                <span class="absolute inline-flex w-full h-full rounded-full bg-emeraldpro opacity-75 animate-ping"></span>
+                <span class="relative inline-flex w-1.5 h-1.5 rounded-full bg-emeraldpro"></span>
+              </span>
+              AO VIVO
+            </span>
+            <span
+              v-if="item.badge"
+              :class="[
+                'text-[11px] font-bold px-2 py-0.5 rounded-full',
+                item.active ? 'bg-night/25 text-night' : 'bg-emeraldpro-soft text-emeraldpro-hover'
+              ]"
+            >{{ item.badge }}</span>
+          </span>
+        </button>
+      </li>
+    </ul>
+  </div>
+</template>
+```
+
+- [ ] **Passo 5: substituir `src/components/layout/BottomNav.vue` inteiro**
+
+```vue
+<script setup lang="ts">
+import { computed, nextTick, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { Plus } from 'lucide-vue-next'
+import { useNavigation, type NavItem } from '@/composables/useNavigation'
+import BottomNavMore from './BottomNavMore.vue'
+
+const route = useRoute()
+const { primaryNavItems, moreNavItems, goTo } = useNavigation()
+const open = ref(false)
+const plusBtn = ref<HTMLButtonElement | null>(null)
+
+// Início · Liga · [+] · Copas · Elenco
+const left = computed(() => primaryNavItems.value.slice(0, 2))
+const right = computed(() => primaryNavItems.value.slice(2, 4))
+const moreActive = computed(() => moreNavItems.value.some((i) => i.active))
+const moreLive = computed(() => moreNavItems.value.some((i) => i.live))
+// Fichas de amistoso não marcam o "+" (senão ele ficaria sempre marcado).
+const moreBadge = computed(() => moreNavItems.value.some((i) => i.id !== 'friendlies' && !!i.badge))
+
+const cellClass = 'flex flex-col items-center justify-center min-h-12 min-w-0 px-px py-1 rounded-lg text-[11px] leading-tight font-bold transition-colors relative'
+
+function close(returnFocus = true) {
+  if (!open.value) return
+  open.value = false
+  if (returnFocus) nextTick(() => plusBtn.value?.focus())
+}
+
+function toggle() {
+  if (open.value) close()
+  else open.value = true
+}
+
+function choose(item: NavItem) {
+  close(false)
+  goTo(item)
+}
+
+// Trocar de rota (por qualquer caminho) fecha o painel.
+watch(() => route.fullPath, () => close(false))
+</script>
+
+<template>
+  <BottomNavMore :open="open" :items="moreNavItems" @close="close()" @select="choose" />
+  <nav class="md:hidden fixed bottom-0 inset-x-0 bg-night border-t border-borderline z-40 grid grid-cols-5 pt-1 px-0.5 pb-[calc(0.25rem+env(safe-area-inset-bottom))]">
+    <button
+      type="button"
+      v-for="item in left"
+      :key="item.id"
+      @click="goTo(item)"
+      :class="[cellClass, item.active ? 'text-gold' : 'text-ink-muted']"
+    >
+      <component :is="item.icon" class="w-5 h-5 mb-0.5 shrink-0" />
+      <span class="truncate max-w-full">{{ item.shortLabel }}</span>
+      <span
+        v-if="item.badge"
+        class="absolute top-0 right-0 min-w-4 h-4 px-1 rounded-full bg-emeraldpro text-night text-[10px] leading-4 font-extrabold text-center"
+      >{{ item.badge }}</span>
+      <span v-if="item.live" class="absolute top-0.5 left-1 flex w-2.5 h-2.5" aria-label="Ao vivo">
+        <span class="absolute inline-flex w-full h-full rounded-full bg-emeraldpro opacity-75 animate-ping"></span>
+        <span class="relative inline-flex w-2.5 h-2.5 rounded-full bg-emeraldpro"></span>
+      </span>
+    </button>
+
+    <button
+      ref="plusBtn"
+      type="button"
+      aria-label="Mais opções"
+      :aria-expanded="open"
+      aria-controls="bottom-nav-more"
+      @click="toggle"
+      :class="[cellClass, moreActive || open ? 'text-gold' : 'text-ink-muted']"
+    >
+      <Plus class="w-5 h-5 mb-0.5 shrink-0 transition-transform" :class="open ? 'rotate-45' : ''" />
+      <span class="truncate max-w-full">Mais</span>
+      <span
+        v-if="moreBadge"
+        class="absolute top-0 right-0 min-w-4 h-4 px-1 rounded-full bg-emeraldpro text-night text-[10px] leading-4 font-extrabold text-center"
+      >!</span>
+      <span v-if="moreLive" class="absolute top-0.5 left-1 flex w-2.5 h-2.5" aria-label="Ao vivo">
+        <span class="absolute inline-flex w-full h-full rounded-full bg-emeraldpro opacity-75 animate-ping"></span>
+        <span class="relative inline-flex w-2.5 h-2.5 rounded-full bg-emeraldpro"></span>
+      </span>
+    </button>
+
+    <button
+      type="button"
+      v-for="item in right"
+      :key="item.id"
+      @click="goTo(item)"
+      :class="[cellClass, item.active ? 'text-gold' : 'text-ink-muted']"
+    >
+      <component :is="item.icon" class="w-5 h-5 mb-0.5 shrink-0" />
+      <span class="truncate max-w-full">{{ item.shortLabel }}</span>
+      <span
+        v-if="item.badge"
+        class="absolute top-0 right-0 min-w-4 h-4 px-1 rounded-full bg-emeraldpro text-night text-[10px] leading-4 font-extrabold text-center"
+      >{{ item.badge }}</span>
+      <span v-if="item.live" class="absolute top-0.5 left-1 flex w-2.5 h-2.5" aria-label="Ao vivo">
+        <span class="absolute inline-flex w-full h-full rounded-full bg-emeraldpro opacity-75 animate-ping"></span>
+        <span class="relative inline-flex w-2.5 h-2.5 rounded-full bg-emeraldpro"></span>
+      </span>
+    </button>
+  </nav>
+</template>
+```
+
+- [ ] **Passo 6: verificar**
+
+Rodar: `npm run build` → `✓ built in ...`.
+Manual (`npm run dev`, DevTools no modo dispositivo com 360 px de largura):
+1. Barra com Início · Liga · Mais · Copas · Elenco, sem rolagem horizontal.
+2. "Mais" abre o painel com Amistosos (badge com fichas), Scouting, Partidas, Clube; foco no primeiro item.
+3. Fecha com `Esc` (foco volta ao "Mais"), tocando fora, e escolhendo um item (navega).
+4. Em `/club`, o "Mais" fica dourado. Com amistoso ao vivo fora da tela da partida, ponto "ao vivo" no "Mais". Só as fichas não acendem o "!".
+5. Largura ≥ 768 px: BottomNav some, Sidebar mostra todos os 8 itens.
+
+- [ ] **Passo 7: commit**
+
+```bash
+git add src/composables/useNavigation.ts src/components/layout/BottomNav.vue src/components/layout/BottomNavMore.vue
+git commit -m "feat(layout): bottomnav com 4 itens e menu +"
+```
+
+**Pronto quando:** build passa e os 5 itens manuais conferem.
+
+**Não fazer:** não mudar a Sidebar; não reordenar `navItems` (a ordem do menu "+" vem dela); não usar biblioteca de modal.
+
+---
+
+## Tarefa 19: verificação manual e ajustes
+
+**Commit (só se houver correção):** `chore(amistosos): verificacao manual e ajustes`
+**Depende de:** Tarefas 1–18.
+
+Só correções: nada de funcionalidade nova, nada de refatoração. Se não houver o que corrigir, **não** faça commit vazio; relate "roteiro sem falhas".
+
+**Arquivos:** os que precisarem de correção (listar no relatório).
+
+- [ ] **Passo 1: checagens automáticas**
+
+Rodar: `node scripts/verify-friendlies/run.mjs` → `OK` em ranking, tokens, fame, draw, bots, provider, store.
+Rodar: `npm run build` → `✓ built in ...`.
+
+- [ ] **Passo 2: roteiro manual (spec §9), com `npm run dev`**
+
+Para editar o save: DevTools → Application → Local Storage → chave `super_xi_full_save_v7` (campo `friendlies`). Partida ao vivo: chave `super_xi_live_match_v1`.
+
+1. **Fichas:** jogar 3 amistosos (ou só iniciar e terminar), conferir 7/10 e o contador "Próxima ficha em mm:ss"; editar `friendlies.tokenTickAt` para 30 min atrás, recarregar → +5 (teto 10).
+2. **Energia:** baixar a energia do elenco (jogar partidas de liga) → "OVER do amistoso" igual ao OVER com energia 100; energia dos atletas igual antes e depois do amistoso; recuperação natural continua andando com o amistoso ao vivo.
+3. **Lesão:** lesão sofrida no amistoso aparece no Elenco e tira o atleta da liga; lesões antigas não descontam jogo no amistoso.
+4. **Cartões e estatísticas:** expulsão no amistoso não gera suspensão nem amarelo acumulado; artilharia/assistências/jogos da temporada e `matchHistory` (tela Partidas) iguais antes e depois.
+5. **Fama:** vitória/empate/derrota batem com os valores do cartão (V/E/D); derrota com fama 0 fica em 0.
+6. **Retomada:** recarregar no meio do amistoso retoma do mesmo minuto; apagar `super_xi_live_match_v1` e recarregar → toast "O amistoso anterior foi interrompido e não contou.", ficha não volta, fama e dinheiro iguais.
+7. **Save:** remover o campo `friendlies` do save e recarregar → estado novo (10 fichas, fama 0, #101); "Nova carreira" (Clube) zera os amistosos.
+8. **Roleta:** com `prefers-reduced-motion: reduce` revela na hora; 360 px sem rolagem horizontal.
+9. **Sorteios:** Desafiar + 2 re-sorteios → "Sorteios restantes: 0" e botão desabilitado; sair, recarregar e voltar → continua 0 com as mesmas opções; iniciar a partida → o próximo desafio volta a 3.
+10. **Reputação:** anotar `club.reputation` (chip "Reputação" em `/club`), jogar vitória e derrota no amistoso → igual; jogar uma partida de liga → a fama (em `/friendlies`) não muda.
+11. **BottomNav em 360 px:** 4 itens + "+", sem rolagem; "+" abre e fecha (toque fora, `Esc`, escolher item), foco volta ao "+"; ponto "ao vivo" no "+" com amistoso rodando.
+12. **Limite diário:** editar `friendlies.paidWins` para `{ "day": <dayStart de hoje>, "count": 5 }` (no console: `new Date().setHours(0,0,0,0)`), recarregar, sortear → cartões com "R$ 0 — limite diário de vitórias pagas atingido"; vencer → resumo com o aviso de limite.
+13. **Partidas paralelas:** iniciar um amistoso e, com ele rodando, iniciar uma partida de liga → as duas aparecem no `MatchSwitcher`; a energia congela só por causa da liga.
+
+- [ ] **Passo 3: corrigir o que falhar**
+
+Para cada falha: localizar a causa, corrigir no menor trecho possível, rodar de novo `npm run build` e o item do roteiro que falhou.
+
+- [ ] **Passo 4: commit (se houve correção)**
+
+```bash
+git add <arquivos corrigidos, um a um>
+git commit -m "chore(amistosos): verificacao manual e ajustes"
+```
+
+**Pronto quando:** checagens automáticas OK, build passa e os 13 itens do roteiro conferem (ou as falhas foram corrigidas e reverificadas).
+
+**Não fazer:** não alterar `package.json`/versão; não fazer merge na `develop` nem push (a integração é decisão do dono do produto); não adicionar test runner.
+
+---
+
+## Autorrevisão (feita ao escrever o plano)
+
+- **Cobertura da spec:** regras 1–12 (§2) → Tarefas 2, 4, 7, 8, 10–13, 15; modelo e persistência (§5) → 1, 7; fórmulas (§6) → 2–5; UI (§7) → 14–18; casos de borda (§8) → 7, 11, 13, 15, 19; testes (§9) → verificador das Tarefas 1–7 e roteiro da 19; tarefas da §10 → mesma numeração; decisões da §11 → respeitadas (fama separada da reputação, 3 sorteios, BottomNav 4 + "+").
+- **Consistência de nomes:** `userRank`/`rankedBots` (1), `regenTokens`/`spendToken`/`msToNextToken`/`formatTokenCountdown` (2), `expectedScore`/`fameDelta`/`applyFame`/`outcomeFromScore`/`signedFame` (3), `rankBonus`/`opponentOver`/`friendlyPrize`/`drawOptions` (4), `allBotNames`/`generateBots`/`simulateBots`/`rankingView` (5), `createLocalBotProvider` (6), store `useFriendliesStore` com `rank`, `ranking`, `drawsLeft`, `selectedOption`, `msToNext`, `paidWinsLeft`, `regenTokens`, `refresh`, `draw`, `select`, `beginMatch`, `settle`, `resolveOrphan`, `toSave`, `fromSave`, `reset` (7), `freshTeamStrength`/`friendlyEligibleCount` (10), `lineupShort` (11), `useFriendlies` (15).
