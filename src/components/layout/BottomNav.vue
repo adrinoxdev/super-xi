@@ -32,7 +32,8 @@ function toggle() {
 }
 
 function choose(item: NavItem) {
-  close(false)
+  // Mesma rota: o watch de rota não dispara, então devolve o foco ao "+" ao fechar.
+  close(item.path === route.path)
   goTo(item)
 }
 
@@ -56,7 +57,7 @@ watch(() => route.fullPath, () => close(false))
         v-if="item.badge"
         class="absolute top-0 right-0 min-w-4 h-4 px-1 rounded-full bg-emeraldpro text-night text-[10px] leading-4 font-extrabold text-center"
       >{{ item.badge }}</span>
-      <span v-if="item.live" class="absolute top-0.5 left-1 flex w-2.5 h-2.5" aria-label="Ao vivo">
+      <span v-if="item.live" class="absolute top-0.5 left-1 flex w-2.5 h-2.5" role="img" aria-label="Ao vivo">
         <span class="absolute inline-flex w-full h-full rounded-full bg-emeraldpro opacity-75 animate-ping"></span>
         <span class="relative inline-flex w-2.5 h-2.5 rounded-full bg-emeraldpro"></span>
       </span>
@@ -67,7 +68,7 @@ watch(() => route.fullPath, () => close(false))
       type="button"
       aria-label="Mais opções"
       :aria-expanded="open"
-      aria-controls="bottom-nav-more"
+      :aria-controls="open ? 'bottom-nav-more' : undefined"
       @click="toggle"
       :class="[cellClass, moreActive || open ? 'text-gold' : 'text-ink-muted']"
     >
@@ -77,7 +78,7 @@ watch(() => route.fullPath, () => close(false))
         v-if="moreBadge"
         class="absolute top-0 right-0 min-w-4 h-4 px-1 rounded-full bg-emeraldpro text-night text-[10px] leading-4 font-extrabold text-center"
       >!</span>
-      <span v-if="moreLive" class="absolute top-0.5 left-1 flex w-2.5 h-2.5" aria-label="Ao vivo">
+      <span v-if="moreLive" class="absolute top-0.5 left-1 flex w-2.5 h-2.5" role="img" aria-label="Ao vivo">
         <span class="absolute inline-flex w-full h-full rounded-full bg-emeraldpro opacity-75 animate-ping"></span>
         <span class="relative inline-flex w-2.5 h-2.5 rounded-full bg-emeraldpro"></span>
       </span>
@@ -96,7 +97,7 @@ watch(() => route.fullPath, () => close(false))
         v-if="item.badge"
         class="absolute top-0 right-0 min-w-4 h-4 px-1 rounded-full bg-emeraldpro text-night text-[10px] leading-4 font-extrabold text-center"
       >{{ item.badge }}</span>
-      <span v-if="item.live" class="absolute top-0.5 left-1 flex w-2.5 h-2.5" aria-label="Ao vivo">
+      <span v-if="item.live" class="absolute top-0.5 left-1 flex w-2.5 h-2.5" role="img" aria-label="Ao vivo">
         <span class="absolute inline-flex w-full h-full rounded-full bg-emeraldpro opacity-75 animate-ping"></span>
         <span class="relative inline-flex w-2.5 h-2.5 rounded-full bg-emeraldpro"></span>
       </span>

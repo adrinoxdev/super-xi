@@ -34,6 +34,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
     id="bottom-nav-more"
     ref="panel"
     role="dialog"
+    aria-modal="true"
     aria-label="Mais opções de navegação"
     class="md:hidden fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-50 bg-surface border border-borderline rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] p-2 animate-pop"
   >
