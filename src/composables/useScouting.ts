@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { useClubStore } from '@/stores/club'
+import { useMatchStore } from '@/stores/match'
 import { useScoutingStore } from '@/stores/scouting'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
@@ -19,6 +20,7 @@ let lastActiveTouch = 0
 export function useScouting() {
   const club = useClubStore()
   const squad = useSquadStore()
+  const match = useMatchStore()
   const scouting = useScoutingStore()
   const ui = useUiStore()
   const { saveGame } = usePersistence()
@@ -28,6 +30,9 @@ export function useScouting() {
     missionTickTimer = setInterval(() => {
       nowTick.value = Date.now()
       club.clubNow = nowTick.value
+      // Partida ao vivo congela a recuperação: a energia não muda no meio do jogo.
+      if (match.liveCompetitions.length) club.staminaTickAt = nowTick.value
+      else squad.regenStamina(nowTick.value)
       if (nowTick.value - lastActiveTouch >= 30000 && document.visibilityState === 'visible') {
         lastActiveTouch = nowTick.value
         club.touchActive()
