@@ -24,7 +24,7 @@ export const FACILITIES_LIST: Array<{ key: keyof ClubUpgrades; title: string; de
   { key: 'scoutingLevel', title: 'Departamento de Scouting', description: 'Libera mais slots de missão, precisão e Joias Raras.' },
   { key: 'squadCapacityLevel', title: 'Alojamento & Elenco', description: 'Define o limite de atletas do elenco (de 14 a 25). Cada atleta extra paga salário a cada jogo.' },
   { key: 'trainingCenterLevel', title: 'Centro de Treinamento', description: 'Acelera a evolução dos atributos após cada jogo.' },
-  { key: 'medicalCenterLevel', title: 'Departamento Médico', description: 'Acelera a recuperação de energia e reduz a chance e a duração das lesões.' },
+  { key: 'medicalCenterLevel', title: 'Departamento Médico', description: 'Acelera a recuperação de energia entre as partidas e reduz a chance e a duração das lesões.' },
   { key: 'stadiumLevel', title: 'Estádio & Sócios', description: 'Aumenta a receita fixa de bilheteria em cada partida. Rende conforme a série (teto por série). Cada nível soma manutenção por jogo.' },
   { key: 'financeLevel', title: 'Marketing & Finanças', description: 'Aumenta o valor fixo da cota de patrocínio por jogo. Rende conforme a série (teto por série). Cada nível soma manutenção por jogo.' }
 ]
