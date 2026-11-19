@@ -94,7 +94,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 gap-3">
+  <div class="space-y-2">
+  <div class="grid grid-cols-1 gap-2.5">
     <template v-for="(opt, i) in options" :key="opt.botId">
       <OpponentCard
         v-if="revealed[i] !== false"
@@ -109,7 +110,7 @@ onBeforeUnmount(() => {
       />
       <div
         v-else
-        class="rounded-2xl border-2 border-dashed border-gold/50 bg-night p-4 min-h-[13.5rem] flex flex-col items-center justify-center gap-2 overflow-hidden min-w-0"
+        class="rounded-2xl border-2 border-dashed border-gold/50 bg-night p-4 min-h-[8.5rem] flex flex-col items-center justify-center gap-2 overflow-hidden min-w-0"
         aria-hidden="true"
       >
         <span class="text-[11px] font-bold uppercase text-gold">Sorteando…</span>
@@ -118,5 +119,7 @@ onBeforeUnmount(() => {
       </div>
     </template>
     <p class="sr-only" aria-live="polite">{{ rolling ? 'Sorteando adversários' : 'Adversários sorteados' }}</p>
+  </div>
+  <p class="text-[11px] text-ink-muted">Estimativas com a melhor escalação disponível; os valores são fixados no apito inicial.</p>
   </div>
 </template>

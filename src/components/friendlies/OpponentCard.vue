@@ -29,33 +29,36 @@ const diffLabel = computed(() => (diff.value > 0 ? `+${diff.value}` : `−${Math
 </script>
 
 <template>
-  <div class="rounded-2xl border border-borderline bg-subtle p-4 flex flex-col gap-3 min-w-0">
-    <div class="flex items-center gap-3 min-w-0">
-      <TeamCrest :name="option.name" size="md" />
-      <div class="min-w-0">
+  <div class="rounded-2xl border border-borderline bg-subtle p-3 flex flex-col gap-2.5 min-w-0">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <TeamCrest :name="option.name" size="sm" />
+      <div class="min-w-0 flex-1">
         <p class="font-extrabold text-ink truncate" :title="option.name">{{ option.name }}</p>
         <p class="text-[11px] text-ink-muted">Ranking #{{ now.rank }} • Fama {{ now.fame }}</p>
       </div>
+      <div class="shrink-0 text-right" :title="'Estimativa com a melhor escalação disponível'">
+        <span class="text-[10px] font-bold uppercase text-ink-muted block leading-none">OVER</span>
+        <strong class="font-score text-xl text-ink leading-tight">~{{ quote.oppOver }}</strong>
+        <span v-if="diff !== 0" class="ml-1 text-xs font-bold" :class="diff > 0 ? 'text-dangerpro' : 'text-emeraldpro'">{{ diffLabel }}</span>
+      </div>
     </div>
-    <div class="flex items-baseline gap-2">
-      <span class="text-[11px] font-bold uppercase text-ink-muted">OVER estimado</span>
-      <strong class="font-score text-2xl text-ink" :title="'Estimativa com a melhor escalação disponível'">~{{ quote.oppOver }}</strong>
-      <span v-if="diff !== 0" class="text-xs font-bold" :class="diff > 0 ? 'text-dangerpro' : 'text-emeraldpro'">{{ diffLabel }}</span>
+    <div class="grid grid-cols-2 gap-2 text-xs">
+      <div class="rounded-lg bg-night/60 border border-borderline/60 px-2.5 py-1.5 min-w-0">
+        <span class="text-[10px] font-bold uppercase text-ink-muted block">Prêmio</span>
+        <strong v-if="quote.prize > 0" class="text-emeraldpro break-words">{{ formatCurrency(quote.prize) }}</strong>
+        <strong v-else class="text-ink" title="Limite diário de vitórias pagas atingido">R$ 0 <span class="font-normal text-ink-muted">(limite diário)</span></strong>
+      </div>
+      <div class="rounded-lg bg-night/60 border border-borderline/60 px-2.5 py-1.5 min-w-0">
+        <span class="text-[10px] font-bold uppercase text-ink-muted block">Fama (V/E/D)</span>
+        <span class="whitespace-nowrap">
+          <strong class="text-emeraldpro">{{ signedFame(quote.fameWin) }}</strong>
+          <span class="text-ink-muted"> / </span><strong>{{ signedFame(quote.fameDraw) }}</strong>
+          <span class="text-ink-muted"> / </span><strong class="text-dangerpro">{{ signedFame(quote.fameLoss) }}</strong>
+        </span>
+      </div>
     </div>
-    <p class="text-xs text-ink break-words">
-      <template v-if="quote.prize > 0">Prêmio: <strong class="text-emeraldpro">{{ formatCurrency(quote.prize) }}</strong></template>
-      <template v-else>Prêmio: <strong>R$ 0</strong> — limite diário de vitórias pagas atingido</template>
-    </p>
-    <p class="text-xs text-ink">
-      Fama:
-      <strong class="text-emeraldpro">{{ signedFame(quote.fameWin) }}</strong> /
-      <strong>{{ signedFame(quote.fameDraw) }}</strong> /
-      <strong class="text-dangerpro">{{ signedFame(quote.fameLoss) }}</strong>
-      <span class="text-ink-muted">(V/E/D)</span>
-    </p>
-    <p class="text-[11px] text-ink-muted break-words">Estimativa com a melhor escalação disponível; os valores são fixados no apito inicial.</p>
     <BaseButton
-      class="mt-auto px-4 py-3 min-h-12 text-sm disabled:cursor-not-allowed"
+      class="px-4 py-2 min-h-11 text-sm disabled:cursor-not-allowed"
       :disabled="disabled"
       @click="emit('play', option.botId)"
     >
