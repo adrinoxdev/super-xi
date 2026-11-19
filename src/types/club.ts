@@ -140,6 +140,8 @@ export interface ClubSave {
   /** Dia (meia-noite local, ms) em que os descansos foram contados e quantos já foram usados nele. */
   restDayStart?: number
   restUses?: number
+  /** Instante (ms) até onde a recuperação natural de energia já foi aplicada. */
+  staminaTickAt?: number
   /** Último instante (ms) em que o jogador esteve ativo; base da renda offline. Ausente em saves antigos = agora. */
   lastActiveAt?: number
   /** Ausente em saves antigos: vira o padrão ao carregar. */

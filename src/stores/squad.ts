@@ -5,7 +5,7 @@ import type { FormationName } from '@/types/match'
 import { applyAging, generatePlayer, refreshPlayerEconomy, retireAgeFor } from '@/utils/player/generatePlayer'
 import { buildFormationSlots, calculateTeamStrength, getEffectiveOvr, pickBestLineup } from '@/utils/match/calculateTeamStrength'
 import { useClubStore } from '@/stores/club'
-import { FORMATIONS, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE } from '@/config'
+import { FORMATIONS, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE, STAMINA_REGEN_MS_PER_POINT } from '@/config'
 
 export interface SquadSave {
   players: Player[]
@@ -140,6 +140,22 @@ export const useSquadStore = defineStore('squad', () => {
     return swaps
   }
 
+  /** Recuperação natural por tempo real: soma só pontos inteiros e guarda o resto de tempo em staminaTickAt. */
+  function regenStamina(now = Date.now()) {
+    const club = useClubStore()
+    const points = Math.floor((now - club.staminaTickAt) / STAMINA_REGEN_MS_PER_POINT)
+    if (points <= 0) {
+      if (now < club.staminaTickAt) club.staminaTickAt = now
+      return
+    }
+    club.staminaTickAt += points * STAMINA_REGEN_MS_PER_POINT
+    players.value.forEach((p) => {
+      if ((p.stamina ?? 100) < 100) p.stamina = Math.min(100, (p.stamina ?? 100) + points)
+    })
+    // Elenco cheio: descarta o tempo acumulado para a energia não nascer "adiantada" no próximo desgaste.
+    if (players.value.every((p) => (p.stamina ?? 100) >= 100)) club.staminaTickAt = now
+  }
+
   function recoverStamina(amount = 35) {
     players.value.forEach((p) => {
       p.stamina = Math.min(100, (p.stamina ?? 100) + amount)
@@ -219,6 +235,7 @@ export const useSquadStore = defineStore('squad', () => {
     substituteStarter,
     replaceInjuredStarters,
     recoverStamina,
+    regenStamina,
     applyEndOfSeason,
     toSave,
     fromSave
