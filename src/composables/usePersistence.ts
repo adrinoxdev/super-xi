@@ -3,7 +3,7 @@ import { useCompetitionsStore } from '@/stores/competitions'
 import { useFriendliesStore } from '@/stores/friendlies'
 import { useLeagueStore } from '@/stores/league'
 import { useMarketStore } from '@/stores/market'
-import { useMatchStore } from '@/stores/match'
+import { COMPETITIONS_ORDER, useMatchStore } from '@/stores/match'
 import { useScoutingStore } from '@/stores/scouting'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
@@ -11,6 +11,7 @@ import { ATHLETE_ECONOMY_VERSION, BALANCE_VERSION, PROGRESSION_VERSION, migrateA
 import { LIVE_MATCH_KEY, STORAGE_KEY } from '@/config'
 import { useEconomy } from './useEconomy'
 import { checkMilestones } from '@/utils/club/progression'
+import { resolvePrematchCompetition } from '@/utils/match/prematchMemory'
 
 // Definição única em constants.ts; reexportada por compatibilidade com quem importava daqui.
 export { STORAGE_KEY }
@@ -69,7 +70,9 @@ export function usePersistence() {
           staffContracts: club.staffContracts,
           ...competitions.toSave(),
           // Campo aditivo (sem trocar STORAGE_KEY nem migração numerada): saves antigos ganham estado novo no load.
-          friendlies: friendlies.toSave()
+          friendlies: friendlies.toSave(),
+          // Campo aditivo: só o identificador da competição exibida (nunca estado de partida), para o pré-jogo voltar ao recarregar.
+          prematchCompetition: match.activeMatchCompetition
         })
       )
     } catch {
@@ -161,6 +164,15 @@ export function usePersistence() {
         if (!league.leagueFixtures.length) league.initLeagueSeason(club.division, club.season)
         league.ensureKnockoutTies()
         league.selectedRound = league.currentRound
+        // Pré-jogo de copa ou amistoso volta ao recarregar se ainda houver partida a jogar; senão, liga (padrão e save antigo).
+        // Partida ao vivo manda: no boot, restoreLiveMatches (App.vue) roda depois e troca a competição; num import com partida rodando, nada muda.
+        if (!match.liveCompetitions.length) {
+          match.activeMatchCompetition = resolvePrematchCompetition(p.prematchCompetition, {
+            known: COMPETITIONS_ORDER,
+            isPlayable: (c) => competitions.isCompetitionPlayable(c),
+            friendlyReady: friendlies.selectedOption !== null && friendlies.active === null
+          })
+        }
         loading = false
         applyOfflineReward()
         return true

@@ -3,7 +3,7 @@
 import { createServer } from 'vite'
 import { existsSync } from 'node:fs'
 
-const ALL = ['ranking', 'tokens', 'fame', 'draw', 'bots', 'provider', 'store', 'strength']
+const ALL = ['ranking', 'tokens', 'fame', 'draw', 'bots', 'provider', 'store', 'strength', 'prematch']
 const wanted = process.argv.slice(2)
 const names = wanted.length ? wanted : ALL
 const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'error' })

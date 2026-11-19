@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { onBeforeUnmount, onMounted, watch } from 'vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import Header from '@/components/layout/Header.vue'
 import BottomNav from '@/components/layout/BottomNav.vue'
@@ -27,6 +27,13 @@ const { restoreLiveMatches } = useMatchSimulation()
 const match = useMatchStore()
 const ui = useUiStore()
 const friendlies = useFriendliesStore()
+
+// A competição exibida vai no save (pré-jogo de copa ou amistoso volta ao recarregar): grava a cada troca,
+// sem depender só do beforeunload, que o celular nem sempre dispara.
+watch(
+  () => match.activeMatchCompetition,
+  () => saveGame()
+)
 
 function onVisibility() {
   if (document.visibilityState === 'hidden') saveGame()
