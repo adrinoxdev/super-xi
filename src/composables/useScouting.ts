@@ -1,5 +1,7 @@
 import { ref } from 'vue'
 import { useClubStore } from '@/stores/club'
+import { useFriendliesStore } from '@/stores/friendlies'
+import { useMatchStore } from '@/stores/match'
 import { useScoutingStore } from '@/stores/scouting'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
@@ -19,7 +21,9 @@ let lastActiveTouch = 0
 export function useScouting() {
   const club = useClubStore()
   const squad = useSquadStore()
+  const match = useMatchStore()
   const scouting = useScoutingStore()
+  const friendlies = useFriendliesStore()
   const ui = useUiStore()
   const { saveGame } = usePersistence()
 
@@ -28,6 +32,12 @@ export function useScouting() {
     missionTickTimer = setInterval(() => {
       nowTick.value = Date.now()
       club.clubNow = nowTick.value
+      // Partida ao vivo congela a recuperação: a energia não muda no meio do jogo. O amistoso não congela (todos jogam
+      // como se tivessem energia 100 e o jogo não consome nem recupera energia).
+      if (match.liveCompetitions.some((c) => c !== 'friendly')) club.staminaTickAt = nowTick.value
+      else squad.regenStamina(nowTick.value)
+      // Fichas de amistoso: +1 a cada 6 min de tempo real; o primeiro tick depois de abrir aplica o tempo offline.
+      friendlies.regenTokens(nowTick.value)
       if (nowTick.value - lastActiveTouch >= 30000 && document.visibilityState === 'visible') {
         lastActiveTouch = nowTick.value
         club.touchActive()

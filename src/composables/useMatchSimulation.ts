@@ -7,6 +7,8 @@ import { useMarketStore } from '@/stores/market'
 import { useMatchStore } from '@/stores/match'
 import { useSquadStore } from '@/stores/squad'
 import { useUiStore } from '@/stores/ui'
+import { useFriendliesStore } from '@/stores/friendlies'
+import { formatTokenCountdown } from '@/utils/friendlies/tokens'
 import type { FormationName, LiveMatchEvent, MatchCompetition, MatchEventType, MatchOpponent } from '@/types/match'
 import { LIVE_MATCH_KEY } from '@/config/storage'
 import { COMP_SHORT, isSuspendedFor } from '@/utils/player/suspension'
@@ -108,6 +110,11 @@ function clearMatchTimer(comp: MatchCompetition) {
   }
 }
 
+/** Amistoso não credita gols nem assistências: nada entra nas estatísticas de temporada/carreira nem nos logs da partida. */
+function credit(comp: MatchCompetition, fn: () => void) {
+  if (comp !== 'friendly') fn()
+}
+
 /** Mando de +3 OVER só vale na liga e no continental; Copa, Supercopa e Recopa não dão mando ao usuário. */
 export function homeBonusApplies(comp: MatchCompetition | null | undefined): boolean {
   return comp === 'league' || comp === 'continental'
@@ -121,6 +128,7 @@ export function useMatchSimulation() {
   const market = useMarketStore()
   const match = useMatchStore()
   const ui = useUiStore()
+  const friendlies = useFriendliesStore()
   const { saveGame } = usePersistence()
   const { settleMatch } = useEconomy()
   const { applyStageOutcome } = useSeason()
@@ -147,6 +155,16 @@ export function useMatchSimulation() {
   }
 
   function rawOpponentFor(comp: MatchCompetition): MatchOpponent {
+    if (comp === 'friendly') {
+      // Opção escolhida na roleta: OVER do rival estimado com a escalação atual (offset do sorteio + OVER de agora), que
+      // acompanha as trocas no PreMatch; depois do apito vale o desafio gravado. Sem nenhum, um rival neutro só para os computeds.
+      const opt = friendlies.selectedOption
+      // OVER efetivo (piso da melhor escalação elegível): escalar mal não baixa o rival (spec §6).
+      if (opt) return { name: opt.name, power: friendlies.quote(opt, squad.friendlyStrength.over, Date.now()).oppOver, style: 'Amistoso' }
+      const a = friendlies.active
+      if (a) return { name: a.botName, power: a.oppOver, style: 'Amistoso' }
+      return { name: 'Adversário', power: Math.round(squad.friendlyStrength.over), style: 'Amistoso' }
+    }
     if (comp === 'supercup') {
       return {
         name: competitions.supercupState.rivalName,
@@ -178,6 +196,10 @@ export function useMatchSimulation() {
   }
 
   function rawLabelFor(comp: MatchCompetition): string {
+    if (comp === 'friendly') {
+      const opt = friendlies.selectedOption
+      return opt ? 'Amistoso • Ranking #' + (friendlies.botNow(opt.botId)?.rank ?? opt.rank) : 'Amistoso'
+    }
     if (comp === 'supercup') return 'Supercopa Soberana • Final Única'
     if (comp === 'recopa') return 'Recopa Condor • Final Única'
     if (comp === 'cup') return 'Taça Cacique • ' + competitions.cupRoundLabel
@@ -234,20 +256,38 @@ export function useMatchSimulation() {
   // OVER do time do usuário: indisponível deixa a vaga vazia (conta 0 na média ponderada), então o time joga com 10.
   function userBaseRating(comp: MatchCompetition): number {
     const ids = unavailableIds(comp)
+    // Amistoso: todos jogam como se tivessem energia 100, sem a penalidade de cansaço.
+    if (comp === 'friendly') return calculateTeamStrength(squad.pitchSlots, ids, { ignoreFatigue: true }).rating
     return ids.size ? calculateTeamStrength(squad.pitchSlots, ids).rating : squad.teamStrength.rating
   }
 
   // Titulares suspensos na competição que ainda dá para substituir (há reserva não suspenso, mesmo lesionado).
   // Bloqueiam o início da partida; sem nenhum reserva possível, o time joga com a vaga vazia.
   function lineupBlockers(comp: MatchCompetition) {
+    // Amistoso: titular lesionado ou suspenso em qualquer competição bloqueia sempre, haja reserva ou não.
+    if (comp === 'friendly') return squad.currentStartersList.filter((p) => !!p.injury || isSuspendedFor(p, comp))
     const starters = new Set(squad.starterIds)
     const hasSub = squad.players.some((q) => !starters.has(q.id) && !q.isLoanedOut && !isSuspendedFor(q, comp))
     return hasSub ? squad.currentStartersList.filter((p) => isSuspendedFor(p, comp)) : []
   }
 
+  /** Amistoso exige 11 titulares escalados. */
+  function lineupShort(comp: MatchCompetition): boolean {
+    return comp === 'friendly' && squad.currentStartersList.length < 11
+  }
+
+  /**
+   * Amistoso não começa com partida de outra competição ao vivo (rodando ou pausada na gaveta): a escalação é uma só e
+   * o lesionado em campo agravaria nas duas. Devolve o motivo (toast, botão e aviso) ou null.
+   */
+  function friendlyLiveBlock(): string | null {
+    const other = match.liveCompetitions.find((c) => c !== 'friendly')
+    return other ? `Há uma partida da ${COMP_SHORT[other]} ao vivo. Termine-a antes de jogar um amistoso.` : null
+  }
+
   // Suspenso na competição sai da escalação: o melhor reserva disponível assume a vaga. Devolve as trocas feitas.
   function fixLineupFor(comp: MatchCompetition) {
-    const swaps = squad.replaceInjuredStarters((p) => isSuspendedFor(p, comp))
+    const swaps = squad.replaceInjuredStarters((p) => isSuspendedFor(p, comp), { ignoreFatigue: comp === 'friendly' })
     // Jogador de linha no gol (sobrou de uma expulsão do goleiro) e há goleiro disponível no banco: devolve o gol.
     const layout = FORMATIONS[squad.formation] || FORMATIONS['4-3-3']
     const gkIdx = layout.findIndex((slot) => slot.role === 'GK')
@@ -299,12 +339,30 @@ export function useMatchSimulation() {
       router.push(comp === 'league' ? '/league' : '/competitions')
       return
     }
+    if (comp === 'friendly' && !friendlies.selectedOption) {
+      ui.showToast('Sorteie um adversário.', 'warning')
+      router.push('/friendlies')
+      return
+    }
+    if (comp === 'friendly') {
+      const liveBlock = friendlyLiveBlock()
+      if (liveBlock) {
+        ui.showToast(liveBlock, 'warning')
+        router.push('/friendlies')
+        return
+      }
+    }
     clearMatchTimer(comp)
     discardInProgressGoals(comp)
     match.activeMatchCompetition = comp
     match.resetMatchState(comp)
     fixLineupFor(comp).forEach((sw) =>
-      ui.showToast(`Desfalque na ${COMP_SHORT[comp]}: ${sw.out.name} está suspenso e ${sw.in.name} assume a vaga.`, 'warning')
+      ui.showToast(
+        comp === 'friendly'
+          ? `Desfalque no Amistoso: ${sw.out.name} está lesionado ou suspenso e ${sw.in.name} assume a vaga.`
+          : `Desfalque na ${COMP_SHORT[comp]}: ${sw.out.name} está suspenso e ${sw.in.name} assume a vaga.`,
+        'warning'
+      )
     )
     router.push('/pre-match')
   }
@@ -330,17 +388,58 @@ export function useMatchSimulation() {
       router.push(comp === 'league' ? '/league' : '/competitions')
       return
     }
+    // Amistoso não começa com outra partida ao vivo (escalação compartilhada): recusa antes de mexer na escalação e de gastar ficha.
+    if (comp === 'friendly') {
+      const liveBlock = friendlyLiveBlock()
+      if (liveBlock) {
+        ui.showToast(liveBlock, 'warning')
+        return
+      }
+    }
     // Suspenso na competição não entra: o melhor reserva disponível assume a vaga.
     fixLineupFor(comp)
     // Se ainda sobrou suspenso titular (só havia reservas lesionados), a partida não começa até o técnico escalar outro.
     const blockers = lineupBlockers(comp)
     if (blockers.length) {
-      ui.showToast(`${blockers.map((p) => p.name).join(', ')} ${blockers.length === 1 ? 'está suspenso' : 'estão suspensos'} na ${COMP_SHORT[comp]}. Substitua antes de iniciar.`, 'danger')
+      const names = blockers.map((p) => p.name).join(', ')
+      ui.showToast(
+        comp === 'friendly'
+          ? `${names} ${blockers.length === 1 ? 'está lesionado ou suspenso' : 'estão lesionados ou suspensos'}. Substitua antes de iniciar o amistoso.`
+          : `${names} ${blockers.length === 1 ? 'está suspenso' : 'estão suspensos'} na ${COMP_SHORT[comp]}. Substitua antes de iniciar.`,
+        'danger'
+      )
       return
     }
-    discardInProgressGoals(comp)
+    if (lineupShort(comp)) {
+      ui.showToast('São precisos 11 titulares para iniciar o amistoso.', 'danger')
+      return
+    }
     // Congela adversário, mando e rótulo antes de ativar a sessão (depois do apito o estado das competições avança).
-    match.sessions[comp].snapshot = { opponent: { ...rawOpponentFor(comp) }, isHome: rawIsHomeFor(comp), label: rawLabelFor(comp) }
+    // No amistoso, antes de beginMatch: ele limpa a opção escolhida, que dá o nome e a posição do rival.
+    const frozen = { opponent: { ...rawOpponentFor(comp) }, isHome: rawIsHomeFor(comp), label: rawLabelFor(comp) }
+    if (comp === 'friendly') {
+      if (!friendlies.selectedOption) {
+        ui.showToast('Sorteie um adversário.', 'warning')
+        router.push('/friendlies')
+        return
+      }
+      // A ficha é gasta no apito inicial; grava o desafio e zera os sorteios.
+      const begun = friendlies.beginMatch(squad.friendlyStrength.over, Date.now())
+      if (begun !== 'ok') {
+        if (begun === 'no-token') ui.showToast(`Sem fichas. Próxima em ${formatTokenCountdown(friendlies.msToNext)}.`, 'warning')
+        else if (begun === 'active') ui.showToast('Já há um amistoso em andamento.', 'warning')
+        else if (begun === 'no-option') {
+          ui.showToast('Sorteie um adversário.', 'warning')
+          router.push('/friendlies')
+        } else ui.showToast('Não foi possível calcular a força do time. Recarregue a página.', 'danger')
+        return
+      }
+      // beginMatch recalculou e fixou o OVER do rival com o OVER do apito: o motor usa exatamente o mesmo número que fama e prêmio.
+      if (friendlies.active) frozen.opponent.power = friendlies.active.oppOver
+      saveGame()
+    }
+    discardInProgressGoals(comp)
+    match.sessions[comp].snapshot = frozen
     delete matchCards[comp]
     resetNarration()
     const absent = squad.players.filter((p) => !p.isLoanedOut && isSuspendedFor(p, comp)).map((p) => p.name)
@@ -369,6 +468,14 @@ export function useMatchSimulation() {
     const abortStart = () => {
       clearMatchTimer(comp)
       match.resetMatchState(comp)
+      // A sessão abortada sai do save ao vivo (senão voltaria ao recarregar a página).
+      saveLiveMatch()
+      // Amistoso: a ficha foi gasta no apito e a partida não abriu. Desfaz o apito (ficha, opções e sorteios voltam) e salva.
+      if (comp === 'friendly' && friendlies.cancelBegin()) {
+        saveGame()
+        ui.showToast('Não foi possível abrir a partida. A ficha foi devolvida; tente de novo.', 'danger')
+        return
+      }
       ui.showToast('Não foi possível abrir a partida. Recarregue a página.', 'danger')
     }
     saveLiveMatch()
@@ -377,6 +484,7 @@ export function useMatchSimulation() {
 
   /** O resultado da partida exige vencedor e o placar (ou o agregado) está empatado? */
   function needsShootout(comp: MatchCompetition, u: number, o: number): boolean {
+    if (comp === 'friendly') return false // amistoso: sem prorrogação nem pênaltis
     if (comp === 'cup' || comp === 'supercup' || comp === 'recopa') return u === o
     if (comp === 'continental') return u === o && competitions.continentalState.stage !== 'GROUPS'
     if (!league.isKnockoutStage) return false
@@ -545,6 +653,8 @@ export function useMatchSimulation() {
     const state = match.matchState
     if (state.isFinished) return
     const unavailable = (p: Player) => isSentOff(comp, p.id) || isSuspendedFor(p, comp)
+    // Amistoso: todos com energia 100 (mesma conta de userBaseRating), senão o cansaço distorce a escolha e a comparação.
+    const opts = { ignoreFatigue: comp === 'friendly' }
     const starters = squad.currentStartersList
     const out = starters.filter(unavailable)
     const pool = starters.filter((p) => !unavailable(p))
@@ -575,13 +685,13 @@ export function useMatchSimulation() {
           if (empty.includes(i)) continue
           const cand = pool
             .filter((p) => !used.has(p.id))
-            .sort((a, b) => getEffectiveOvr(b, layout[i].role) - getEffectiveOvr(a, layout[i].role))[0]
+            .sort((a, b) => getEffectiveOvr(b, layout[i].role, opts) - getEffectiveOvr(a, layout[i].role, opts))[0]
           if (cand) {
             picked[i] = cand
             used.add(cand.id)
           }
         }
-        const rating = calculateTeamStrength(layout.map((slot, i) => ({ role: slot.role, player: picked[i] }))).rating
+        const rating = calculateTeamStrength(layout.map((slot, i) => ({ role: slot.role, player: picked[i] })), undefined, opts).rating
         if (!best || rating > best.rating + 1e-9) {
           const spare = out.map((p) => p.id)
           best = { f, rating, ids: picked.map((p) => p?.id ?? spare.shift() ?? '') }
@@ -606,22 +716,27 @@ export function useMatchSimulation() {
     saveLiveMatch()
   }
 
-  // Sugere a melhor troca: maior ganho de OVER efetivo na vaga (posição, cansaço e lesão contam). Só preenche a
-  // seleção; quem confirma é o usuário. Sem substituições restantes, só lesionados podem sair.
+  // Sugere a melhor troca: maior ganho de OVER efetivo na vaga (posição, cansaço e lesão contam; no amistoso, sem
+  // cansaço). Só preenche a seleção; quem confirma é o usuário. Sem substituições restantes, só lesionados podem sair.
   function recommendSubstitution() {
+    const comp = match.activeMatchCompetition
+    // Amistoso: todos com energia 100, então nem a penalidade de cansaço nem o desempate por energia valem.
+    const fresh = comp === 'friendly'
+    const opts = { ignoreFatigue: fresh }
     const subsLeft = match.matchState.subsUsed < 5
-    const bench = squad.availableBenchList.filter((p) => !p.injury && !isSuspendedFor(p, match.activeMatchCompetition))
+    const bench = squad.availableBenchList.filter((p) => !p.injury && !isSuspendedFor(p, comp))
     let best: { outId: string; inId: string; gain: number } | null = null
     squad.currentStartersList.forEach((starter) => {
-      if (isSentOff(match.activeMatchCompetition, starter.id)) return
+      if (isSentOff(comp, starter.id)) return
       if (!subsLeft && !starter.injury) return
       const slot = squad.starterIds.indexOf(starter.id)
       const role = (FORMATIONS[squad.formation] || FORMATIONS['4-3-3'])[slot]?.role
       if (!role) return
-      const current = getEffectiveOvr(starter, role)
+      const current = getEffectiveOvr(starter, role, opts)
       for (const cand of bench) {
-        // Energia desempata: a diferença de stamina vale até ~1 ponto de OVER.
-        const gain = getEffectiveOvr(cand, role) - current + ((cand.stamina ?? 100) - (starter.stamina ?? 100)) * 0.01
+        // Energia desempata: a diferença de stamina vale até ~1 ponto de OVER (fora do amistoso).
+        const energy = fresh ? 0 : ((cand.stamina ?? 100) - (starter.stamina ?? 100)) * 0.01
+        const gain = getEffectiveOvr(cand, role, opts) - current + energy
         if (!best || gain > best.gain) best = { outId: starter.id, inId: cand.id, gain }
       }
     })
@@ -730,10 +845,11 @@ export function useMatchSimulation() {
       const layout = FORMATIONS[squad.formation] || FORMATIONS['4-3-3']
       const field = activeStarters(comp).filter((p) => p.position !== 'GK' && p.id !== gk.id)
       const backup = state.subsUsed < 5 ? squad.availableBenchList.find((p) => p.position === 'GK' && !p.injury && !isSuspendedFor(p, comp)) : undefined
+      const opts = { ignoreFatigue: comp === 'friendly' }
       const weakest = [...field].sort(
         (a, b) =>
-          getEffectiveOvr(a, layout[squad.starterIds.indexOf(a.id)]?.role ?? a.position) -
-          getEffectiveOvr(b, layout[squad.starterIds.indexOf(b.id)]?.role ?? b.position)
+          getEffectiveOvr(a, layout[squad.starterIds.indexOf(a.id)]?.role ?? a.position, opts) -
+          getEffectiveOvr(b, layout[squad.starterIds.indexOf(b.id)]?.role ?? b.position, opts)
       )[0]
       if (backup && weakest && squad.substituteStarter(weakest.id, backup.id)) {
         const slot = squad.starterIds.indexOf(backup.id)
@@ -803,8 +919,10 @@ export function useMatchSimulation() {
           stats.userShotsOnTarget++
           state.userScore++
           if (kicker) {
-            club.recordGoal(kicker)
-            ;(matchGoalLogs[comp] ??= []).push(kicker.id)
+            credit(comp, () => {
+              club.recordGoal(kicker)
+              ;(matchGoalLogs[comp] ??= []).push(kicker.id)
+            })
           }
           say('goal', freeKickGoalLine(team, who))
           opine(goalReaction({ team, other: oppName, scorer: who, scoreFor: state.userScore, scoreAgainst: state.opponentScore, minute }))
@@ -871,16 +989,20 @@ export function useMatchSimulation() {
           // Parte dos gols é gol contra do rival: o placar sobe igual, mas ninguém do elenco leva gol ou assistência.
           const ownGoal = Math.random() < M.ownGoalShare
           if (shooter && !ownGoal) {
-            club.recordGoal(shooter)
-            ;(matchGoalLogs[comp] ??= []).push(shooter.id)
+            credit(comp, () => {
+              club.recordGoal(shooter)
+              ;(matchGoalLogs[comp] ??= []).push(shooter.id)
+            })
             if (Math.random() < 0.75) {
               const pool = starters.filter((p) => p.id !== shooter.id && p.position !== 'GK')
               const creators = pool.filter((p) => ['CAM', 'CM', 'LW', 'RW'].includes(p.position))
               const assister = pickRandom(creators.length && Math.random() < 0.6 ? creators : pool)
               if (assister) {
                 assisterName = assister.name
-                club.recordAssist(assister)
-                ;(matchAssistLogs[comp] ??= []).push(assister.id)
+                credit(comp, () => {
+                  club.recordAssist(assister)
+                  ;(matchAssistLogs[comp] ??= []).push(assister.id)
+                })
               }
             }
           }
@@ -939,8 +1061,10 @@ export function useMatchSimulation() {
         stats.userShotsOnTarget++
         state.userScore++
         if (taker) {
-          club.recordGoal(taker)
-          ;(matchGoalLogs[comp] ??= []).push(taker.id)
+          credit(comp, () => {
+            club.recordGoal(taker)
+            ;(matchGoalLogs[comp] ??= []).push(taker.id)
+          })
         }
         say('goal', goalLine(userName, taker?.name))
         opine(goalReaction({ team: userName, other: oppName, scorer: taker?.name, scoreFor: state.userScore, scoreAgainst: state.opponentScore, minute }))
@@ -995,13 +1119,14 @@ export function useMatchSimulation() {
     const physio = club.clubStaff.physio
     for (const p of activeStarters(comp)) {
       if (p.injury) continue
-      const tired = Math.max(0, 60 - (p.stamina ?? 100)) / 60
+      // Amistoso: todos jogam com energia 100, então o cansaço não aumenta a chance de lesão.
+      const tired = comp === 'friendly' ? 0 : Math.max(0, 60 - (p.stamina ?? 100)) / 60
       const perMatch = (INJURY.baseChance + tired * INJURY.fatigueChance) * medCut * (physio ? STAFF_BONUS.physioChanceMult : 1)
       if (Math.random() >= perMatch / INJURY.matchTicks) continue
       const [lo, hi] = Math.random() < INJURY.severeChance ? INJURY.severeMatches : INJURY.lightMatches
       const matches = Math.max(1, Math.round(randInt(lo, hi) * medCut * (physio ? STAFF_BONUS.physioDurationMult : 1)))
-      // +1: o fim desta partida já desconta um jogo de quem for substituído.
-      p.injury = { matchesLeft: matches + 1 }
+      // +1: o fim desta partida já desconta um jogo de quem for substituído. O amistoso não desconta jogo, então sem o +1.
+      p.injury = { matchesLeft: comp === 'friendly' ? matches : matches + 1 }
       const session = match.sessions[comp]
       const state = session.matchState
       state.events.unshift({
@@ -1199,7 +1324,65 @@ export function useMatchSimulation() {
     return gains
   }
 
+  // Amistoso: lesionado que ficou em campo agrava; ninguém cumpre jogo de lesão antiga (senão vira cura por farm).
+  function applyFriendlyInjuries() {
+    squad.players.forEach((p) => {
+      if (!p.injury || !squad.starterIds.includes(p.id)) return
+      p.injury.matchesLeft = Math.min(INJURY.aggravateCap, p.injury.matchesLeft + INJURY.aggravateMatches)
+      ui.showToast(`${p.name} agravou a lesão por jogar machucado: agora são ${p.injury.matchesLeft} jogos fora.`, 'danger')
+    })
+    squad.replaceInjuredStarters(undefined, { ignoreFatigue: true })
+  }
+
+  // Fim do amistoso: fora da temporada. Sem disciplina, economia da partida, desgaste, evolução, marcos, histórico de
+  // partidas nem propostas; club.reputation não muda (a fama é separada).
+  function concludeFriendly() {
+    const comp: MatchCompetition = 'friendly'
+    const session = match.sessions[comp]
+    matchGoalLogs[comp] = []
+    matchAssistLogs[comp] = []
+    delete matchCards[comp]
+    // settle antes das lesões: sem desafio gravado (fim repetido ou apito desfeito) devolve null e nada mais é aplicado
+    // (nem lesão agravada de novo, nem resumo sobrescrito com zeros).
+    const fs = friendlies.settle(session.matchState.userScore, session.matchState.opponentScore, Date.now())
+    if (!fs) {
+      if (!session.lastMatchSummary) {
+        // Resumo neutro só para a tela pós-jogo ter o botão "Voltar aos Amistosos".
+        session.lastMatchSummary = {
+          ticket: 0,
+          sponsor: 0,
+          winBonus: 0,
+          wages: 0,
+          net: 0,
+          interest: 0,
+          maintenance: 0,
+          friendly: { prize: 0, fameDelta: 0, fameAfter: friendlies.fame, rankBefore: friendlies.rank, rankAfter: friendlies.rank, paidCapReached: false }
+        }
+        ui.showToast('Este amistoso não contou: o desafio já tinha sido encerrado.', 'info')
+      }
+      saveLiveMatch()
+      return
+    }
+    applyFriendlyInjuries()
+    session.lastMatchSummary = {
+      ticket: 0,
+      sponsor: 0,
+      winBonus: fs.prize,
+      wages: 0,
+      net: fs.prize,
+      interest: 0,
+      maintenance: 0,
+      friendly: fs
+    }
+    saveGame()
+    saveLiveMatch()
+  }
+
   function concludeMatch(comp: MatchCompetition = match.activeMatchCompetition) {
+    if (comp === 'friendly') {
+      concludeFriendly()
+      return
+    }
     const session = match.sessions[comp]
     const uGoals = session.matchState.userScore
     const oGoals = session.matchState.opponentScore
@@ -1271,16 +1454,19 @@ export function useMatchSimulation() {
     match.matchState.isFinished = false
     match.matchState.isRunning = false
     match.showSubDrawer = false
-    router.push(comp === 'league' ? '/league' : '/competitions')
-    // Se outra partida segue aberta, ela vira o alvo do item "Partidas"; senão, competição encerrada volta para a liga.
+    router.push(comp === 'league' ? '/league' : comp === 'friendly' ? '/friendlies' : '/competitions')
+    // Se outra partida segue aberta, ela vira o alvo do item "Histórico"; senão, competição encerrada volta para a liga.
+    // Amistoso encerrado também volta para a liga: o próximo exige novo sorteio, não há pré-jogo a reabrir.
     const other = match.openCompetitions.find((c) => c !== comp)
     if (other) match.activeMatchCompetition = other
-    else if (!competitions.isCompetitionPlayable(comp)) match.activeMatchCompetition = 'league'
+    else if (comp === 'friendly' || !competitions.isCompetitionPlayable(comp)) match.activeMatchCompetition = 'league'
   }
 
   return {
     activeMatchIsHome,
     lineupBlockers,
+    lineupShort,
+    friendlyLiveBlock,
     activeMatchOpponent,
     activeMatchCompetitionLabel,
     effectiveUserPower,

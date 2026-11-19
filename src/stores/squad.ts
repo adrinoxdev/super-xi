@@ -5,7 +5,8 @@ import type { FormationName } from '@/types/match'
 import { applyAging, generatePlayer, refreshPlayerEconomy, retireAgeFor } from '@/utils/player/generatePlayer'
 import { buildFormationSlots, calculateTeamStrength, getEffectiveOvr, pickBestLineup } from '@/utils/match/calculateTeamStrength'
 import { useClubStore } from '@/stores/club'
-import { FORMATIONS, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE } from '@/config'
+import { friendlyStrengthOf, isFriendlyEligible } from '@/utils/friendlies/strength'
+import { FORMATIONS, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE, STAMINA_REGEN_MS_PER_POINT } from '@/config'
 
 export interface SquadSave {
   players: Player[]
@@ -28,6 +29,12 @@ export const useSquadStore = defineStore('squad', () => {
   const overLimit = computed(() => players.value.length > SQUAD_MAX_SIZE)
 
   const teamStrength = computed(() => calculateTeamStrength(pitchSlots.value))
+  // OVER do amistoso: a mesma escalação com energia 100 (regra 5 da spec de amistosos).
+  const freshTeamStrength = computed(() => calculateTeamStrength(pitchSlots.value, undefined, { ignoreFatigue: true }))
+  // Atletas que podem jogar amistoso: sem lesão, sem suspensão em nenhuma competição e não emprestados.
+  const friendlyEligibleCount = computed(() => players.value.filter(isFriendlyEligible).length)
+  // OVER efetivo do amistoso: max(escalação atual, melhor escalação elegível), sem cansaço (spec §6). É o que fixa o rival.
+  const friendlyStrength = computed(() => friendlyStrengthOf(players.value, formation.value, starterIds.value))
 
   const totalWageBill = computed(() =>
     players.value.reduce((sum, p) => sum + (p.isLoanedOut ? 0 : p.wage), 0)
@@ -122,7 +129,7 @@ export const useSquadStore = defineStore('squad', () => {
   // Troca titulares lesionados ou suspensos pelo melhor reserva disponível para a posição. Sem reserva, o lesionado
   // segue no time com penalidade de overall e o suspenso deixa a vaga vazia (conta 0 na força do time).
   // `unavailable`: critério extra de indisponibilidade (ex.: suspenso na competição da partida). Devolve as trocas feitas.
-  function replaceInjuredStarters(unavailable: (p: Player) => boolean = () => false): Array<{ out: Player; in: Player }> {
+  function replaceInjuredStarters(unavailable: (p: Player) => boolean = () => false, opts?: { ignoreFatigue?: boolean }): Array<{ out: Player; in: Player }> {
     const swaps: Array<{ out: Player; in: Player }> = []
     const layout = FORMATIONS[formation.value] || FORMATIONS['4-3-3']
     starterIds.value.forEach((id, idx) => {
@@ -131,13 +138,29 @@ export const useSquadStore = defineStore('squad', () => {
       const role = layout[idx]?.role ?? p.position
       const rep = players.value
         .filter((q) => !q.injury && !unavailable(q) && !q.isLoanedOut && !starterIds.value.includes(q.id))
-        .sort((a, b) => getEffectiveOvr(b, role) - getEffectiveOvr(a, role))[0]
+        .sort((a, b) => getEffectiveOvr(b, role, opts) - getEffectiveOvr(a, role, opts))[0]
       if (rep) {
         starterIds.value[idx] = rep.id
         swaps.push({ out: p, in: rep })
       }
     })
     return swaps
+  }
+
+  /** Recuperação natural por tempo real: soma só pontos inteiros e guarda o resto de tempo em staminaTickAt. */
+  function regenStamina(now = Date.now()) {
+    const club = useClubStore()
+    const points = Math.floor((now - club.staminaTickAt) / STAMINA_REGEN_MS_PER_POINT)
+    if (points <= 0) {
+      if (now < club.staminaTickAt) club.staminaTickAt = now
+      return
+    }
+    club.staminaTickAt += points * STAMINA_REGEN_MS_PER_POINT
+    players.value.forEach((p) => {
+      if ((p.stamina ?? 100) < 100) p.stamina = Math.min(100, (p.stamina ?? 100) + points)
+    })
+    // Elenco cheio: descarta o tempo acumulado para a energia não nascer "adiantada" no próximo desgaste.
+    if (players.value.every((p) => (p.stamina ?? 100) >= 100)) club.staminaTickAt = now
   }
 
   function recoverStamina(amount = 35) {
@@ -202,6 +225,9 @@ export const useSquadStore = defineStore('squad', () => {
     starterIds,
     pitchSlots,
     teamStrength,
+    freshTeamStrength,
+    friendlyEligibleCount,
+    friendlyStrength,
     totalWageBill,
     activeWagePlayersCount,
     loanedOutCount,
@@ -219,6 +245,7 @@ export const useSquadStore = defineStore('squad', () => {
     substituteStarter,
     replaceInjuredStarters,
     recoverStamina,
+    regenStamina,
     applyEndOfSeason,
     toSave,
     fromSave

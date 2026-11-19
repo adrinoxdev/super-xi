@@ -7,13 +7,16 @@ export const COMP_SHORT: Record<MatchCompetition, string> = {
   cup: 'Taça Cacique',
   continental: 'Copa Condor',
   supercup: 'Supercopa',
-  recopa: 'Recopa'
+  recopa: 'Recopa',
+  friendly: 'Amistoso'
 }
 
-const ORDER = Object.keys(COMP_SHORT) as MatchCompetition[]
+// Amistoso não tem suspensão própria: fora da lista para suspensionsOf/yellowsOf não mostrarem "suspenso no Amistoso".
+const ORDER = (Object.keys(COMP_SHORT) as MatchCompetition[]).filter((c) => c !== 'friendly')
 
-/** O atleta está suspenso para a próxima partida desta competição? */
+/** O atleta está suspenso para a próxima partida desta competição? No amistoso: suspenso em qualquer competição. */
 export function isSuspendedFor(p: Pick<Player, 'suspension'>, comp: MatchCompetition): boolean {
+  if (comp === 'friendly') return Object.values(p.suspension ?? {}).some((n) => (n ?? 0) > 0)
   return (p.suspension?.[comp] ?? 0) > 0
 }
 

@@ -113,6 +113,8 @@ export const useClubStore = defineStore('club', () => {
   // Descanso do elenco: usos contados no dia de restDayStart; vira 0 sozinho quando o dia muda.
   const restDayStart = ref(0)
   const restUses = ref(0)
+  // Até onde a recuperação natural de energia já foi aplicada (avança de 3 em 3 min, sem perder o resto).
+  const staminaTickAt = ref(Date.now())
   // Renda offline: instante da última atividade e recompensa pendente (esta não é salva).
   const lastActiveAt = ref(Date.now())
   const offlinePending = ref<{ amount: number; hours: number; capped: boolean; title: string; message: string } | null>(null)
@@ -348,6 +350,7 @@ export const useClubStore = defineStore('club', () => {
       tryoutsThisSeason: tryoutsThisSeason.value,
       restDayStart: restDayStart.value,
       restUses: restUses.value,
+      staminaTickAt: staminaTickAt.value,
       lastActiveAt: lastActiveAt.value,
       progress: {
         seasonStartOver: progress.value.seasonStartOver,
@@ -407,6 +410,7 @@ export const useClubStore = defineStore('club', () => {
     tryoutsThisSeason.value = Number.isFinite(data.tryoutsThisSeason) ? Math.max(0, Math.floor(data.tryoutsThisSeason as number)) : 0
     restDayStart.value = Number.isFinite(data.restDayStart) ? (data.restDayStart as number) : 0
     restUses.value = Number.isFinite(data.restUses) ? Math.max(0, Math.floor(data.restUses as number)) : 0
+    staminaTickAt.value = Number.isFinite(data.staminaTickAt) ? Math.min(data.staminaTickAt as number, Date.now()) : Date.now()
     lastActiveAt.value = Number.isFinite(data.lastActiveAt) ? Math.min(data.lastActiveAt as number, Date.now()) : Date.now()
     offlinePending.value = null
     const pr = data.progress
@@ -481,6 +485,7 @@ export const useClubStore = defineStore('club', () => {
     restCostNow,
     restResetsInMs,
     lastActiveAt,
+    staminaTickAt,
     offlinePending,
     touchActive,
     registerRest,

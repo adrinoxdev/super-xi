@@ -27,6 +27,11 @@ export const REST = { baseCost: 6000, growth: 2, energy: 35 }
 // Multiplicador do custo por série (chave = divisão: 4 = D ... 1 = A), na proporção da folha por jogo.
 export const REST_SERIES_MULT: Record<number, number> = { 4: 1, 3: 1.3, 2: 2, 1: 2.6 }
 
+// Recuperação natural: todo atleta ganha energia com o passar do tempo real, inclusive com o jogo fechado (sem teto).
+// Rápida de propósito: o descanso pago fica para quem quer evoluir sem esperar.
+export const STAMINA_REGEN_PER_HOUR = 20
+export const STAMINA_REGEN_MS_PER_POINT = (60 * 60 * 1000) / STAMINA_REGEN_PER_HOUR
+
 /** Custo do próximo descanso: base x série x crescimento^usos no dia, arredondado a R$ 500. Sem teto. */
 export function restCost(usesToday: number, division: number): number {
   const raw = REST.baseCost * (REST_SERIES_MULT[division] ?? 1) * Math.pow(REST.growth, usesToday)
