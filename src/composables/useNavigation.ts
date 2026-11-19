@@ -59,7 +59,7 @@ export function useNavigation() {
         path: '/squad',
         badge: market.incomingOffers.length || null
       },
-      { id: 'matches', label: 'Partidas', shortLabel: 'Jogos', icon: History, path: '/matches', badge: null },
+      { id: 'matches', label: 'Histórico', shortLabel: 'Histórico', icon: History, path: '/matches', badge: null },
       { id: 'club', label: 'Clube', shortLabel: 'Clube', icon: Building2, path: '/club', badge: null }
     ]
     const p = route.path
