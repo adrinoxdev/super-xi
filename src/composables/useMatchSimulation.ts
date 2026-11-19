@@ -159,10 +159,11 @@ export function useMatchSimulation() {
       // Opção escolhida na roleta: OVER do rival estimado com a escalação atual (offset do sorteio + OVER de agora), que
       // acompanha as trocas no PreMatch; depois do apito vale o desafio gravado. Sem nenhum, um rival neutro só para os computeds.
       const opt = friendlies.selectedOption
-      if (opt) return { name: opt.name, power: friendlies.quote(opt, squad.freshTeamStrength.rating, Date.now()).oppOver, style: 'Amistoso' }
+      // OVER efetivo (piso da melhor escalação elegível): escalar mal não baixa o rival (spec §6).
+      if (opt) return { name: opt.name, power: friendlies.quote(opt, squad.friendlyStrength.over, Date.now()).oppOver, style: 'Amistoso' }
       const a = friendlies.active
       if (a) return { name: a.botName, power: a.oppOver, style: 'Amistoso' }
-      return { name: 'Adversário', power: Math.round(squad.freshTeamStrength.rating), style: 'Amistoso' }
+      return { name: 'Adversário', power: Math.round(squad.friendlyStrength.over), style: 'Amistoso' }
     }
     if (comp === 'supercup') {
       return {
@@ -398,7 +399,7 @@ export function useMatchSimulation() {
         return
       }
       // A ficha é gasta no apito inicial; grava o desafio e zera os sorteios.
-      if (!friendlies.beginMatch(squad.freshTeamStrength.rating, Date.now())) {
+      if (!friendlies.beginMatch(squad.friendlyStrength.over,Date.now())) {
         ui.showToast(`Sem fichas. Próxima em ${formatTokenCountdown(friendlies.msToNext)}.`, 'warning')
         return
       }

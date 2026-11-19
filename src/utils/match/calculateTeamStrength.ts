@@ -86,8 +86,16 @@ export function buildFormationSlots(formation: FormationName, starters: (Player 
   }))
 }
 
-/** `exclude`: atletas a evitar (ex.: suspensos na competição); só entram se não houver outro para a vaga. */
-export function pickBestLineup(players: Player[], formation: FormationName, exclude?: (p: Player) => boolean): string[] {
+/**
+ * `exclude`: atletas a evitar (ex.: suspensos na competição); só entram se não houver outro para a vaga.
+ * `opts`: repassado a getEffectiveOvr (amistoso: `ignoreFatigue`). Sem `opts`, comportamento de antes.
+ */
+export function pickBestLineup(
+  players: Player[],
+  formation: FormationName,
+  exclude?: (p: Player) => boolean,
+  opts?: StrengthOpts
+): string[] {
   const layout = FORMATIONS[formation] || FORMATIONS['4-3-3']
   const available = players.filter((p) => !p.isLoanedOut)
   const picked: string[] = []
@@ -95,7 +103,7 @@ export function pickBestLineup(players: Player[], formation: FormationName, excl
     const open = available.filter((p) => !picked.includes(p.id))
     const preferred = exclude ? open.filter((p) => !exclude(p)) : open
     const best = (preferred.length ? preferred : open)
-      .sort((a, b) => getEffectiveOvr(b, slot.role) - getEffectiveOvr(a, slot.role))[0]
+      .sort((a, b) => getEffectiveOvr(b, slot.role, opts) - getEffectiveOvr(a, slot.role, opts))[0]
     if (best) picked.push(best.id)
   }
   return picked
