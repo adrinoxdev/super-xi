@@ -23,20 +23,29 @@ export interface FriendlyBot {
   stats: FriendlyStats
 }
 
-/** Uma das 3 opções de um sorteio. `over` é o OVER do dia (exibido); `prize` já considera o limite diário. */
+/**
+ * Uma das 3 opções de um sorteio. Guarda o DESLOCAMENTO do rival (bônus de posição + variação), não o OVER absoluto:
+ * o OVER do rival, o prêmio e a fama em jogo saem de quoteOption com o OVER do usuário (estimativa até o apito).
+ */
 export interface FriendlyOption {
   botId: string
   name: string
-  over: number
   fame: number
   rank: number
+  offset: number
+}
+
+/** Valores de uma opção com um OVER do usuário: estimativa no cartão e no PreMatch; fixados no apito (beginMatch). */
+export interface FriendlyQuote {
+  oppOver: number
+  /** Já considera o limite diário (0 se esgotado). */
   prize: number
   fameWin: number
   fameDraw: number
   fameLoss: number
 }
 
-/** Desafio em andamento, gravado no apito inicial. */
+/** Desafio em andamento, gravado no apito inicial (OVERs e prêmio já fixados). */
 export interface FriendlyChallenge {
   botId: string
   botName: string
@@ -92,21 +101,9 @@ export interface FriendlyRankingView {
 
 export type FriendlyOutcome = 'win' | 'draw' | 'loss'
 
-/** Dados do usuário que o sorteio precisa. `paidWinsLeft` pode ser Infinity (limite diário desligado). */
+/** Dados do usuário que o sorteio precisa: só a posição (o OVER entra depois, na cotação). */
 export interface FriendlyDrawContext {
-  userOver: number
   user: FriendlyStanding
-  paidWinsLeft: number
-}
-
-/** Fonte dos adversários. Hoje: bots locais. Futuro: provedor remoto (jogadores reais), sem mudar a store. */
-export interface FriendlyOpponentProvider {
-  /** Avança o estado dos adversários até `now` (bots: simulação; futuro: busca remota). */
-  refresh(now: number): void
-  ranking(user: FriendlyStanding): FriendlyRankingView
-  drawOptions(ctx: FriendlyDrawContext, rng: () => number): FriendlyOption[]
-  /** Aplica no adversário o efeito do resultado: fama oposta à aplicada ao usuário e o jogo nas estatísticas. */
-  reportResult(botId: string, result: FriendlyReport): void
 }
 
 /** Resultado repassado ao provedor: delta de fama EFETIVAMENTE aplicado ao usuário e o placar do ponto de vista dele. */
@@ -114,6 +111,16 @@ export interface FriendlyReport {
   userFameDelta: number
   userScore: number
   oppScore: number
+}
+
+/** Fonte dos adversários. Hoje: bots locais. Futuro: provedor remoto (jogadores reais), sem mudar a store. */
+export interface FriendlyOpponentProvider {
+  /** Avança o estado dos adversários até `now` (bots: simulação; futuro: busca remota). Sem passo, não troca o array. */
+  refresh(now: number): void
+  ranking(user: FriendlyStanding): FriendlyRankingView
+  drawOptions(ctx: FriendlyDrawContext, rng: () => number): FriendlyOption[]
+  /** Aplica no adversário o efeito do resultado: fama oposta à aplicada ao usuário e o jogo nas estatísticas. */
+  reportResult(botId: string, result: FriendlyReport): void
 }
 
 /** Campo `friendlies` do save principal (aditivo, sem migração numerada). */

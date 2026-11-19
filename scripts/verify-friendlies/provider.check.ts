@@ -57,7 +57,7 @@ export function run(): string[] {
   c.eq('refresh grava uma vez cada', [botWrites, simWrites], [1, 1])
   c.eq('refresh soma 2 jogos por bot', find('fb_low').stats.played, 3)
 
-  const opts = p.drawOptions({ userOver: 60, user: { fame: 0, stats: emptyStats() }, paidWinsLeft: 5 }, mulberry32(1))
+  const opts = p.drawOptions({ user: { fame: 0, stats: emptyStats() } }, mulberry32(1))
   c.eq('drawOptions devolve 3', opts.length, 3)
   c.ok('opcoes sao bots da store', opts.every((o) => bots.some((b) => b.id === o.botId)))
   return c.fails

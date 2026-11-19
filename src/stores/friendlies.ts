@@ -5,6 +5,7 @@ import type {
   FriendlyBot,
   FriendlyChallenge,
   FriendlyOption,
+  FriendlyQuote,
   FriendlyResult,
   FriendlyStanding,
   FriendlyStats,
@@ -15,7 +16,7 @@ import { dayStart } from '@/config/time'
 import { clamp } from '@/utils/core/random'
 import { msToNextToken, regenTokens as regenTokenState, spendToken, type TokenState } from '@/utils/friendlies/tokens'
 import { applyFame, fameDelta, outcomeFromScore } from '@/utils/friendlies/fame'
-import { friendlyPrize } from '@/utils/friendlies/draw'
+import { quoteOption } from '@/utils/friendlies/draw'
 import { generateBots, userRank } from '@/utils/friendlies/bots'
 import { addResult, emptyStats, sanitizeStats } from '@/utils/friendlies/ranking'
 import { createLocalBotProvider } from '@/utils/friendlies/localBotProvider'
@@ -52,9 +53,12 @@ function toBot(v: unknown): FriendlyBot | null {
   const b = FRIENDLIES.bots
   return { id: o.id, name: o.name, over: clamp(Math.round(o.over), b.overFloor, b.overCeil), fame: Math.max(0, Math.round(o.fame)), stats: sanitizeStats(o.stats) }
 }
-function isOption(v: unknown): v is FriendlyOption {
+/** Opção do save: só no formato com `offset` (a antiga, com `over`, é descartada); offset limitado à faixa possível do sorteio. */
+function toOption(v: unknown): FriendlyOption | null {
   const o = v as Record<string, unknown> | null
-  return !!o && isStr(o.botId) && isStr(o.name) && nums(o, ['over', 'fame', 'rank', 'prize', 'fameWin', 'fameDraw', 'fameLoss'])
+  if (!o || typeof o !== 'object' || !isStr(o.botId) || !isStr(o.name) || !nums(o, ['fame', 'rank', 'offset'])) return null
+  const d = FRIENDLIES.draw
+  return { botId: o.botId, name: o.name, fame: o.fame as number, rank: o.rank as number, offset: clamp(o.offset as number, -d.spread, d.rankBonusMax + d.spread) }
 }
 function isChallenge(v: unknown): v is FriendlyChallenge {
   const o = v as Record<string, unknown> | null
@@ -114,6 +118,11 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     return Math.max(0, cap - used)
   }
 
+  /** Cotação de uma opção com o OVER informado: estimativa na tela e no PreMatch; o apito usa a mesma conta (beginMatch). */
+  function quote(opt: FriendlyOption, userOver: number, now: number): FriendlyQuote {
+    return quoteOption(opt.offset, userOver, paidWinsLeft(now))
+  }
+
   function regenTokens(now: number) {
     setTokens(regenTokenState({ tokens: tokens.value, tokenTickAt: tokenTickAt.value }, now))
   }
@@ -123,11 +132,11 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     provider.refresh(now)
   }
 
-  /** Um sorteio do desafio atual. Recusa com 3 já feitos ou com amistoso em andamento. Não exige ficha. */
-  function draw(userOver: number, now: number): boolean {
+  /** Um sorteio do desafio atual (depende só da posição). Recusa com 3 já feitos ou com amistoso em andamento. Não exige ficha. */
+  function draw(): boolean {
     if (active.value) return false
     if (drawsUsed.value >= FRIENDLIES.draw.maxDraws) return false
-    options.value = provider.drawOptions({ userOver, user: standing.value, paidWinsLeft: paidWinsLeft(now) }, Math.random)
+    options.value = provider.drawOptions({ user: standing.value }, Math.random)
     drawsUsed.value += 1
     selectedBotId.value = null
     return true
@@ -140,12 +149,13 @@ export const useFriendliesStore = defineStore('friendlies', () => {
   }
 
   /**
-   * Apito inicial: gasta 1 ficha, fixa o prêmio (recalculado agora, por causa da virada do dia), grava o desafio e
-   * zera o contador de sorteios. Devolve false sem opção escolhida, sem ficha ou com outro amistoso em andamento.
+   * Apito inicial: gasta 1 ficha, fixa o OVER do rival pelo OVER do time que vai a campo (não o do sorteio: fecha a brecha
+   * de sortear com reservas e jogar com titulares), recalcula prêmio (com a virada do dia) e fama, grava o desafio e zera
+   * o contador de sorteios. Devolve false sem opção escolhida, com OVER inválido, sem ficha ou com outro amistoso em andamento.
    */
   function beginMatch(userOver: number, now: number): boolean {
     const opt = selectedOption.value
-    if (!opt || active.value) return false
+    if (!opt || active.value || !Number.isFinite(userOver)) return false
     const regen = regenTokenState({ tokens: tokens.value, tokenTickAt: tokenTickAt.value }, now)
     const spent = spendToken(regen, now)
     if (!spent) {
@@ -153,12 +163,13 @@ export const useFriendliesStore = defineStore('friendlies', () => {
       return false
     }
     setTokens(spent)
+    const q = quote(opt, userOver, now)
     active.value = {
       botId: opt.botId,
       botName: opt.name,
       userOver,
-      oppOver: opt.over,
-      prize: paidWinsLeft(now) > 0 ? friendlyPrize(opt.over) : 0,
+      oppOver: q.oppOver,
+      prize: q.prize,
       rankBefore: rank.value,
       startedAt: now
     }
@@ -169,16 +180,16 @@ export const useFriendliesStore = defineStore('friendlies', () => {
   }
 
   /**
-   * Fim do amistoso: fama (Elo), prêmio da vitória (creditado no clube), fama oposta no bot, histórico próprio.
-   * Nunca toca em club.reputation (spec §2.12).
+   * Fim do amistoso: fama (Elo com os OVERs do apito), estatísticas, prêmio da vitória (creditado no clube), bot com a
+   * fama oposta à aplicada e o jogo espelhado, histórico próprio. Nunca toca em club.reputation (spec §2.12).
    */
   function settle(userScore: number, oppScore: number, now: number): FriendlySummary | null {
     const a = active.value
     if (!a) return null
     const outcome = outcomeFromScore(userScore, oppScore)
-    const delta = fameDelta(a.userOver, a.oppOver, outcome)
     const before = fame.value
-    fame.value = applyFame(before, delta)
+    fame.value = applyFame(before, fameDelta(a.userOver, a.oppOver, outcome))
+    const applied = fame.value - before
     stats.value = addResult(stats.value, userScore, oppScore)
     let prize = 0
     if (outcome === 'win' && a.prize > 0) {
@@ -187,7 +198,6 @@ export const useFriendliesStore = defineStore('friendlies', () => {
       paidWins.value = { day: today, count: (paidWins.value.day === today ? paidWins.value.count : 0) + 1 }
       club.earn(prize)
     }
-    const applied = fame.value - before
     // Soma zero pelo que o usuário EFETIVAMENTE ganhou ou perdeu (o piso 0 pode cortar o delta calculado).
     provider.reportResult(a.botId, { userFameDelta: applied, userScore, oppScore })
     recent.value = [
@@ -247,7 +257,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     }
   }
 
-  /** Campo ausente ou de outra versão: estado novo. Presente: valida campo a campo (spec §5, Persistência). */
+  /** Campo ausente ou de outra versão: estado novo. Presente: valida campo a campo com Number.isFinite (spec §5, Persistência). */
   function fromSave(raw: unknown) {
     const now = Date.now()
     const d = raw as Partial<Record<keyof FriendliesSave, unknown>> | null | undefined
@@ -259,7 +269,8 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     // Bot inválido ou quantidade errada: regenera os bots (fama e estatísticas do usuário ficam).
     const botList = Array.isArray(d.bots) ? d.bots.map(toBot) : []
     const botsV = botList.length === FRIENDLIES.bots.count && botList.every((b): b is FriendlyBot => b !== null) ? botList : generateBots(seedV)
-    const optionsV = Array.isArray(d.options) && d.options.length && d.options.every(isOption) ? (d.options as FriendlyOption[]) : null
+    const optList = Array.isArray(d.options) ? d.options.map(toOption) : []
+    const optionsV = optList.length > 0 && optList.every((o): o is FriendlyOption => o !== null) ? optList : null
     // Sem opções não há desafio em curso: o contador volta a 0 (o usuário não fica travado sem nada para escolher).
     const drawsV = optionsV && isNum(d.drawsUsed) ? clamp(Math.round(d.drawsUsed), 0, FRIENDLIES.draw.maxDraws) : 0
     const pw = d.paidWins as { day?: unknown; count?: unknown } | null | undefined
@@ -307,6 +318,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     selectedOption,
     msToNext,
     paidWinsLeft,
+    quote,
     regenTokens,
     refresh,
     draw,
