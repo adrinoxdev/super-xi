@@ -94,20 +94,20 @@ function onRedraw() {
       </BaseCard>
     </div>
 
-    <BaseCard class="space-y-3">
-      <!-- Fichas à esquerda (onde estavam); só o botão fica centralizado no cartão. -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
+    <BaseCard class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <!-- Fichas e descrição à esquerda (onde estavam); o botão fica no canto inferior direito. -->
+      <div class="min-w-0 space-y-3">
         <TokenBar :tokens="friendlies.tokens" :max="FRIENDLIES.tokens.max" :next-in="tokenBarNext" />
-        <BaseButton class="w-full sm:w-auto sm:min-w-56 sm:justify-self-center px-6 py-3 min-h-12 text-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed" :disabled="!isLive && !!challengeBlock" @click="onChallenge">
-          <Dices class="w-4 h-4" />
-          {{ isLive ? 'Acompanhar amistoso' : 'Desafiar' }}
-        </BaseButton>
+        <div class="space-y-1">
+          <p v-if="!isLive && challengeBlock" class="text-xs text-dangerpro">{{ challengeBlock }}</p>
+          <p v-else class="text-xs text-ink-muted">Sortear não gasta ficha. A ficha é gasta só quando a partida começa.</p>
+          <p v-if="!isLive && liveBlock" class="text-xs text-dangerpro break-words" role="status">{{ liveBlock }}</p>
+        </div>
       </div>
-      <div class="space-y-1">
-        <p v-if="!isLive && challengeBlock" class="text-xs text-dangerpro">{{ challengeBlock }}</p>
-        <p v-else class="text-xs text-ink-muted">Sortear não gasta ficha. A ficha é gasta só quando a partida começa.</p>
-        <p v-if="!isLive && liveBlock" class="text-xs text-dangerpro break-words" role="status">{{ liveBlock }}</p>
-      </div>
+      <BaseButton class="w-full sm:w-auto sm:min-w-56 shrink-0 px-6 py-3 min-h-12 text-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed" :disabled="!isLive && !!challengeBlock" @click="onChallenge">
+        <Dices class="w-4 h-4" />
+        {{ isLive ? 'Acompanhar amistoso' : 'Desafiar' }}
+      </BaseButton>
     </BaseCard>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
