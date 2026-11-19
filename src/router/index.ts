@@ -11,6 +11,7 @@ export const router = createRouter({
     { path: '/', name: 'dashboard', component: () => import('../views/DashboardView.vue') },
     { path: '/league', name: 'league', component: () => import('../views/LeagueView.vue') },
     { path: '/competitions', name: 'competitions', component: () => import('../views/CompetitionsView.vue') },
+    { path: '/friendlies', name: 'friendlies', component: () => import('../views/FriendliesView.vue') },
     { path: '/scouting', name: 'scouting', component: () => import('../views/ScoutingView.vue') },
     { path: '/squad', name: 'squad', component: () => import('../views/SquadView.vue') },
     { path: '/matches', name: 'matches', component: () => import('../views/MatchesView.vue') },
