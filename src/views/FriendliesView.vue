@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { Dices, RefreshCw, Swords } from 'lucide-vue-next'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -37,13 +37,14 @@ const redrawDisabled = computed(() => friendlies.drawsLeft <= 0 || spinning.valu
 
 onMounted(open)
 
-function onChallenge() {
+async function onChallenge() {
   if (isLive.value) {
     watchLive()
     return
   }
   if (challenge()) spinKey.value++
   // Com opções já sorteadas, "Desafiar" só leva até elas (não sorteia de novo).
+  await nextTick()
   if (friendlies.options) optionsEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
