@@ -110,6 +110,11 @@ function clearMatchTimer(comp: MatchCompetition) {
   }
 }
 
+/** Amistoso não credita gols nem assistências: nada entra nas estatísticas de temporada/carreira nem nos logs da partida. */
+function credit(comp: MatchCompetition, fn: () => void) {
+  if (comp !== 'friendly') fn()
+}
+
 /** Mando de +3 OVER só vale na liga e no continental; Copa, Supercopa e Recopa não dão mando ao usuário. */
 export function homeBonusApplies(comp: MatchCompetition | null | undefined): boolean {
   return comp === 'league' || comp === 'continental'
@@ -439,6 +444,7 @@ export function useMatchSimulation() {
 
   /** O resultado da partida exige vencedor e o placar (ou o agregado) está empatado? */
   function needsShootout(comp: MatchCompetition, u: number, o: number): boolean {
+    if (comp === 'friendly') return false // amistoso: sem prorrogação nem pênaltis
     if (comp === 'cup' || comp === 'supercup' || comp === 'recopa') return u === o
     if (comp === 'continental') return u === o && competitions.continentalState.stage !== 'GROUPS'
     if (!league.isKnockoutStage) return false
@@ -865,8 +871,10 @@ export function useMatchSimulation() {
           stats.userShotsOnTarget++
           state.userScore++
           if (kicker) {
-            club.recordGoal(kicker)
-            ;(matchGoalLogs[comp] ??= []).push(kicker.id)
+            credit(comp, () => {
+              club.recordGoal(kicker)
+              ;(matchGoalLogs[comp] ??= []).push(kicker.id)
+            })
           }
           say('goal', freeKickGoalLine(team, who))
           opine(goalReaction({ team, other: oppName, scorer: who, scoreFor: state.userScore, scoreAgainst: state.opponentScore, minute }))
@@ -933,16 +941,20 @@ export function useMatchSimulation() {
           // Parte dos gols é gol contra do rival: o placar sobe igual, mas ninguém do elenco leva gol ou assistência.
           const ownGoal = Math.random() < M.ownGoalShare
           if (shooter && !ownGoal) {
-            club.recordGoal(shooter)
-            ;(matchGoalLogs[comp] ??= []).push(shooter.id)
+            credit(comp, () => {
+              club.recordGoal(shooter)
+              ;(matchGoalLogs[comp] ??= []).push(shooter.id)
+            })
             if (Math.random() < 0.75) {
               const pool = starters.filter((p) => p.id !== shooter.id && p.position !== 'GK')
               const creators = pool.filter((p) => ['CAM', 'CM', 'LW', 'RW'].includes(p.position))
               const assister = pickRandom(creators.length && Math.random() < 0.6 ? creators : pool)
               if (assister) {
                 assisterName = assister.name
-                club.recordAssist(assister)
-                ;(matchAssistLogs[comp] ??= []).push(assister.id)
+                credit(comp, () => {
+                  club.recordAssist(assister)
+                  ;(matchAssistLogs[comp] ??= []).push(assister.id)
+                })
               }
             }
           }
@@ -1001,8 +1013,10 @@ export function useMatchSimulation() {
         stats.userShotsOnTarget++
         state.userScore++
         if (taker) {
-          club.recordGoal(taker)
-          ;(matchGoalLogs[comp] ??= []).push(taker.id)
+          credit(comp, () => {
+            club.recordGoal(taker)
+            ;(matchGoalLogs[comp] ??= []).push(taker.id)
+          })
         }
         say('goal', goalLine(userName, taker?.name))
         opine(goalReaction({ team: userName, other: oppName, scorer: taker?.name, scoreFor: state.userScore, scoreAgainst: state.opponentScore, minute }))
@@ -1057,13 +1071,14 @@ export function useMatchSimulation() {
     const physio = club.clubStaff.physio
     for (const p of activeStarters(comp)) {
       if (p.injury) continue
-      const tired = Math.max(0, 60 - (p.stamina ?? 100)) / 60
+      // Amistoso: todos jogam com energia 100, então o cansaço não aumenta a chance de lesão.
+      const tired = comp === 'friendly' ? 0 : Math.max(0, 60 - (p.stamina ?? 100)) / 60
       const perMatch = (INJURY.baseChance + tired * INJURY.fatigueChance) * medCut * (physio ? STAFF_BONUS.physioChanceMult : 1)
       if (Math.random() >= perMatch / INJURY.matchTicks) continue
       const [lo, hi] = Math.random() < INJURY.severeChance ? INJURY.severeMatches : INJURY.lightMatches
       const matches = Math.max(1, Math.round(randInt(lo, hi) * medCut * (physio ? STAFF_BONUS.physioDurationMult : 1)))
-      // +1: o fim desta partida já desconta um jogo de quem for substituído.
-      p.injury = { matchesLeft: matches + 1 }
+      // +1: o fim desta partida já desconta um jogo de quem for substituído. O amistoso não desconta jogo, então sem o +1.
+      p.injury = { matchesLeft: comp === 'friendly' ? matches : matches + 1 }
       const session = match.sessions[comp]
       const state = session.matchState
       state.events.unshift({

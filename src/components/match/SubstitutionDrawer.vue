@@ -29,8 +29,12 @@ function effectiveLabel(p: Player): string {
 }
 // Expulso não sai: a vaga fica vazia e o time joga com um a menos.
 const outCandidates = computed(() => squad.currentStartersList.filter((p) => !isSentOff(match.activeMatchCompetition, p.id)))
-// Suspenso na competição desta partida não pode entrar.
-const benchCandidates = computed(() => squad.availableBenchList.filter((p) => !isSuspendedFor(p, match.activeMatchCompetition)))
+// Suspenso na competição desta partida não pode entrar. No amistoso, lesionado também não.
+const benchCandidates = computed(() =>
+  squad.availableBenchList.filter(
+    (p) => !isSuspendedFor(p, match.activeMatchCompetition) && !(match.activeMatchCompetition === 'friendly' && p.injury)
+  )
+)
 // Lesão exige ajuste: com lesionado em campo e reserva saudável, o jogo não retoma antes da troca.
 const pending = computed(() => pendingInjuries(match.activeMatchCompetition))
 // Titulares fora de campo (expulsos ou suspensos): o time joga com menos de 11 e pode se reorganizar.
