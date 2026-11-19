@@ -94,8 +94,8 @@ function onRedraw() {
       </BaseCard>
     </div>
 
-    <BaseCard class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-      <!-- Fichas e descrição à esquerda (onde estavam); o botão fica no canto inferior direito. -->
+    <BaseCard class="flex flex-col gap-4">
+      <!-- Fichas e descrição à esquerda (onde estavam); o botão fica embaixo, centralizado. -->
       <div class="min-w-0 space-y-3">
         <TokenBar :tokens="friendlies.tokens" :max="FRIENDLIES.tokens.max" :next-in="tokenBarNext" />
         <div class="space-y-1">
@@ -104,7 +104,7 @@ function onRedraw() {
           <p v-if="!isLive && liveBlock" class="text-xs text-dangerpro break-words" role="status">{{ liveBlock }}</p>
         </div>
       </div>
-      <BaseButton class="w-full sm:w-auto sm:min-w-56 shrink-0 px-6 py-3 min-h-12 text-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed" :disabled="!isLive && !!challengeBlock" @click="onChallenge">
+      <BaseButton class="w-full sm:w-auto sm:min-w-56 sm:self-center px-6 py-3 min-h-12 text-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed" :disabled="!isLive && !!challengeBlock" @click="onChallenge">
         <Dices class="w-4 h-4" />
         {{ isLive ? 'Acompanhar amistoso' : 'Desafiar' }}
       </BaseButton>
