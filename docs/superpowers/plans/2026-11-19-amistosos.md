@@ -46,8 +46,9 @@
 | 11 fluxo até o apito | 2, 7, 10 | 17 |
 | 12 regras ao vivo | 9, 11 (mesmo arquivo) | 17 |
 | 13 encerramento | 7, 12 (mesmo arquivo) | 17 |
-| 14 pré-jogo e resumo | 3, 11, 13 | 17 |
-| 15 tela | 2, 3, 4, 7, 10, 11 | 17 |
+| 13b correções do bloco 8-13 | 8–13 | 17 (3 commits em sequência; os três mexem em `useMatchSimulation.ts`) |
+| 14 pré-jogo e resumo | 3, 11, 13, **13b** | 17 |
+| 15 tela | 2, 3, 4, 7, 10, 11, **13b** | 17 |
 | 16 roleta | 15 | 17 |
 | 17 navegação, subtítulo, cabeçalho | 7, 9 | 10–16 |
 | 18 BottomNav | 17 (mesmo arquivo `useNavigation.ts`) | — |
@@ -55,7 +56,9 @@
 
 **Atenção à numeração:** as Tarefas 7 e 8 usam o literal `'friendly'` em `MatchCompetition`, que só existe depois da Tarefa 9. Por isso a ordem de execução recomendada roda a 9 antes da 7.
 
-**Ordem recomendada de execução:** 1 → (2, 3, 5 em paralelo) → 4 → 6 → 9 → (7 e 10 em paralelo) → **6b (6b.1 → 6b.2 → 6b.3 → 6b.4)** → 8 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19.
+**Ordem recomendada de execução:** 1 → (2, 3, 5 em paralelo) → 4 → 6 → 9 → (7 e 10 em paralelo) → **6b (6b.1 → 6b.2 → 6b.3 → 6b.4)** → 8 → 11 → 12 → 13 → **13b (13b.1 → 13b.2 → 13b.3)** → 14 → 15 → 16 → 17 → 18 → 19.
+
+**Tarefa 13b:** as Tarefas 8 a 13 já estão commitadas; a 13b aplica as correções da revisão delas. As Tarefas 14, 15 e 19 abaixo já estão escritas contra o que sai da 13b (`squad.friendlyStrength`, `friendlyLiveBlock`, `beginMatch` com motivo, `cancelBegin`, checagem `strength`).
 
 **Tarefa 6b:** as Tarefas 1–7, 9 e 10 já estão commitadas; a 6b aplica as correções da revisão delas. As Tarefas 11 a 16 abaixo já estão escritas contra a API que sai da 6b (`draw()` sem argumentos, `quote(opt, userOver, now)`, `FriendlyOption.offset`, `ranking.top`/`ranking.user` como linhas da tabela de classificação). Onde o texto das Tarefas 1–7 diverge da 6b, vale a 6b.
 
@@ -78,6 +81,8 @@ Novos:
 | `src/utils/friendlies/draw.ts` | 4 | bônus de posição, OVER do rival, prêmio, sorteio |
 | `src/utils/friendlies/bots.ts` | 5 | geração, simulação, visão do ranking |
 | `src/utils/friendlies/localBotProvider.ts` | 6 | provedor local |
+| `src/utils/friendlies/strength.ts` | 13b.1 | OVER efetivo do amistoso (`isFriendlyEligible`, `friendlyStrengthOf`) |
+| `scripts/verify-friendlies/strength.check.ts` | 13b.1 | checagem do OVER efetivo |
 | `src/stores/friendlies.ts` | 7 | store |
 | `src/composables/useFriendlies.ts` | 15 | orquestra a tela |
 | `src/views/FriendliesView.vue` | 15 | tela `/friendlies` |
@@ -85,7 +90,7 @@ Novos:
 | `src/components/friendlies/OpponentRoulette.vue` | 16 | roleta |
 | `src/components/layout/BottomNavMore.vue` | 18 | painel do "+" |
 
-Alterados: `src/config/index.ts`, `src/types/index.ts` (1); `src/composables/usePersistence.ts`, `src/App.vue` (7); `src/composables/useScouting.ts` (8); `src/types/match.ts`, `src/stores/match.ts`, `src/utils/player/suspension.ts`, `src/utils/match/matchResult.ts`, `src/components/match/MatchSwitcher.vue`, `src/utils/navigation/sectionMemory.ts` (9); `src/utils/match/calculateTeamStrength.ts`, `src/stores/squad.ts` (10); `src/composables/useMatchSimulation.ts` (11, 12, 13); `src/components/match/SubstitutionDrawer.vue` (12); `src/components/match/PreMatch.vue`, `src/components/match/PostMatchSummary.vue` (14); `src/router/index.ts` (15); `src/composables/useNavigation.ts` (17, 18), `src/composables/usePageSubtitle.ts`, `src/composables/useHeaderStats.ts` (17); `src/components/layout/BottomNav.vue` (18).
+Alterados: `src/config/index.ts`, `src/types/index.ts` (1); `src/composables/usePersistence.ts`, `src/App.vue` (7); `src/composables/useScouting.ts` (8); `src/types/match.ts`, `src/stores/match.ts`, `src/utils/player/suspension.ts`, `src/utils/match/matchResult.ts`, `src/components/match/MatchSwitcher.vue`, `src/utils/navigation/sectionMemory.ts` (9); `src/utils/match/calculateTeamStrength.ts`, `src/stores/squad.ts` (10); `src/composables/useMatchSimulation.ts` (11, 12, 13); `src/components/match/SubstitutionDrawer.vue` (12); `src/components/match/PreMatch.vue`, `src/components/match/PostMatchSummary.vue` (14); `src/router/index.ts` (15); `src/composables/useNavigation.ts` (17, 18), `src/composables/usePageSubtitle.ts`, `src/composables/useHeaderStats.ts` (17); `src/components/layout/BottomNav.vue` (18). Na 13b: `src/utils/match/calculateTeamStrength.ts`, `src/stores/squad.ts`, `scripts/verify-friendlies/run.mjs` (13b.1); `src/types/friendlies.ts`, `src/stores/friendlies.ts`, `scripts/verify-friendlies/store.check.ts` (13b.2); `src/components/squad/SquadRoster.vue`, `src/components/match/SubstitutionDrawer.vue` (13b.3); `src/composables/useMatchSimulation.ts` (13b.1, 13b.2, 13b.3).
 
 ### Ajustes em relação à spec (decididos neste plano)
 
@@ -99,6 +104,7 @@ Alterados: `src/config/index.ts`, `src/types/index.ts` (1); `src/composables/use
 8. O composable `useFriendlies` (spec §4.1) não tem tarefa própria na spec §10: entra na Tarefa 15, que é a primeira a usá-lo.
 9. Recarregar a página no pré-jogo do amistoso: `activeMatchCompetition` não é salvo hoje (vale para as copas também), então o app volta ao pré-jogo da liga; em `/friendlies` as 3 opções, a seleção e o contador continuam e nenhuma ficha foi gasta. Comportamento aceito, igual ao das copas.
 10. Revisão do lote 1-7 (Tarefa 6b, spec §11): opção com `offset` e OVER do rival recalculado no apito; ranking como tabela de classificação (fama → vitórias → saldo → gols pró) com estatísticas de amistoso; fama soma zero pelo aplicado; piso no alvo dos bots; saneamento; contrato do `Rng`; `FRIENDLIES` só leitura por `DeepReadonly`.
+11. Revisão do bloco 8-13 (Tarefa 13b, spec §11): OVER efetivo `max(atual, melhor elegível)` sem cansaço, com a melhor escalação procurada em todas as formações (`src/utils/friendlies/strength.ts`, `squad.friendlyStrength`); `beginMatch` devolve `FriendlyBeginResult` e `cancelBegin` desfaz o apito na mesma sessão (estado só em memória); `abortStart` chama `saveLiveMatch()` em todas as competições; `concludeFriendly` idempotente; gaveta sem cansaço no amistoso; aviso de recuperação do Elenco com o critério do ticker; `friendlyLiveBlock` bloqueia o início do amistoso com outra partida ao vivo (o sorteio e o inverso seguem livres).
 
 ---
 
@@ -4848,12 +4854,1011 @@ git commit -m "feat(partida): encerramento do amistoso"
 
 ---
 
+## Tarefa 13b: correções do bloco 8-13
+
+**Contexto:** as Tarefas 8 a 13 já estão commitadas (último commit `9f78b18 feat(partida): encerramento do amistoso`). A revisão desse bloco achou uma brecha de farm, uma trava de estado e detalhes de cansaço e de texto; o dono do produto aprovou as correções abaixo (spec §2.3, §2.11, §4.4, §6 "OVER do usuário no amistoso", §8 e §11 "Revisão do bloco 8-13"). São **3 commits em sequência** (13b.1 → 13b.2 → 13b.3), cada um entregue sozinho a um subagente. Os três mexem em `src/composables/useMatchSimulation.ts`: nunca rode dois em paralelo.
+
+Antes de cada sub-passo: `git branch --show-current` deve imprimir `feature/amistosos`. Valem as "Regras gerais" (sem `git add -A`, sem mexer em `package.json`, sem merge/push).
+
+### 13b.1: OVER efetivo pela melhor escalação elegível
+
+**Commit:** `fix(amistosos): rival pela melhor escalacao elegivel`
+
+**Problema:** o apito fixa o rival com o OVER da escalação do momento (`squad.freshTeamStrength.rating`). Dá para apitar com titulares fora de posição ou reservas fracos (rival fraco, prêmio e fama de rival fraco) e corrigir o time ao vivo com "Reorganizar" (não gasta substituição) ou com as 5 trocas.
+
+**Correção (aprovada):** `userOver = max(OVER da escalação atual, OVER da melhor escalação elegível)`, ambos sem cansaço; elegível = sem lesão, sem suspensão em nenhuma competição, não emprestado. A melhor escalação é procurada em todas as formações (o "Reorganizar" também troca de formação), com `pickBestLineup`. A conta mora numa função pura nova, testada pelo verificador, e a store `squad` expõe o resultado. Cartão (Tarefa 15), PreMatch (Tarefa 14), `rawOpponentFor` e o apito passam a usar o mesmo número: `squad.friendlyStrength.over`.
+
+**Arquivos:**
+- Alterar: `src/utils/match/calculateTeamStrength.ts`
+- Criar: `src/utils/friendlies/strength.ts`
+- Alterar: `src/stores/squad.ts`
+- Alterar: `src/composables/useMatchSimulation.ts`
+- Criar: `scripts/verify-friendlies/strength.check.ts`
+- Alterar: `scripts/verify-friendlies/run.mjs`
+
+- [ ] **Passo 1: `pickBestLineup` aceita `opts`**
+
+Em `src/utils/match/calculateTeamStrength.ts`, localizar:
+
+```ts
+/** `exclude`: atletas a evitar (ex.: suspensos na competição); só entram se não houver outro para a vaga. */
+export function pickBestLineup(players: Player[], formation: FormationName, exclude?: (p: Player) => boolean): string[] {
+  const layout = FORMATIONS[formation] || FORMATIONS['4-3-3']
+  const available = players.filter((p) => !p.isLoanedOut)
+  const picked: string[] = []
+  for (const slot of layout) {
+    const open = available.filter((p) => !picked.includes(p.id))
+    const preferred = exclude ? open.filter((p) => !exclude(p)) : open
+    const best = (preferred.length ? preferred : open)
+      .sort((a, b) => getEffectiveOvr(b, slot.role) - getEffectiveOvr(a, slot.role))[0]
+```
+
+substituir por:
+
+```ts
+/**
+ * `exclude`: atletas a evitar (ex.: suspensos na competição); só entram se não houver outro para a vaga.
+ * `opts`: repassado a getEffectiveOvr (amistoso: `ignoreFatigue`). Sem `opts`, comportamento de antes.
+ */
+export function pickBestLineup(
+  players: Player[],
+  formation: FormationName,
+  exclude?: (p: Player) => boolean,
+  opts?: StrengthOpts
+): string[] {
+  const layout = FORMATIONS[formation] || FORMATIONS['4-3-3']
+  const available = players.filter((p) => !p.isLoanedOut)
+  const picked: string[] = []
+  for (const slot of layout) {
+    const open = available.filter((p) => !picked.includes(p.id))
+    const preferred = exclude ? open.filter((p) => !exclude(p)) : open
+    const best = (preferred.length ? preferred : open)
+      .sort((a, b) => getEffectiveOvr(b, slot.role, opts) - getEffectiveOvr(a, slot.role, opts))[0]
+```
+
+(O resto da função não muda. `StrengthOpts` já é declarado no mesmo arquivo.)
+
+- [ ] **Passo 2: criar `src/utils/friendlies/strength.ts`**
+
+```ts
+import type { Player } from '@/types/player'
+import type { FormationName } from '@/types/match'
+import { FORMATIONS } from '@/config'
+import { buildFormationSlots, calculateTeamStrength, pickBestLineup, type StrengthOpts } from '@/utils/match/calculateTeamStrength'
+import { isSuspendedFor } from '@/utils/player/suspension'
+
+// Amistoso: todos jogam como se tivessem energia 100 (spec §2.5).
+const FRESH: StrengthOpts = { ignoreFatigue: true }
+
+/** Pode jogar amistoso: sem lesão, sem suspensão em nenhuma competição e não emprestado (spec §2.4). */
+export function isFriendlyEligible(p: Player): boolean {
+  return !p.injury && !p.isLoanedOut && !isSuspendedFor(p, 'friendly')
+}
+
+export interface FriendlyStrength {
+  /** OVER da escalação atual com energia 100, sem arredondar (força real em campo). */
+  current: number
+  /** OVER da melhor escalação elegível com energia 100, entre todas as formações, sem arredondar. */
+  best: number
+  /** Formação da melhor escalação (null sem nenhum elegível). */
+  bestFormation: FormationName | null
+  /** OVER efetivo do amistoso: max(current, best). Rival, prêmio e fama saem dele (spec §6). */
+  over: number
+}
+
+function ratingOf(byId: Map<string, Player>, formation: FormationName, ids: string[]): number {
+  const starters = ids.map((id) => byId.get(id) ?? null)
+  return calculateTeamStrength(buildFormationSlots(formation, starters), undefined, FRESH).rating
+}
+
+/**
+ * OVER efetivo do amistoso (spec §6). O piso da melhor escalação elegível fecha a brecha de apitar com o time mal
+ * escalado (rival fraco fixado) e corrigir ao vivo com "Reorganizar" ou trocas. Todas as formações entram porque o
+ * "Reorganizar" também troca de formação. O max cobre a escalação montada à mão que supera a heurística gulosa.
+ */
+export function friendlyStrengthOf(players: Player[], formation: FormationName, starterIds: string[]): FriendlyStrength {
+  const byId = new Map(players.map((p) => [p.id, p] as const))
+  const current = ratingOf(byId, formation, starterIds)
+  const eligible = players.filter(isFriendlyEligible)
+  let best = 0
+  let bestFormation: FormationName | null = null
+  if (eligible.length) {
+    for (const f of Object.keys(FORMATIONS) as FormationName[]) {
+      const rating = ratingOf(byId, f, pickBestLineup(eligible, f, undefined, FRESH))
+      if (rating > best + 1e-9) {
+        best = rating
+        bestFormation = f
+      }
+    }
+  }
+  return { current, best, bestFormation, over: Math.max(current, best) }
+}
+```
+
+- [ ] **Passo 3: `src/stores/squad.ts`**
+
+3a. Localizar:
+
+```ts
+import { isSuspendedFor } from '@/utils/player/suspension'
+```
+
+substituir por:
+
+```ts
+import { friendlyStrengthOf, isFriendlyEligible } from '@/utils/friendlies/strength'
+```
+
+(`isSuspendedFor` só era usado em `friendlyEligibleCount`, que passa a usar `isFriendlyEligible`. Conferir com `grep -n "isSuspendedFor" src/stores/squad.ts`: depois da troca não pode sobrar uso.)
+
+3b. Localizar:
+
+```ts
+  // Atletas que podem jogar amistoso: sem lesão, sem suspensão em nenhuma competição e não emprestados.
+  const friendlyEligibleCount = computed(
+    () => players.value.filter((p) => !p.injury && !p.isLoanedOut && !isSuspendedFor(p, 'friendly')).length
+  )
+```
+
+substituir por:
+
+```ts
+  // Atletas que podem jogar amistoso: sem lesão, sem suspensão em nenhuma competição e não emprestados.
+  const friendlyEligibleCount = computed(() => players.value.filter(isFriendlyEligible).length)
+  // OVER efetivo do amistoso: max(escalação atual, melhor escalação elegível), sem cansaço (spec §6). É o que fixa o rival.
+  const friendlyStrength = computed(() => friendlyStrengthOf(players.value, formation.value, starterIds.value))
+```
+
+3c. No `return` da store, localizar:
+
+```ts
+    freshTeamStrength,
+    friendlyEligibleCount,
+```
+
+substituir por:
+
+```ts
+    freshTeamStrength,
+    friendlyEligibleCount,
+    friendlyStrength,
+```
+
+- [ ] **Passo 4: `src/composables/useMatchSimulation.ts` usa o OVER efetivo**
+
+4a. Em `rawOpponentFor`, localizar:
+
+```ts
+      if (opt) return { name: opt.name, power: friendlies.quote(opt, squad.freshTeamStrength.rating, Date.now()).oppOver, style: 'Amistoso' }
+      const a = friendlies.active
+      if (a) return { name: a.botName, power: a.oppOver, style: 'Amistoso' }
+      return { name: 'Adversário', power: Math.round(squad.freshTeamStrength.rating), style: 'Amistoso' }
+```
+
+substituir por:
+
+```ts
+      // OVER efetivo (piso da melhor escalação elegível): escalar mal não baixa o rival (spec §6).
+      if (opt) return { name: opt.name, power: friendlies.quote(opt, squad.friendlyStrength.over, Date.now()).oppOver, style: 'Amistoso' }
+      const a = friendlies.active
+      if (a) return { name: a.botName, power: a.oppOver, style: 'Amistoso' }
+      return { name: 'Adversário', power: Math.round(squad.friendlyStrength.over), style: 'Amistoso' }
+```
+
+4b. Em `startLiveMatch`, localizar:
+
+```ts
+      if (!friendlies.beginMatch(squad.freshTeamStrength.rating, Date.now())) {
+```
+
+substituir por:
+
+```ts
+      if (!friendlies.beginMatch(squad.friendlyStrength.over, Date.now())) {
+```
+
+(O `if` continua booleano aqui; o motivo da recusa entra em 13b.2.) `userBaseRating` **não** muda: o motor joga com a força real de quem está em campo.
+
+- [ ] **Passo 5: criar `scripts/verify-friendlies/strength.check.ts`**
+
+```ts
+import { createChecker } from './assert'
+import type { Player, PlayerPosition } from '@/types/player'
+import { friendlyStrengthOf, isFriendlyEligible } from '@/utils/friendlies/strength'
+import { opponentOverFrom } from '@/utils/friendlies/draw'
+
+// 4-3-3 na ordem das vagas de FORMATIONS['4-3-3'].
+const XI: PlayerPosition[] = ['LW', 'ST', 'RW', 'CM', 'CDM', 'CM', 'LB', 'CB', 'CB', 'RB', 'GK']
+
+function mk(id: string, position: PlayerPosition, overall: number, extra: Partial<Player> = {}): Player {
+  return {
+    id,
+    name: id,
+    age: 25,
+    nationality: 'BR',
+    position,
+    overall,
+    potential: overall,
+    attributes: { pace: overall, shooting: overall, passing: overall, dribbling: overall, defending: overall, physical: overall },
+    value: 0,
+    wage: 0,
+    form: 70,
+    stamina: 100,
+    contractYears: 2,
+    isYouth: false,
+    isLoanedOut: false,
+    isLoanedIn: false,
+    trainingFocus: 'balanced',
+    marketStatus: 'available',
+    ...extra
+  }
+}
+
+const near = (a: number, b: number) => Math.abs(a - b) < 1e-6
+
+export function run(): string[] {
+  const c = createChecker()
+  const starters = XI.map((pos, i) => mk('t' + i, pos, 70))
+  const bench = [mk('r0', 'GK', 50), mk('r1', 'CB', 50), mk('r2', 'CAM', 50)]
+  const squad = [...starters, ...bench]
+  const strongIds = starters.map((p) => p.id)
+
+  const strong = friendlyStrengthOf(squad, '4-3-3', strongIds)
+  c.ok('titulares na posicao: current 70', near(strong.current, 70), String(strong.current))
+  c.ok('melhor escalacao 70', near(strong.best, 70), String(strong.best))
+  c.ok('over = max(current, best)', near(strong.over, Math.max(strong.current, strong.best)))
+  c.ok('formacao da melhor definida', strong.bestFormation !== null)
+
+  // Time fraco no apito: ordem invertida (goleiro na ponta, atacantes na defesa).
+  const weak = friendlyStrengthOf(squad, '4-3-3', [...strongIds].reverse())
+  c.ok('fora de posicao derruba o current', weak.current < strong.current - 5, String(weak.current))
+  c.ok('fora de posicao nao reduz o over efetivo', near(weak.over, strong.over), `${weak.over} vs ${strong.over}`)
+
+  // Reservas no lugar dos dois zagueiros e do goleiro.
+  const reserves = friendlyStrengthOf(squad, '4-3-3', [...strongIds.slice(0, 7), 'r1', 'r2', strongIds[9], 'r0'])
+  c.ok('reservas derrubam o current', reserves.current < strong.current - 1, String(reserves.current))
+  c.ok('reservas nao reduzem o over efetivo', near(reserves.over, strong.over), `${reserves.over} vs ${strong.over}`)
+
+  // Formação ruim para o elenco: o piso considera todas as formações.
+  const otherFormation = friendlyStrengthOf(squad, '5-3-2', strongIds)
+  c.ok('formacao ruim nao reduz o over efetivo', near(otherFormation.over, strong.over), `${otherFormation.over} vs ${strong.over}`)
+
+  // Mesmo offset do sorteio: o rival fixado no apito é o mesmo com o time fraco ou forte.
+  c.eq('rival do apito igual com time fraco ou forte', opponentOverFrom(weak.over, 3.4), opponentOverFrom(strong.over, 3.4))
+
+  // Cansaço não conta no amistoso.
+  const tired = friendlyStrengthOf(squad.map((p) => ({ ...p, stamina: 30 })), '4-3-3', strongIds)
+  c.ok('cansaco ignorado no current', near(tired.current, strong.current), String(tired.current))
+  c.ok('cansaco ignorado no best', near(tired.best, strong.best), String(tired.best))
+
+  // Elegibilidade: craque no banco só entra na melhor escalação se puder jogar.
+  const withStar = (extra: Partial<Player>) => friendlyStrengthOf([...squad, mk('s', 'ST', 95, extra)], '4-3-3', strongIds)
+  c.ok('craque saudavel no banco sobe o best', withStar({}).best > strong.best + 1, String(withStar({}).best))
+  c.ok('craque lesionado fora do best', near(withStar({ injury: { matchesLeft: 2 } }).best, strong.best))
+  c.ok('craque suspenso na liga fora do best', near(withStar({ suspension: { league: 1 } }).best, strong.best))
+  c.ok('craque emprestado fora do best', near(withStar({ isLoanedOut: true }).best, strong.best))
+
+  // Craque lesionado escalado: o current conta com a penalidade de lesão, o best não o usa; o over nunca fica abaixo de nenhum.
+  const injuredIn = friendlyStrengthOf([...squad, mk('s', 'ST', 95, { injury: { matchesLeft: 2 } })], '4-3-3', strongIds.map((id) => (id === 't1' ? 's' : id)))
+  for (const [name, s] of [['forte', strong], ['fraco', weak], ['reservas', reserves], ['lesionado escalado', injuredIn]] as const) {
+    c.ok(`over >= current e >= best (${name})`, s.over >= s.current && s.over >= s.best)
+  }
+
+  c.ok('elegivel: saudavel', isFriendlyEligible(mk('a', 'CM', 60)))
+  c.ok('inelegivel: lesionado', !isFriendlyEligible(mk('a', 'CM', 60, { injury: { matchesLeft: 1 } })))
+  c.ok('inelegivel: suspenso em qualquer competicao', !isFriendlyEligible(mk('a', 'CM', 60, { suspension: { cup: 1 } })))
+  c.ok('elegivel: suspensao zerada', isFriendlyEligible(mk('a', 'CM', 60, { suspension: { league: 0 } })))
+  c.ok('inelegivel: emprestado', !isFriendlyEligible(mk('a', 'CM', 60, { isLoanedOut: true })))
+
+  const none = friendlyStrengthOf([], '4-3-3', [])
+  c.eq('sem atletas', [none.current, none.best, none.bestFormation, none.over], [0, 0, null, 0])
+  return c.fails
+}
+```
+
+- [ ] **Passo 6: registrar a checagem em `scripts/verify-friendlies/run.mjs`**
+
+Localizar:
+
+```js
+const ALL = ['ranking', 'tokens', 'fame', 'draw', 'bots', 'provider', 'store']
+```
+
+substituir por:
+
+```js
+const ALL = ['ranking', 'tokens', 'fame', 'draw', 'bots', 'provider', 'store', 'strength']
+```
+
+- [ ] **Passo 7: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs strength` → `OK strength`.
+Rodar: `node scripts/verify-friendlies/run.mjs` → `OK` nas 8 checagens.
+Rodar: `npm run build` → `✓ built in ...`.
+Conferência: `grep -n "freshTeamStrength" src/composables/useMatchSimulation.ts` não mostra mais nada (o `userBaseRating` usa `calculateTeamStrength` direto).
+
+- [ ] **Passo 8: commit**
+
+```bash
+git add src/utils/match/calculateTeamStrength.ts src/utils/friendlies/strength.ts src/stores/squad.ts src/composables/useMatchSimulation.ts scripts/verify-friendlies/strength.check.ts scripts/verify-friendlies/run.mjs
+git commit -m "fix(amistosos): rival pela melhor escalacao elegivel"
+```
+
+**Pronto quando:** as 8 checagens dão `OK`, o build passa e o apito, `rawOpponentFor` e a store `squad` usam `friendlyStrength.over`.
+
+**Não fazer:** não mudar `userBaseRating` nem `freshTeamStrength` (força real em campo, usada pelo motor e pela chance do PreMatch); não chamar `pickBestLineup` sem `opts` no cálculo do amistoso; não alterar `useSquad.autoPickBestLineup` nem a escalação do usuário (a função só calcula, não escala); não mexer em `PreMatch.vue` nem em telas (Tarefas 14 e 15).
+
+### 13b.2: desfazer o apito, motivo do `beginMatch` e encerramento idempotente
+
+**Commit:** `fix(amistosos): desfazer apito e encerramento idempotente`
+**Depende de:** 13b.1 (mesmo arquivo `useMatchSimulation.ts`; a linha do `beginMatch` já usa `squad.friendlyStrength.over`).
+
+**Problemas:** (1) se `router.push('/match')` falha depois do apito, `abortStart` limpa a sessão mas a ficha já foi gasta e `friendlies.active` fica preenchido: `draw()` e um novo apito recusam até recarregar (e, sem `saveLiveMatch()`, a sessão abortada continua no save ao vivo). (2) `beginMatch` devolve só `false`, e o toast diz "Sem fichas" mesmo quando o motivo é outro. (3) `concludeFriendly` sem `active` ainda agrava lesões e sobrescreve o resumo com zeros.
+
+**Correção:** `beginMatch` devolve `FriendlyBeginResult`; a store guarda **só em memória** o estado de antes do apito e `cancelBegin()` o restaura (ficha, `tokenTickAt`, opções, seleção, contador de sorteios, `active` limpo). Escolha: restaurar tudo, e não só devolver a ficha, para a falha de rota não dar 3 sorteios grátis nem tirar a opção escolhida; o usuário continua no PreMatch e tenta de novo. Depois de recarregar não há desfazer: vale a regra de órfão (`resolveOrphan`, ficha não volta), como antes. `concludeFriendly` chama `settle` primeiro e sai cedo se ele devolver `null`.
+
+**Arquivos:**
+- Alterar: `src/types/friendlies.ts`
+- Alterar: `src/stores/friendlies.ts`
+- Alterar: `scripts/verify-friendlies/store.check.ts`
+- Alterar: `src/composables/useMatchSimulation.ts`
+
+- [ ] **Passo 1: tipo do resultado**
+
+Em `src/types/friendlies.ts`, localizar:
+
+```ts
+export type FriendlyOutcome = 'win' | 'draw' | 'loss'
+```
+
+substituir por:
+
+```ts
+export type FriendlyOutcome = 'win' | 'draw' | 'loss'
+
+/** Resultado de beginMatch: 'ok' ou o motivo da recusa (cada um tem o seu toast em startLiveMatch). */
+export type FriendlyBeginResult = 'ok' | 'active' | 'no-option' | 'invalid-over' | 'no-token'
+```
+
+- [ ] **Passo 2: store `src/stores/friendlies.ts`**
+
+2a. Localizar:
+
+```ts
+  FriendliesSave,
+  FriendlyBot,
+```
+
+substituir por:
+
+```ts
+  FriendliesSave,
+  FriendlyBeginResult,
+  FriendlyBot,
+```
+
+2b. Localizar:
+
+```ts
+  const recent = ref<FriendlyResult[]>(init.recent)
+```
+
+substituir por:
+
+```ts
+  const recent = ref<FriendlyResult[]>(init.recent)
+  // Estado de antes do último apito, só em memória: desfaz o apito se a tela da partida não abrir (cancelBegin).
+  // Fora do save de propósito: depois de recarregar, desafio sem partida ao vivo é órfão e a ficha não volta (resolveOrphan).
+  let beginUndo: {
+    botId: string
+    tokens: number
+    tokenTickAt: number
+    options: FriendlyOption[] | null
+    selectedBotId: string | null
+    drawsUsed: number
+  } | null = null
+```
+
+2c. Substituir a função `beginMatch` inteira (do comentário `/**` que começa com "Apito inicial" até o `}` que fecha a função) por:
+
+```ts
+  /**
+   * Apito inicial: gasta 1 ficha, fixa o OVER do rival pelo OVER efetivo do apito (não o do sorteio nem o da escalação
+   * mal montada: fecha as brechas de farm), recalcula prêmio (com a virada do dia) e fama, grava o desafio e zera o
+   * contador de sorteios. Recusa com o motivo: desafio já em andamento, sem opção escolhida, OVER inválido ou sem ficha.
+   */
+  function beginMatch(userOver: number, now: number): FriendlyBeginResult {
+    if (active.value) return 'active'
+    const opt = selectedOption.value
+    if (!opt) return 'no-option'
+    if (!Number.isFinite(userOver)) return 'invalid-over'
+    const undo = {
+      botId: opt.botId,
+      tokens: tokens.value,
+      tokenTickAt: tokenTickAt.value,
+      options: options.value,
+      selectedBotId: selectedBotId.value,
+      drawsUsed: drawsUsed.value
+    }
+    const regen = regenTokenState({ tokens: tokens.value, tokenTickAt: tokenTickAt.value }, now)
+    const spent = spendToken(regen, now)
+    if (!spent) {
+      setTokens(regen)
+      return 'no-token'
+    }
+    setTokens(spent)
+    const q = quote(opt, userOver, now)
+    active.value = {
+      botId: opt.botId,
+      botName: opt.name,
+      userOver,
+      oppOver: q.oppOver,
+      prize: q.prize,
+      rankBefore: rank.value,
+      startedAt: now
+    }
+    options.value = null
+    selectedBotId.value = null
+    drawsUsed.value = 0
+    beginUndo = undo
+    return 'ok'
+  }
+
+  /**
+   * A partida não abriu depois do apito: volta ao estado de antes de beginMatch (ficha, relógio das fichas, opções,
+   * seleção e contador de sorteios) e limpa o desafio. Só vale na mesma sessão e antes do settle. Devolve true se desfez.
+   */
+  function cancelBegin(): boolean {
+    const u = beginUndo
+    beginUndo = null
+    if (!u || !active.value || active.value.botId !== u.botId) return false
+    tokens.value = u.tokens
+    tokenTickAt.value = u.tokenTickAt
+    options.value = u.options
+    selectedBotId.value = u.selectedBotId
+    drawsUsed.value = u.drawsUsed
+    active.value = null
+    return true
+  }
+```
+
+2d. Em `settle`, localizar:
+
+```ts
+    const a = active.value
+    if (!a) return null
+    const outcome = outcomeFromScore(userScore, oppScore)
+```
+
+substituir por:
+
+```ts
+    const a = active.value
+    if (!a) return null
+    beginUndo = null // o resultado vai contar: o apito não pode mais ser desfeito
+    const outcome = outcomeFromScore(userScore, oppScore)
+```
+
+2e. Em `resolveOrphan`, localizar:
+
+```ts
+    if (!active.value || isLive) return false
+    active.value = null
+    return true
+```
+
+substituir por:
+
+```ts
+    if (!active.value || isLive) return false
+    active.value = null
+    beginUndo = null
+    return true
+```
+
+2f. Em `apply`, localizar:
+
+```ts
+  function apply(s: FriendliesSave) {
+    fame.value = s.fame
+```
+
+substituir por:
+
+```ts
+  function apply(s: FriendliesSave) {
+    beginUndo = null // carregar save ou nova carreira: não há apito desta sessão a desfazer
+    fame.value = s.fame
+```
+
+2g. No `return` da store, localizar:
+
+```ts
+    beginMatch,
+    settle,
+```
+
+substituir por:
+
+```ts
+    beginMatch,
+    cancelBegin,
+    settle,
+```
+
+- [ ] **Passo 3: `scripts/verify-friendlies/store.check.ts`**
+
+3a. Localizar `  c.ok('beginMatch sem selecao falha', !f.beginMatch(60, now))` e substituir por:
+
+```ts
+  c.eq('beginMatch sem selecao falha', f.beginMatch(60, now), 'no-option')
+```
+
+3b. Localizar `  c.ok('beginMatch', f.beginMatch(80, now))` e substituir por:
+
+```ts
+  c.eq('beginMatch', f.beginMatch(80, now), 'ok')
+```
+
+3c. Localizar `  c.ok('beginMatch 2', f.beginMatch(60, now))` e substituir por:
+
+```ts
+  c.eq('beginMatch 2', f.beginMatch(60, now), 'ok')
+```
+
+3d. Localizar:
+
+```ts
+  c.ok('beginMatch com OVER invalido falha', !f.beginMatch(Number.NaN, now))
+  c.eq('OVER invalido: ficha intacta', f.tokens, 9)
+  return c.fails
+```
+
+substituir por:
+
+```ts
+  c.eq('beginMatch com OVER invalido falha', f.beginMatch(Number.NaN, now), 'invalid-over')
+  c.eq('OVER invalido: ficha intacta', f.tokens, 9)
+
+  // Desfazer o apito (a tela da partida não abriu): ficha, relógio, opções, seleção e contador voltam como estavam.
+  const undoOpts = JSON.parse(JSON.stringify(f.options))
+  const undoSel = f.selectedBotId
+  const undoDraws = f.drawsUsed
+  const undoTick = f.tokenTickAt
+  c.eq('beginMatch para desfazer', f.beginMatch(60, now), 'ok')
+  c.eq('ficha gasta antes de desfazer', f.tokens, 8)
+  c.eq('beginMatch com desafio ativo', f.beginMatch(60, now), 'active')
+  c.ok('cancelBegin', f.cancelBegin())
+  c.eq('cancelBegin: ficha devolvida', f.tokens, 9)
+  c.eq('cancelBegin: tokenTickAt restaurado', f.tokenTickAt, undoTick)
+  c.eq('cancelBegin: desafio limpo', f.active, null)
+  c.eq('cancelBegin: opcoes de volta', f.options, undoOpts)
+  c.eq('cancelBegin: selecao de volta', f.selectedBotId, undoSel)
+  c.eq('cancelBegin: contador de volta', f.drawsUsed, undoDraws)
+  c.ok('cancelBegin sem apito pendente nao faz nada', !f.cancelBegin())
+
+  // Sem ficha: motivo próprio (o toast certo) e nada gravado.
+  f.tokens = 0
+  f.tokenTickAt = now
+  c.eq('beginMatch sem ficha', f.beginMatch(60, now), 'no-token')
+  c.eq('sem ficha: nada gravado', f.active, null)
+
+  // Depois do settle o apito não pode mais ser desfeito (o resultado já contou).
+  f.tokens = 10
+  c.eq('beginMatch para settle', f.beginMatch(60, now), 'ok')
+  f.settle(1, 1, now)
+  c.ok('cancelBegin depois do settle recusa', !f.cancelBegin())
+  c.eq('settle repetido devolve null', f.settle(1, 1, now), null)
+  return c.fails
+```
+
+- [ ] **Passo 4: `startLiveMatch` com o motivo da recusa**
+
+Em `src/composables/useMatchSimulation.ts`, localizar:
+
+```ts
+      // A ficha é gasta no apito inicial; grava o desafio e zera os sorteios.
+      if (!friendlies.beginMatch(squad.friendlyStrength.over, Date.now())) {
+        ui.showToast(`Sem fichas. Próxima em ${formatTokenCountdown(friendlies.msToNext)}.`, 'warning')
+        return
+      }
+```
+
+substituir por:
+
+```ts
+      // A ficha é gasta no apito inicial; grava o desafio e zera os sorteios. A recusa traz o motivo (toast certo).
+      const begun = friendlies.beginMatch(squad.friendlyStrength.over, Date.now())
+      if (begun !== 'ok') {
+        if (begun === 'no-token') ui.showToast(`Sem fichas. Próxima em ${formatTokenCountdown(friendlies.msToNext)}.`, 'warning')
+        else if (begun === 'active') ui.showToast('Já há um amistoso em andamento.', 'warning')
+        else if (begun === 'no-option') {
+          ui.showToast('Sorteie um adversário.', 'warning')
+          router.push('/friendlies')
+        } else ui.showToast('Não foi possível calcular a força do time. Recarregue a página.', 'danger')
+        return
+      }
+```
+
+- [ ] **Passo 5: `abortStart` desfaz o apito**
+
+Localizar:
+
+```ts
+    const abortStart = () => {
+      clearMatchTimer(comp)
+      match.resetMatchState(comp)
+      ui.showToast('Não foi possível abrir a partida. Recarregue a página.', 'danger')
+    }
+```
+
+substituir por:
+
+```ts
+    const abortStart = () => {
+      clearMatchTimer(comp)
+      match.resetMatchState(comp)
+      // A sessão abortada sai do save ao vivo (senão voltaria ao recarregar a página).
+      saveLiveMatch()
+      // Amistoso: a ficha foi gasta no apito e a partida não abriu. Desfaz o apito (ficha, opções e sorteios voltam) e salva.
+      if (comp === 'friendly' && friendlies.cancelBegin()) {
+        saveGame()
+        ui.showToast('Não foi possível abrir a partida. A ficha foi devolvida; tente de novo.', 'danger')
+        return
+      }
+      ui.showToast('Não foi possível abrir a partida. Recarregue a página.', 'danger')
+    }
+```
+
+- [ ] **Passo 6: `concludeFriendly` idempotente**
+
+Substituir a função `concludeFriendly` inteira (do comentário "// Fim do amistoso: fora da temporada." até o `}` que fecha a função) por:
+
+```ts
+  // Fim do amistoso: fora da temporada. Sem disciplina, economia da partida, desgaste, evolução, marcos, histórico de
+  // partidas nem propostas; club.reputation não muda (a fama é separada).
+  function concludeFriendly() {
+    const comp: MatchCompetition = 'friendly'
+    const session = match.sessions[comp]
+    matchGoalLogs[comp] = []
+    matchAssistLogs[comp] = []
+    delete matchCards[comp]
+    // settle antes das lesões: sem desafio gravado (fim repetido ou apito desfeito) devolve null e nada mais é aplicado
+    // (nem lesão agravada de novo, nem resumo sobrescrito com zeros).
+    const fs = friendlies.settle(session.matchState.userScore, session.matchState.opponentScore, Date.now())
+    if (!fs) {
+      if (!session.lastMatchSummary) {
+        // Resumo neutro só para a tela pós-jogo ter o botão "Voltar aos Amistosos".
+        session.lastMatchSummary = {
+          ticket: 0,
+          sponsor: 0,
+          winBonus: 0,
+          wages: 0,
+          net: 0,
+          interest: 0,
+          maintenance: 0,
+          friendly: { prize: 0, fameDelta: 0, fameAfter: friendlies.fame, rankBefore: friendlies.rank, rankAfter: friendlies.rank, paidCapReached: false }
+        }
+        ui.showToast('Este amistoso não contou: o desafio já tinha sido encerrado.', 'info')
+      }
+      saveLiveMatch()
+      return
+    }
+    applyFriendlyInjuries()
+    session.lastMatchSummary = {
+      ticket: 0,
+      sponsor: 0,
+      winBonus: fs.prize,
+      wages: 0,
+      net: fs.prize,
+      interest: 0,
+      maintenance: 0,
+      friendly: fs
+    }
+    saveGame()
+    saveLiveMatch()
+  }
+```
+
+- [ ] **Passo 7: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs store` → `OK store`.
+Rodar: `node scripts/verify-friendlies/run.mjs` → `OK` nas 8 checagens.
+Rodar: `npm run build` → `✓ built in ...` (o `vue-tsc` acusa qualquer chamada que ainda trate `beginMatch` como booleano).
+Conferência: `grep -n "beginMatch(" src scripts -r` mostra só a store, `startLiveMatch` (comparando com `'ok'`) e o `store.check.ts`.
+
+- [ ] **Passo 8: commit**
+
+```bash
+git add src/types/friendlies.ts src/stores/friendlies.ts scripts/verify-friendlies/store.check.ts src/composables/useMatchSimulation.ts
+git commit -m "fix(amistosos): desfazer apito e encerramento idempotente"
+```
+
+**Pronto quando:** checagens e build passam; `abortStart` no amistoso devolve a ficha e as opções e salva; `concludeFriendly` sem `active` não aplica lesão nem sobrescreve resumo.
+
+**Não fazer:** não gravar `beginUndo` no save nem mexer em `toSave`/`fromSave` além do `apply`; não devolver ficha em `resolveOrphan` (órfão continua sem devolução); não alterar o ramo de `concludeMatch` das outras competições; não mudar a ordem "snapshot antes de `beginMatch`" em `startLiveMatch`.
+
+### 13b.3: gaveta sem cansaço, aviso de recuperação e bloqueio com outra partida ao vivo
+
+**Commit:** `fix(amistosos): gaveta sem cansaco e bloqueio com partida ao vivo`
+**Depende de:** 13b.2 (mesmo arquivo `useMatchSimulation.ts`).
+
+**Problemas:** (1) no amistoso todos jogam com energia 100, mas "Reorganizar", "Recomendar" e o rótulo "OVER x → y na vaga" da gaveta ainda descontam cansaço e "Recomendar" desempata pela energia. (2) O Elenco diz "Recuperação natural pausada durante a partida" com só um amistoso ao vivo, mas a recuperação não pausa (o ticker usa `liveCompetitions.some(c => c !== 'friendly')`). (3) Decisão do dono: amistoso **bloqueado** enquanto outra partida (não amistosa) está ao vivo, para evitar escalação compartilhada e lesão agravada em duplicidade.
+
+**Onde o bloqueio mora:** uma função só, `friendlyLiveBlock(): string | null` em `useMatchSimulation` (exportada), com a mensagem "Há uma partida da {COMP_SHORT} ao vivo. Termine-a antes de jogar um amistoso.". Usada por `prepareMatch('friendly')` e `startLiveMatch` (aqui, antes de `fixLineupFor`, para não mexer na escalação de uma partida ao vivo; nada é gasto); a Tarefa 14 desabilita "Iniciar" no PreMatch com ela e a Tarefa 15 desabilita "Jogar" na tela. Não entra em `lineupBlockers` (que devolve atletas, não motivos). Sortear continua liberado. O inverso (iniciar liga ou copa com amistoso rodando) segue permitido.
+
+**Arquivos:**
+- Alterar: `src/composables/useMatchSimulation.ts`
+- Alterar: `src/components/match/SubstitutionDrawer.vue`
+- Alterar: `src/components/squad/SquadRoster.vue`
+
+- [ ] **Passo 1: `friendlyLiveBlock`**
+
+Em `src/composables/useMatchSimulation.ts`, localizar:
+
+```ts
+  /** Amistoso exige 11 titulares escalados. */
+  function lineupShort(comp: MatchCompetition): boolean {
+    return comp === 'friendly' && squad.currentStartersList.length < 11
+  }
+```
+
+substituir por:
+
+```ts
+  /** Amistoso exige 11 titulares escalados. */
+  function lineupShort(comp: MatchCompetition): boolean {
+    return comp === 'friendly' && squad.currentStartersList.length < 11
+  }
+
+  /**
+   * Amistoso não começa com partida de outra competição ao vivo (rodando ou pausada na gaveta): a escalação é uma só e
+   * o lesionado em campo agravaria nas duas. Devolve o motivo (toast, botão e aviso) ou null.
+   */
+  function friendlyLiveBlock(): string | null {
+    const other = match.liveCompetitions.find((c) => c !== 'friendly')
+    return other ? `Há uma partida da ${COMP_SHORT[other]} ao vivo. Termine-a antes de jogar um amistoso.` : null
+  }
+```
+
+- [ ] **Passo 2: `prepareMatch` recusa**
+
+Localizar:
+
+```ts
+    if (comp === 'friendly' && !friendlies.selectedOption) {
+      ui.showToast('Sorteie um adversário.', 'warning')
+      router.push('/friendlies')
+      return
+    }
+    clearMatchTimer(comp)
+```
+
+substituir por:
+
+```ts
+    if (comp === 'friendly' && !friendlies.selectedOption) {
+      ui.showToast('Sorteie um adversário.', 'warning')
+      router.push('/friendlies')
+      return
+    }
+    if (comp === 'friendly') {
+      const liveBlock = friendlyLiveBlock()
+      if (liveBlock) {
+        ui.showToast(liveBlock, 'warning')
+        router.push('/friendlies')
+        return
+      }
+    }
+    clearMatchTimer(comp)
+```
+
+- [ ] **Passo 3: `startLiveMatch` recusa antes de mexer na escalação**
+
+Localizar:
+
+```ts
+    // Suspenso na competição não entra: o melhor reserva disponível assume a vaga.
+    fixLineupFor(comp)
+```
+
+substituir por:
+
+```ts
+    // Amistoso não começa com outra partida ao vivo (escalação compartilhada): recusa antes de mexer na escalação e de gastar ficha.
+    if (comp === 'friendly') {
+      const liveBlock = friendlyLiveBlock()
+      if (liveBlock) {
+        ui.showToast(liveBlock, 'warning')
+        return
+      }
+    }
+    // Suspenso na competição não entra: o melhor reserva disponível assume a vaga.
+    fixLineupFor(comp)
+```
+
+- [ ] **Passo 4: exportar**
+
+No `return` final de `useMatchSimulation`, localizar:
+
+```ts
+    lineupShort,
+```
+
+substituir por:
+
+```ts
+    lineupShort,
+    friendlyLiveBlock,
+```
+
+- [ ] **Passo 5: `reorganizeTeam` sem cansaço no amistoso**
+
+5a. Localizar:
+
+```ts
+    const unavailable = (p: Player) => isSentOff(comp, p.id) || isSuspendedFor(p, comp)
+    const starters = squad.currentStartersList
+```
+
+substituir por:
+
+```ts
+    const unavailable = (p: Player) => isSentOff(comp, p.id) || isSuspendedFor(p, comp)
+    // Amistoso: todos com energia 100 (mesma conta de userBaseRating), senão o cansaço distorce a escolha e a comparação.
+    const opts = { ignoreFatigue: comp === 'friendly' }
+    const starters = squad.currentStartersList
+```
+
+5b. Localizar:
+
+```ts
+            .sort((a, b) => getEffectiveOvr(b, layout[i].role) - getEffectiveOvr(a, layout[i].role))[0]
+```
+
+substituir por:
+
+```ts
+            .sort((a, b) => getEffectiveOvr(b, layout[i].role, opts) - getEffectiveOvr(a, layout[i].role, opts))[0]
+```
+
+5c. Localizar:
+
+```ts
+        const rating = calculateTeamStrength(layout.map((slot, i) => ({ role: slot.role, player: picked[i] }))).rating
+```
+
+substituir por:
+
+```ts
+        const rating = calculateTeamStrength(layout.map((slot, i) => ({ role: slot.role, player: picked[i] })), undefined, opts).rating
+```
+
+- [ ] **Passo 6: `recommendSubstitution` sem cansaço nem desempate por energia no amistoso**
+
+Localizar a função inteira, do comentário até o fim:
+
+```ts
+  // Sugere a melhor troca: maior ganho de OVER efetivo na vaga (posição, cansaço e lesão contam). Só preenche a
+  // seleção; quem confirma é o usuário. Sem substituições restantes, só lesionados podem sair.
+  function recommendSubstitution() {
+    const subsLeft = match.matchState.subsUsed < 5
+    const bench = squad.availableBenchList.filter((p) => !p.injury && !isSuspendedFor(p, match.activeMatchCompetition))
+    let best: { outId: string; inId: string; gain: number } | null = null
+    squad.currentStartersList.forEach((starter) => {
+      if (isSentOff(match.activeMatchCompetition, starter.id)) return
+      if (!subsLeft && !starter.injury) return
+      const slot = squad.starterIds.indexOf(starter.id)
+      const role = (FORMATIONS[squad.formation] || FORMATIONS['4-3-3'])[slot]?.role
+      if (!role) return
+      const current = getEffectiveOvr(starter, role)
+      for (const cand of bench) {
+        // Energia desempata: a diferença de stamina vale até ~1 ponto de OVER.
+        const gain = getEffectiveOvr(cand, role) - current + ((cand.stamina ?? 100) - (starter.stamina ?? 100)) * 0.01
+        if (!best || gain > best.gain) best = { outId: starter.id, inId: cand.id, gain }
+      }
+    })
+```
+
+substituir por:
+
+```ts
+  // Sugere a melhor troca: maior ganho de OVER efetivo na vaga (posição, cansaço e lesão contam; no amistoso, sem
+  // cansaço). Só preenche a seleção; quem confirma é o usuário. Sem substituições restantes, só lesionados podem sair.
+  function recommendSubstitution() {
+    const comp = match.activeMatchCompetition
+    // Amistoso: todos com energia 100, então nem a penalidade de cansaço nem o desempate por energia valem.
+    const fresh = comp === 'friendly'
+    const opts = { ignoreFatigue: fresh }
+    const subsLeft = match.matchState.subsUsed < 5
+    const bench = squad.availableBenchList.filter((p) => !p.injury && !isSuspendedFor(p, comp))
+    let best: { outId: string; inId: string; gain: number } | null = null
+    squad.currentStartersList.forEach((starter) => {
+      if (isSentOff(comp, starter.id)) return
+      if (!subsLeft && !starter.injury) return
+      const slot = squad.starterIds.indexOf(starter.id)
+      const role = (FORMATIONS[squad.formation] || FORMATIONS['4-3-3'])[slot]?.role
+      if (!role) return
+      const current = getEffectiveOvr(starter, role, opts)
+      for (const cand of bench) {
+        // Energia desempata: a diferença de stamina vale até ~1 ponto de OVER (fora do amistoso).
+        const energy = fresh ? 0 : ((cand.stamina ?? 100) - (starter.stamina ?? 100)) * 0.01
+        const gain = getEffectiveOvr(cand, role, opts) - current + energy
+        if (!best || gain > best.gain) best = { outId: starter.id, inId: cand.id, gain }
+      }
+    })
+```
+
+(O resto da função, de `const pick = best as ...` em diante, não muda.)
+
+- [ ] **Passo 7: rótulo da gaveta, `src/components/match/SubstitutionDrawer.vue`**
+
+Localizar:
+
+```ts
+function effectiveLabel(p: Player): string {
+  if (!slotRole.value) return `OVER ${p.overall}`
+  const eff = getEffectiveOvr(p, slotRole.value)
+```
+
+substituir por:
+
+```ts
+function effectiveLabel(p: Player): string {
+  if (!slotRole.value) return `OVER ${p.overall}`
+  // Amistoso: todos jogam com energia 100; o rótulo não desconta cansaço.
+  const eff = getEffectiveOvr(p, slotRole.value, { ignoreFatigue: match.activeMatchCompetition === 'friendly' })
+```
+
+- [ ] **Passo 8: aviso de recuperação, `src/components/squad/SquadRoster.vue`**
+
+Localizar:
+
+```ts
+// Recuperação natural: aviso só enquanto alguém está abaixo de 100; pausa durante partida ao vivo.
+const regenLabel = computed(() => {
+  if (!squad.players.some((p) => (p.stamina ?? 100) < 100)) return ''
+  if (match.liveCompetitions.length) return `Recuperação natural pausada durante a partida (+${STAMINA_REGEN_PER_HOUR} de energia/h)`
+```
+
+substituir por:
+
+```ts
+// Recuperação natural: aviso só enquanto alguém está abaixo de 100; pausa durante partida ao vivo de outra competição
+// (amistoso não pausa: mesmo critério do ticker em useScouting).
+const regenLabel = computed(() => {
+  if (!squad.players.some((p) => (p.stamina ?? 100) < 100)) return ''
+  if (match.liveCompetitions.some((c) => c !== 'friendly')) return `Recuperação natural pausada durante a partida (+${STAMINA_REGEN_PER_HOUR} de energia/h)`
+```
+
+- [ ] **Passo 9: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs` → `OK` nas 8 checagens.
+Rodar: `npm run build` → `✓ built in ...`.
+Conferência: `grep -n "getEffectiveOvr(" src/composables/useMatchSimulation.ts` mostra `opts` em todas as chamadas de `reorganizeTeam` e `recommendSubstitution`; `grep -n "liveCompetitions" src/components/squad/SquadRoster.vue src/composables/useScouting.ts` mostra o mesmo critério `some((c) => c !== 'friendly')` nos dois.
+Manual rápido (`npm run dev`): com uma partida de liga ao vivo, chamar o pré-jogo do amistoso (opção já escolhida em `/friendlies`) → toast "Há uma partida da Liga ao vivo. Termine-a antes de jogar um amistoso." e nenhuma ficha gasta.
+
+- [ ] **Passo 10: commit**
+
+```bash
+git add src/composables/useMatchSimulation.ts src/components/match/SubstitutionDrawer.vue src/components/squad/SquadRoster.vue
+git commit -m "fix(amistosos): gaveta sem cansaco e bloqueio com partida ao vivo"
+```
+
+**Pronto quando:** build e checagens passam; fora do amistoso, gaveta e aviso do Elenco se comportam como antes; amistoso não começa com outra partida ao vivo.
+
+**Não fazer:** não bloquear o sorteio nem o início de liga/copa com amistoso rodando (a decisão cobre só o início do amistoso); não colocar o bloqueio em `lineupBlockers`; não mudar `useScouting.ts` (já usa o critério certo); não mexer em `PreMatch.vue` nem na tela (Tarefas 14 e 15).
+
+---
+
 ## Tarefa 14: pré-jogo e resumo do amistoso
 
 **Commit:** `feat(partida): pre-jogo e resumo do amistoso`
-**Depende de:** Tarefas 3 (`signedFame`), 6b (`friendlies.quote`), 11 (`lineupShort`), 13 (summary com `friendly`).
+**Depende de:** Tarefas 3 (`signedFame`), 6b (`friendlies.quote`), 11 (`lineupShort`), 13 (summary com `friendly`), **13b** (`squad.friendlyStrength`, `friendlyLiveBlock`).
 
-Depois da 6b, a opção escolhida guarda só o `offset`: o OVER do rival (vem de `activeMatchOpponent`, Tarefa 11), o prêmio e a fama em jogo do pré-jogo saem de `friendlies.quote(opção, squad.freshTeamStrength.rating, club.clubNow)` e mudam na hora se o usuário trocar titulares em "Ajustar Tática". As legendas deixam claro que são estimativa até o apito.
+**Revisão do bloco 8-13 (já incorporada abaixo):** a cotação do PreMatch usa o OVER efetivo `squad.friendlyStrength.over` (o mesmo do apito); a chance de vitória (`estimateOutcome`) continua com a força real em campo (`squad.freshTeamStrength.rating`); "Iniciar" fica desabilitado também com outra partida ao vivo (`friendlyLiveBlock`), com o motivo no `title` e num aviso; aviso âmbar quando a escalação atual está abaixo da melhor elegível. Os dois latentes apontados na revisão já são cobertos por esta tarefa: o texto "está suspenso na Amistoso" para lesionado (Passo 3, ramo `isFriendly`: "está lesionado ou suspenso") e o botão que ignorava `lineupShort` (Passos 1c e 2: `startDisabled`/`startTitle`).
+
+Depois da 6b, a opção escolhida guarda só o `offset`: o OVER do rival (vem de `activeMatchOpponent`, Tarefa 11), o prêmio e a fama em jogo do pré-jogo saem de `friendlies.quote(opção, squad.friendlyStrength.over, club.clubNow)` (OVER efetivo, 13b.1): piorar a escalação em "Ajustar Tática" não os baixa. As legendas deixam claro que são estimativa até o apito.
 
 **Arquivos:**
 - Alterar: `src/components/match/PreMatch.vue`
@@ -4893,6 +5898,7 @@ substituir por:
 ```ts
   lineupBlockers,
   lineupShort,
+  friendlyLiveBlock,
   startLiveMatch
 } = useMatchSimulation()
 ```
@@ -4919,20 +5925,25 @@ const isFriendly = computed(() => match.activeMatchCompetition === 'friendly')
 const blockers = computed(() => lineupBlockers(match.activeMatchCompetition))
 const short = computed(() => lineupShort(match.activeMatchCompetition))
 const noToken = computed(() => isFriendly.value && friendlies.tokens < 1)
-const startDisabled = computed(() => blockers.value.length > 0 || short.value || noToken.value)
+// Amistoso não começa com partida de outra competição ao vivo (spec §2.11): motivo vem de friendlyLiveBlock.
+const liveBlock = computed(() => (isFriendly.value ? friendlyLiveBlock() : null))
+// Escalação atual abaixo da melhor elegível: o rival é calculado pela mais forte (spec §6), então vale avisar.
+const belowBest = computed(() => isFriendly.value && squad.friendlyStrength.best > squad.friendlyStrength.current + 0.5)
+const startDisabled = computed(() => !!liveBlock.value || blockers.value.length > 0 || short.value || noToken.value)
 const startTitle = computed(() => {
+  if (liveBlock.value) return liveBlock.value
   if (blockers.value.length) return isFriendly.value ? 'Escalação irregular: troque o lesionado ou suspenso em Ajustar Tática.' : 'Escalação irregular: substitua o suspenso em Ajustar Tática.'
   if (short.value) return 'São precisos 11 titulares.'
   if (noToken.value) return `Sem fichas — próxima em ${formatTokenCountdown(friendlies.msToNext)}`
   return undefined
 })
 const friendlyOption = computed(() => friendlies.selectedOption)
-// Cotação viva (spec §2.3): OVER do rival, prêmio e fama com a escalação atual; só ficam fixos no apito (beginMatch).
+// Cotação viva (spec §2.3): OVER do rival, prêmio e fama com o OVER efetivo (o mesmo do apito); só ficam fixos no apito.
 const friendlyQuote = computed(() =>
-  friendlyOption.value ? friendlies.quote(friendlyOption.value, squad.freshTeamStrength.rating, club.clubNow) : null
+  friendlyOption.value ? friendlies.quote(friendlyOption.value, squad.friendlyStrength.over, club.clubNow) : null
 )
 const homeBonus = computed(() => homeBonusApplies(match.activeMatchCompetition))
-// Amistoso: estimativa com o OVER de energia 100.
+// Amistoso: chance com a força real em campo e energia 100 (o motor joga com quem está escalado; o rival vem do OVER efetivo).
 const estimate = computed(() =>
   estimateOutcome(isFriendly.value ? squad.freshTeamStrength.rating : squad.teamStrength.rating, activeMatchOpponent.value.power, {
 ```
@@ -4991,7 +6002,18 @@ substituir por:
     <div v-if="short" class="p-3 rounded-xl bg-dangerpro-soft border border-dangerpro/40 text-xs text-ink break-words" role="alert">
       <strong class="text-dangerpro">Escalação incompleta:</strong> são precisos 11 titulares para o amistoso.
     </div>
+
+    <div v-if="liveBlock" class="p-3 rounded-xl bg-dangerpro-soft border border-dangerpro/40 text-xs text-ink break-words" role="alert">
+      <strong class="text-dangerpro">Outra partida ao vivo:</strong> {{ liveBlock }}
+    </div>
+
+    <p v-if="belowBest" class="p-3 rounded-xl border border-amberpro/40 bg-amberpro-soft text-xs text-amberpro font-semibold break-words">
+      Sua escalação (OVER {{ Math.round(squad.friendlyStrength.current) }}) está abaixo da melhor possível
+      (OVER {{ Math.round(squad.friendlyStrength.best) }}). O rival, o prêmio e a fama são calculados pela mais forte.
+    </p>
 ```
+
+Classes `bg-amberpro-soft`/`text-amberpro`/`border-amberpro/40` são as mesmas do aviso de limite diário do `PostMatchSummary` (Passo 5).
 
 - [ ] **Passo 4: `PreMatch.vue`, bilheteria/patrocínio viram prêmio/fama no amistoso**
 
@@ -5016,7 +6038,7 @@ substituir por:
           <strong class="font-score text-lg text-ink block mt-0.5">
             {{ friendlyQuote ? `${signedFame(friendlyQuote.fameWin)} / ${signedFame(friendlyQuote.fameDraw)} / ${signedFame(friendlyQuote.fameLoss)}` : '—' }}
           </strong>
-          <span class="text-[11px] text-ink-muted">Vitória / Empate / Derrota • estimativa com a escalação atual</span>
+          <span class="text-[11px] text-ink-muted">Vitória / Empate / Derrota • estimativa, fixada no apito inicial</span>
         </ListRow>
       </template>
       <ListRow v-if="!isFriendly" padding="p-3.5" layout="block" class="min-w-0 break-words">
@@ -5180,7 +6202,7 @@ const friendly = computed(() => match.lastMatchSummary?.friendly ?? null)
 - [ ] **Passo 6: verificar**
 
 Rodar: `npm run build` → `✓ built in ...`.
-Conferência visual (`npm run dev`): pré-jogo da liga igual ao de antes (bilheteria e patrocínio aparecem; botão "Continuar Temporada" no resumo). Pré-jogo do amistoso: trocar um titular forte por um reserva fraco em "Ajustar Tática" baixa o OVER do rival, o prêmio e a fama em jogo na mesma hora; voltar com o titular sobe de novo.
+Conferência visual (`npm run dev`): pré-jogo da liga igual ao de antes (bilheteria e patrocínio aparecem; botão "Continuar Temporada" no resumo). Pré-jogo do amistoso: trocar um titular forte por um reserva fraco em "Ajustar Tática" **não** baixa o OVER do rival, o prêmio nem a fama em jogo (piso da melhor escalação elegível) e faz aparecer o aviso âmbar "abaixo da melhor possível"; a chance de vitória cai. Titular lesionado: aviso "está lesionado ou suspenso" (nunca "suspenso na Amistoso"). Com uma partida de liga ao vivo: "Iniciar" desabilitado, `title` e aviso vermelho com "Há uma partida da Liga ao vivo...".
 
 - [ ] **Passo 7: commit**
 
@@ -5198,7 +6220,9 @@ git commit -m "feat(partida): pre-jogo e resumo do amistoso"
 ## Tarefa 15: tela, fichas, ranking e histórico
 
 **Commit:** `feat(amistosos): tela, fichas, ranking e historico`
-**Depende de:** Tarefas 2, 3, 4, 6b, 7, 10, 11 (e 13 para o fluxo completo).
+**Depende de:** Tarefas 2, 3, 4, 6b, 7, 10, 11, **13b** (`squad.friendlyStrength`, `friendlyLiveBlock`) (e 13 para o fluxo completo).
+
+**Revisão do bloco 8-13 (já incorporada abaixo):** o "OVER do amistoso" e as cotações dos cartões usam o OVER efetivo `squad.friendlyStrength.over` (13b.1); com partida de outra competição ao vivo (`friendlyLiveBlock`, 13b.3) o sorteio continua livre, mas o "Jogar" dos cartões fica desabilitado com o rótulo "Outra partida ao vivo" e o motivo completo aparece em vermelho no cartão "Desafio".
 
 Spec §7 (FriendliesView, OpponentCard, fluxo) e §8. Depois da 6b: `friendlies.draw()` não recebe argumentos; cada cartão mostra a cotação `friendlies.quote(opção, OVER atual, agora)` marcada como estimativa; o ranking é a tabela de classificação com as colunas da liga (`ranking.top`/`ranking.user` são `FriendlyRankingRow`). Esta tarefa mostra as 3 opções numa grade simples; a Tarefa 16 troca a grade pela roleta animada (deixe o `spinKey`/`spinning` já prontos na view).
 
@@ -5238,11 +6262,13 @@ export function useFriendlies() {
   const squad = useSquadStore()
   const ui = useUiStore()
   const { saveGame } = usePersistence()
-  const { prepareMatch } = useMatchSimulation()
+  const { prepareMatch, friendlyLiveBlock } = useMatchSimulation()
 
-  /** OVER do amistoso: escalação atual com energia 100, sem arredondar (exibido arredondado). */
-  const userOver = computed(() => squad.freshTeamStrength.rating)
+  /** OVER efetivo do amistoso: max(escalação atual, melhor elegível), energia 100, sem arredondar (spec §6). É o do apito. */
+  const userOver = computed(() => squad.friendlyStrength.over)
   const isLive = computed(() => match.isCompetitionLive('friendly'))
+  /** Partida de outra competição ao vivo: amistoso não começa (spec §2.11). Sortear continua livre. */
+  const liveBlock = computed(() => friendlyLiveBlock())
   const currentRankBonus = computed(() => rankBonus(friendlies.rank))
   /** Cotação de cada opção com o OVER atual (estimativa: o apito recalcula com o OVER do time que vai a campo). */
   const quotes = computed<Record<string, FriendlyQuote>>(() =>
@@ -5306,6 +6332,10 @@ export function useFriendlies() {
       watchLive()
       return
     }
+    if (liveBlock.value) {
+      ui.showToast(liveBlock.value, 'warning')
+      return
+    }
     if (friendlies.tokens < 1) {
       ui.showToast(`Sem fichas. Próxima em ${nextTokenIn.value}.`, 'warning')
       return
@@ -5315,7 +6345,7 @@ export function useFriendlies() {
     prepareMatch('friendly')
   }
 
-  return { userOver, isLive, currentRankBonus, quotes, nextTokenIn, challengeBlock, open, challenge, redraw, play, watchLive }
+  return { userOver, isLive, liveBlock, currentRankBonus, quotes, nextTokenIn, challengeBlock, open, challenge, redraw, play, watchLive }
 }
 ```
 
@@ -5389,7 +6419,7 @@ const diffLabel = computed(() => (diff.value > 0 ? `+${diff.value}` : `−${Math
     </div>
     <div class="flex items-baseline gap-2">
       <span class="text-[11px] font-bold uppercase text-ink-muted">OVER estimado</span>
-      <strong class="font-score text-2xl text-ink" :title="'Estimativa com a escalação atual'">~{{ quote.oppOver }}</strong>
+      <strong class="font-score text-2xl text-ink" :title="'Estimativa com a melhor escalação disponível'">~{{ quote.oppOver }}</strong>
       <span v-if="diff !== 0" class="text-xs font-bold" :class="diff > 0 ? 'text-dangerpro' : 'text-emeraldpro'">{{ diffLabel }}</span>
     </div>
     <p class="text-xs text-ink break-words">
@@ -5403,7 +6433,7 @@ const diffLabel = computed(() => (diff.value > 0 ? `+${diff.value}` : `−${Math
       <strong class="text-dangerpro">{{ signedFame(quote.fameLoss) }}</strong>
       <span class="text-ink-muted">(V/E/D)</span>
     </p>
-    <p class="text-[11px] text-ink-muted break-words">Estimativa com a escalação atual; os valores são fixados no apito inicial.</p>
+    <p class="text-[11px] text-ink-muted break-words">Estimativa com a melhor escalação disponível; os valores são fixados no apito inicial.</p>
     <BaseButton
       class="mt-auto px-4 py-3 min-h-12 text-sm disabled:cursor-not-allowed"
       :disabled="disabled"
@@ -5568,7 +6598,7 @@ import { FRIENDLIES } from '@/config'
 
 const friendlies = useFriendliesStore()
 const club = useClubStore()
-const { userOver, isLive, currentRankBonus, quotes, nextTokenIn, challengeBlock, open, challenge, redraw, play, watchLive } = useFriendlies()
+const { userOver, isLive, liveBlock, currentRankBonus, quotes, nextTokenIn, challengeBlock, open, challenge, redraw, play, watchLive } = useFriendlies()
 
 const total = FRIENDLIES.bots.count + 1
 // spinKey sobe a cada sorteio novo (a roleta da Tarefa 16 anima); spinning trava "Jogar" e "Re-sortear" durante a animação.
@@ -5580,6 +6610,8 @@ const tokenBarNext = computed(() => (friendlies.tokens < FRIENDLIES.tokens.max ?
 const bonusLabel = computed(() => '+' + currentRankBonus.value.toFixed(1).replace('.', ','))
 const playBlock = computed<string | null>(() => {
   if (isLive.value) return 'Amistoso em andamento'
+  // Rótulo curto no botão; o motivo completo aparece no cartão "Desafio".
+  if (liveBlock.value) return 'Outra partida ao vivo'
   if (friendlies.tokens < 1) return `Sem fichas — próxima em ${nextTokenIn.value}`
   return challengeBlock.value
 })
@@ -5620,7 +6652,7 @@ function onRedraw() {
       <div class="min-w-0">
         <span class="text-[11px] font-bold uppercase text-ink-muted block">OVER do amistoso</span>
         <strong class="font-score text-2xl text-ink">{{ Math.round(userOver) }}</strong>
-        <span class="block text-[11px] text-ink-muted">energia 100</span>
+        <span class="block text-[11px] text-ink-muted">energia 100 • melhor escalação</span>
       </div>
       <div class="min-w-0">
         <span class="text-[11px] font-bold uppercase text-ink-muted block">Bônus de posição</span>
@@ -5640,6 +6672,7 @@ function onRedraw() {
       </BaseButton>
       <p v-if="!isLive && challengeBlock" class="text-xs text-dangerpro">{{ challengeBlock }}</p>
       <p v-else class="text-xs text-ink-muted">Sortear não gasta ficha. A ficha é gasta só quando a partida começa.</p>
+      <p v-if="!isLive && liveBlock" class="text-xs text-dangerpro break-words" role="status">{{ liveBlock }}</p>
     </BaseCard>
 
     <div v-if="friendlies.options" ref="optionsEl" class="space-y-3 scroll-mt-24">
@@ -5694,7 +6727,8 @@ Manual (`npm run dev`, abrir `#/friendlies` pela URL; o item de menu vem na Tare
 1. 10 fichas, fama 0, `#101 de 101`, ranking em tabela (`# · Clube · Fama · J · V · E · D · GP · GC · SG`) com top 10, linha "…" e sua linha destacada; em 360 px a tabela rola dentro do cartão com a coluna Clube fixa e a página não rola na horizontal.
 2. "Desafiar" mostra 3 cartões e "Sorteios restantes: 2"; "Re-sortear" duas vezes → "Sem sorteios restantes..." e botão desabilitado; recarregar → continua igual.
 3. "Jogar" → pré-jogo com o rival; voltar → as 3 opções seguem. "Iniciar" → fichas 9, partida roda, resumo "Resultado do Amistoso", "Voltar aos Amistosos" volta a `/friendlies` sem opções, com 3 sorteios; na tabela, J/V/E/D/GP/GC do usuário mudaram.
-4. Cartões mostram "OVER estimado ~N" e a nota de estimativa; trocar um titular forte por um reserva em Elenco & Tática e voltar → o OVER estimado, o prêmio e a fama em jogo dos 3 cartões mudam junto.
+4. Cartões mostram "OVER estimado ~N" e a nota de estimativa; trocar um titular forte por um reserva em Elenco & Tática e voltar → o OVER estimado, o prêmio e a fama em jogo dos 3 cartões **não** mudam (piso da melhor escalação elegível); lesionar o melhor atleta (editando o save) → eles caem.
+5. Com uma partida de liga ao vivo: "Desafiar"/"Re-sortear" funcionam; "Jogar" desabilitado com "Outra partida ao vivo" e, no cartão "Desafio", "Há uma partida da Liga ao vivo. Termine-a antes de jogar um amistoso.". Encerrada a liga, "Jogar" volta.
 
 - [ ] **Passo 9: commit**
 
@@ -6390,7 +7424,7 @@ git commit -m "feat(layout): bottomnav com 4 itens e menu +"
 ## Tarefa 19: verificação manual e ajustes
 
 **Commit (só se houver correção):** `chore(amistosos): verificacao manual e ajustes`
-**Depende de:** Tarefas 1–18.
+**Depende de:** Tarefas 1–18 (inclui 6b e 13b).
 
 Só correções: nada de funcionalidade nova, nada de refatoração. Se não houver o que corrigir, **não** faça commit vazio; relate "roteiro sem falhas".
 
@@ -6398,7 +7432,7 @@ Só correções: nada de funcionalidade nova, nada de refatoração. Se não hou
 
 - [ ] **Passo 1: checagens automáticas**
 
-Rodar: `node scripts/verify-friendlies/run.mjs` → `OK` em ranking, tokens, fame, draw, bots, provider, store.
+Rodar: `node scripts/verify-friendlies/run.mjs` → `OK` em ranking, tokens, fame, draw, bots, provider, store, strength.
 Rodar: `npm run build` → `✓ built in ...`.
 
 - [ ] **Passo 2: roteiro manual (spec §9), com `npm run dev`**
@@ -6410,7 +7444,7 @@ Para editar o save: DevTools → Application → Local Storage → chave `super_
 3. **Lesão:** lesão sofrida no amistoso aparece no Elenco e tira o atleta da liga; lesões antigas não descontam jogo no amistoso.
 4. **Cartões e estatísticas:** expulsão no amistoso não gera suspensão nem amarelo acumulado; artilharia/assistências/jogos da temporada e `matchHistory` (tela Partidas) iguais antes e depois.
 5. **Fama:** vitória/empate/derrota batem com os valores do pré-jogo (V/E/D, recalculados com a escalação que foi a campo); derrota com fama 0 fica em 0; com fama 2, perder tira só 2 e o rival ganha só 2.
-5b. **Farm de OVER:** sortear com reservas na escalação (OVER baixo), voltar os titulares e abrir o pré-jogo → OVER do rival, prêmio e fama em jogo sobem junto; o resultado e o prêmio usam o OVER do apito.
+5b. **Farm de OVER:** escalar reservas ou titulares fora de posição e abrir `/friendlies` e o pré-jogo → OVER do rival, prêmio e fama em jogo **não** caem (piso da melhor escalação elegível) e o pré-jogo mostra o aviso âmbar "abaixo da melhor possível"; iniciar assim e usar "Reorganizar" ao vivo → fama e prêmio no fim batem com o mostrado antes do apito. Lesionar o melhor atleta (editar `injury` no save) → o OVER efetivo cai.
 5c. **Tabela:** colunas Fama, J, V, E, D, GP, GC, SG; depois de um amistoso, as estatísticas do usuário e do rival mudam; reabrir `/friendlies` horas depois aumenta o J dos bots (1 por hora, até 72); com fama empatada, quem tem mais vitórias fica acima.
 6. **Retomada:** recarregar no meio do amistoso retoma do mesmo minuto; apagar `super_xi_live_match_v1` e recarregar → toast "O amistoso anterior foi interrompido e não contou.", ficha não volta, fama e dinheiro iguais.
 7. **Save:** remover o campo `friendlies` do save e recarregar → estado novo (10 fichas, fama 0, #101); "Nova carreira" (Clube) zera os amistosos.
@@ -6419,7 +7453,12 @@ Para editar o save: DevTools → Application → Local Storage → chave `super_
 10. **Reputação:** anotar `club.reputation` (chip "Reputação" em `/club`), jogar vitória e derrota no amistoso → igual; jogar uma partida de liga → a fama (em `/friendlies`) não muda.
 11. **BottomNav em 360 px:** 4 itens + "+", sem rolagem; "+" abre e fecha (toque fora, `Esc`, escolher item), foco volta ao "+"; ponto "ao vivo" no "+" com amistoso rodando.
 12. **Limite diário:** editar `friendlies.paidWins` para `{ "day": <dayStart de hoje>, "count": 5 }` (no console: `new Date().setHours(0,0,0,0)`), recarregar, sortear → cartões com "R$ 0 — limite diário de vitórias pagas atingido"; vencer → resumo com o aviso de limite.
-13. **Partidas paralelas:** iniciar um amistoso e, com ele rodando, iniciar uma partida de liga → as duas aparecem no `MatchSwitcher`; a energia congela só por causa da liga.
+13. **Partidas paralelas:** iniciar um amistoso e, com ele rodando, iniciar uma partida de liga → permitido (a decisão do dono bloqueia só o inverso); as duas aparecem no `MatchSwitcher`; a energia congela só por causa da liga.
+14. **Amistoso bloqueado com outra partida ao vivo:** com uma partida de liga rodando (ou pausada na gaveta), em `/friendlies` sortear funciona, "Jogar" fica desabilitado com "Outra partida ao vivo" e o motivo completo aparece no cartão "Desafio"; abrir o pré-jogo do amistoso pelo `MatchSwitcher` → "Iniciar" desabilitado com aviso vermelho; nenhuma ficha gasta. Encerrada a liga, tudo volta.
+15. **Gaveta sem cansaço:** com o elenco cansado (energia < 60), no amistoso o rótulo "OVER x → y na vaga" não desconta o cansaço, "Recomendar" não escolhe um reserva só por estar descansado e "Reorganizar" compara forças sem cansaço. Na liga, tudo como antes.
+16. **Aviso de recuperação no Elenco:** com só um amistoso ao vivo, "Recuperação natural: ... próximo ponto em m:ss" (não "pausada"); com partida de liga ao vivo, "pausada".
+17. **Pré-jogo do amistoso:** titular lesionado → aviso "está lesionado ou suspenso" (nunca "suspenso na Amistoso"); menos de 11 titulares → "Iniciar" desabilitado e aviso "Escalação incompleta".
+18. **Desfazer o apito e encerramento idempotente:** cobertos pela checagem `store` do passo 1 (`cancelBegin`, motivos de `beginMatch`, `settle` repetido devolve `null`); a falha de rota não se reproduz à mão sem mexer no código.
 
 - [ ] **Passo 3: corrigir o que falhar**
 
@@ -6432,7 +7471,7 @@ git add <arquivos corrigidos, um a um>
 git commit -m "chore(amistosos): verificacao manual e ajustes"
 ```
 
-**Pronto quando:** checagens automáticas OK, build passa e os 13 itens do roteiro (mais 5b e 5c) conferem (ou as falhas foram corrigidas e reverificadas).
+**Pronto quando:** checagens automáticas OK, build passa e os 18 itens do roteiro (mais 5b e 5c) conferem (ou as falhas foram corrigidas e reverificadas).
 
 **Não fazer:** não alterar `package.json`/versão; não fazer merge na `develop` nem push (a integração é decisão do dono do produto); não adicionar test runner.
 
@@ -6442,4 +7481,5 @@ git commit -m "chore(amistosos): verificacao manual e ajustes"
 
 - **Cobertura da spec:** regras 1–12 (§2) → Tarefas 2, 4, 7, 8, 10–13, 15; modelo e persistência (§5) → 1, 7; fórmulas (§6) → 2–5; UI (§7) → 14–18; casos de borda (§8) → 7, 11, 13, 15, 19; testes (§9) → verificador das Tarefas 1–7 e roteiro da 19; tarefas da §10 → mesma numeração; decisões da §11 → respeitadas (fama separada da reputação, 3 sorteios, BottomNav 4 + "+").
 - **Revisão do lote 1-7 (Tarefa 6b):** nomes novos `FriendlyStats`, `FriendlyStanding`, `FriendlyQuote`, `FriendlyReport`, `FriendlyRankingRow`; `emptyStats`/`sanitizeStats`/`addResult`/`goalDiff`/`compareStanding` (6b.1); `unit`/`safeRng`/`randIntWith`, `simScore` (6b.2); `drawOffset`/`opponentOverFrom`/`quoteOption`/`rankPool`, store `quote`, `stats`, `standing` e `draw()` sem argumentos (6b.3). As Tarefas 11, 14, 15, 16 e 19 foram ajustadas a essa API.
+- **Revisão do bloco 8-13 (Tarefa 13b):** nomes novos `isFriendlyEligible`, `friendlyStrengthOf`, `FriendlyStrength`, `squad.friendlyStrength` (13b.1); `FriendlyBeginResult`, `cancelBegin` (13b.2); `friendlyLiveBlock` (13b.3). As Tarefas 14, 15 e 19 foram ajustadas: PreMatch e tela usam `friendlyStrength.over` e `friendlyLiveBlock`; roteiro manual com os itens 14–18 e a checagem `strength`.
 - **Consistência de nomes:** `userRank`/`rankedBots` (1), `regenTokens`/`spendToken`/`msToNextToken`/`formatTokenCountdown` (2), `expectedScore`/`fameDelta`/`applyFame`/`outcomeFromScore`/`signedFame` (3), `rankBonus`/`opponentOver`/`friendlyPrize`/`drawOptions` (4), `allBotNames`/`generateBots`/`simulateBots`/`rankingView` (5), `createLocalBotProvider` (6), store `useFriendliesStore` com `rank`, `ranking`, `drawsLeft`, `selectedOption`, `msToNext`, `paidWinsLeft`, `regenTokens`, `refresh`, `draw`, `select`, `beginMatch`, `settle`, `resolveOrphan`, `toSave`, `fromSave`, `reset` (7), `freshTeamStrength`/`friendlyEligibleCount` (10), `lineupShort` (11), `useFriendlies` (15).
