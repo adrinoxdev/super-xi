@@ -52,11 +52,14 @@
 | 16 roleta | 15 | 17 |
 | 17 navegação, subtítulo, cabeçalho | 7, 9 | 10–16 |
 | 18 BottomNav | 17 (mesmo arquivo `useNavigation.ts`) | — |
-| 19 verificação manual | todas | — |
+| 20 persistência do pré-jogo | 7 (`usePersistence`, `App.vue`), 9 (`COMPETITIONS_ORDER` com `'friendly'`), 13b (`active`/`selectedOption` da store), 18 (última commitada) | — |
+| 19 verificação manual | todas, **inclusive a 20** (é a última) | — |
 
 **Atenção à numeração:** as Tarefas 7 e 8 usam o literal `'friendly'` em `MatchCompetition`, que só existe depois da Tarefa 9. Por isso a ordem de execução recomendada roda a 9 antes da 7.
 
-**Ordem recomendada de execução:** 1 → (2, 3, 5 em paralelo) → 4 → 6 → 9 → (7 e 10 em paralelo) → **6b (6b.1 → 6b.2 → 6b.3 → 6b.4)** → 8 → 11 → 12 → 13 → **13b (13b.1 → 13b.2 → 13b.3)** → 14 → 15 → 16 → 17 → 18 → 19.
+**Ordem recomendada de execução:** 1 → (2, 3, 5 em paralelo) → 4 → 6 → 9 → (7 e 10 em paralelo) → **6b (6b.1 → 6b.2 → 6b.3 → 6b.4)** → 8 → 11 → 12 → 13 → **13b (13b.1 → 13b.2 → 13b.3)** → 14 → 15 → 16 → 17 → 18 → **20** → 19.
+
+**Tarefa 20:** pedida depois de a 18 estar commitada (2439135). Entra antes da 19, que continua sendo a verificação final e já inclui o roteiro da 20.
 
 **Tarefa 13b:** as Tarefas 8 a 13 já estão commitadas; a 13b aplica as correções da revisão delas. As Tarefas 14, 15 e 19 abaixo já estão escritas contra o que sai da 13b (`squad.friendlyStrength`, `friendlyLiveBlock`, `beginMatch` com motivo, `cancelBegin`, checagem `strength`).
 
@@ -89,8 +92,10 @@ Novos:
 | `src/components/friendlies/TokenBar.vue`, `OpponentCard.vue`, `FriendlyRanking.vue`, `FriendlyHistory.vue` | 15 | peças da tela |
 | `src/components/friendlies/OpponentRoulette.vue` | 16 | roleta |
 | `src/components/layout/BottomNavMore.vue` | 18 | painel do "+" |
+| `src/utils/match/prematchMemory.ts` | 20 | `resolvePrematchCompetition`: qual pré-jogo restaurar na carga |
+| `scripts/verify-friendlies/prematch.check.ts` | 20 | checagem de `resolvePrematchCompetition` |
 
-Alterados: `src/config/index.ts`, `src/types/index.ts` (1); `src/composables/usePersistence.ts`, `src/App.vue` (7); `src/composables/useScouting.ts` (8); `src/types/match.ts`, `src/stores/match.ts`, `src/utils/player/suspension.ts`, `src/utils/match/matchResult.ts`, `src/components/match/MatchSwitcher.vue`, `src/utils/navigation/sectionMemory.ts` (9); `src/utils/match/calculateTeamStrength.ts`, `src/stores/squad.ts` (10); `src/composables/useMatchSimulation.ts` (11, 12, 13); `src/components/match/SubstitutionDrawer.vue` (12); `src/components/match/PreMatch.vue`, `src/components/match/PostMatchSummary.vue` (14); `src/router/index.ts` (15); `src/composables/useNavigation.ts` (17, 18), `src/composables/usePageSubtitle.ts`, `src/composables/useHeaderStats.ts` (17); `src/components/layout/BottomNav.vue` (18). Na 13b: `src/utils/match/calculateTeamStrength.ts`, `src/stores/squad.ts`, `scripts/verify-friendlies/run.mjs` (13b.1); `src/types/friendlies.ts`, `src/stores/friendlies.ts`, `scripts/verify-friendlies/store.check.ts` (13b.2); `src/components/squad/SquadRoster.vue`, `src/components/match/SubstitutionDrawer.vue` (13b.3); `src/composables/useMatchSimulation.ts` (13b.1, 13b.2, 13b.3).
+Alterados: `src/config/index.ts`, `src/types/index.ts` (1); `src/composables/usePersistence.ts`, `src/App.vue` (7); `src/composables/useScouting.ts` (8); `src/types/match.ts`, `src/stores/match.ts`, `src/utils/player/suspension.ts`, `src/utils/match/matchResult.ts`, `src/components/match/MatchSwitcher.vue`, `src/utils/navigation/sectionMemory.ts` (9); `src/utils/match/calculateTeamStrength.ts`, `src/stores/squad.ts` (10); `src/composables/useMatchSimulation.ts` (11, 12, 13); `src/components/match/SubstitutionDrawer.vue` (12); `src/components/match/PreMatch.vue`, `src/components/match/PostMatchSummary.vue` (14); `src/router/index.ts` (15); `src/composables/useNavigation.ts` (17, 18), `src/composables/usePageSubtitle.ts`, `src/composables/useHeaderStats.ts` (17); `src/components/layout/BottomNav.vue` (18). Na 13b: `src/utils/match/calculateTeamStrength.ts`, `src/stores/squad.ts`, `scripts/verify-friendlies/run.mjs` (13b.1); `src/types/friendlies.ts`, `src/stores/friendlies.ts`, `scripts/verify-friendlies/store.check.ts` (13b.2); `src/components/squad/SquadRoster.vue`, `src/components/match/SubstitutionDrawer.vue` (13b.3); `src/composables/useMatchSimulation.ts` (13b.1, 13b.2, 13b.3). Na 20: `src/composables/usePersistence.ts`, `src/App.vue`, `scripts/verify-friendlies/run.mjs`.
 
 ### Ajustes em relação à spec (decididos neste plano)
 
@@ -102,7 +107,7 @@ Alterados: `src/config/index.ts`, `src/types/index.ts` (1); `src/composables/use
 6. `lineupShort(comp)` (novo, exportado por `useMatchSimulation`) cobre "menos de 11 titulares", já que `lineupBlockers` devolve atletas.
 7. `finishMatchAndReturn` de um amistoso devolve `activeMatchCompetition` para `'league'` quando não há outra partida aberta (senão o atalho "Partida" do cabeçalho abriria um pré-jogo de amistoso sem adversário).
 8. O composable `useFriendlies` (spec §4.1) não tem tarefa própria na spec §10: entra na Tarefa 15, que é a primeira a usá-lo.
-9. Recarregar a página no pré-jogo do amistoso: `activeMatchCompetition` não é salvo hoje (vale para as copas também), então o app volta ao pré-jogo da liga; em `/friendlies` as 3 opções, a seleção e o contador continuam e nenhuma ficha foi gasta. Comportamento aceito, igual ao das copas.
+9. ~~Recarregar a página no pré-jogo do amistoso volta ao pré-jogo da liga (comportamento aceito, igual ao das copas).~~ **Substituído pela Tarefa 20** (decisão do dono, spec §2 regra 13): o pré-jogo do amistoso e das copas volta ao recarregar, se a competição ainda tiver partida a jogar; senão, liga.
 10. Revisão do lote 1-7 (Tarefa 6b, spec §11): opção com `offset` e OVER do rival recalculado no apito; ranking como tabela de classificação (fama → vitórias → saldo → gols pró) com estatísticas de amistoso; fama soma zero pelo aplicado; piso no alvo dos bots; saneamento; contrato do `Rng`; `FRIENDLIES` só leitura por `DeepReadonly`.
 11. Revisão do bloco 8-13 (Tarefa 13b, spec §11): OVER efetivo `max(atual, melhor elegível)` sem cansaço, com a melhor escalação procurada em todas as formações (`src/utils/friendlies/strength.ts`, `squad.friendlyStrength`); `beginMatch` devolve `FriendlyBeginResult` e `cancelBegin` desfaz o apito na mesma sessão (estado só em memória); `abortStart` chama `saveLiveMatch()` em todas as competições; `concludeFriendly` idempotente; gaveta sem cansaço no amistoso; aviso de recuperação do Elenco com o critério do ticker; `friendlyLiveBlock` bloqueia o início do amistoso com outra partida ao vivo (o sorteio e o inverso seguem livres).
 
@@ -7421,10 +7426,276 @@ git commit -m "feat(layout): bottomnav com 4 itens e menu +"
 
 ---
 
+## Tarefa 20: persistir o pré-jogo ao recarregar
+
+**Commit:** `feat(partida): pre-jogo de copa e amistoso sobrevive a recarregar`
+**Depende de:** Tarefas 7 (`usePersistence`, `App.vue`), 9 (`COMPETITIONS_ORDER` com `'friendly'`), 13b (`friendlies.active`, `friendlies.selectedOption`) e 18 (código commitado até `2439135`). Roda **antes** da 19.
+
+**Contexto (spec §2 regra 13, §5 "Persistência do pré-jogo", §8):** `match.activeMatchCompetition` (`src/stores/match.ts`) não vai no save principal, só no save ao vivo (`LIVE_MATCH_KEY`, campo `active`), que é apagado quando nenhuma partida está ao vivo. Por isso recarregar no pré-jogo de um amistoso ou de uma copa volta ao pré-jogo da liga. Decisão do dono: o pré-jogo do **amistoso e das copas** (`cup`, `continental`, `supercup`, `recopa`) volta ao recarregar, se a competição ainda tiver partida a jogar; senão, liga. Partida ao vivo salva continua mandando.
+
+**Desenho (o menor possível):**
+- `saveGame` grava `prematchCompetition: match.activeMatchCompetition` (só o identificador) na raiz do save principal. Sem trocar `STORAGE_KEY`, sem migração numerada, sem tocar no save ao vivo.
+- `loadGame`, no fim (depois de copas, amistosos e migrações), restaura com a função pura `resolvePrematchCompetition`: competição desconhecida, ausente ou sem partida a jogar → `'league'`. Só restaura se nenhuma competição estiver ao vivo na memória.
+- No boot a ordem já é a certa: `loadGame()` (restaura o pré-jogo) → `restoreLiveMatches()` (se houver partida ao vivo, troca a competição e abre `/match`) → `resolveOrphan`. A navegação inicial do router é assíncrona: o guarda (`beforeEach`) e o `rememberSection` (`afterEach`) rodam depois do `onMounted` e já veem a competição restaurada. Por isso router, `sectionMemory`, `PreMatch.vue` e `useMatchSimulation.ts` **não mudam**.
+- `App.vue` observa `match.activeMatchCompetition` e grava a cada troca (um ponto só cobre `prepareMatch`, `MatchSwitcher`, navegação, `finishMatchAndReturn` e `useFriendlies.watchLive`).
+
+**Arquivos:**
+- Criar: `src/utils/match/prematchMemory.ts`, `scripts/verify-friendlies/prematch.check.ts`
+- Alterar: `scripts/verify-friendlies/run.mjs`, `src/composables/usePersistence.ts`, `src/App.vue`
+
+- [ ] **Passo 0: conferir a branch**
+
+Rodar: `git branch --show-current` → `feature/amistosos`. Se não for, pare e avise.
+
+- [ ] **Passo 1: função pura `src/utils/match/prematchMemory.ts`**
+
+Criar o arquivo com exatamente:
+
+```ts
+import type { MatchCompetition } from '@/types/match'
+
+/** O que a carga do save precisa saber para decidir se o pré-jogo salvo ainda vale. */
+export interface PrematchContext {
+  /** Competições conhecidas (COMPETITIONS_ORDER): só elas podem voltar. */
+  known: readonly MatchCompetition[]
+  /** A copa ainda tem partida do usuário a jogar (mesmo critério de prepareMatch: competitions.isCompetitionPlayable). */
+  isPlayable: (comp: MatchCompetition) => boolean
+  /** Amistoso com adversário escolhido e sem desafio em andamento (selectedOption presente e active vazio). */
+  friendlyReady: boolean
+}
+
+/**
+ * Competição do pré-jogo a restaurar ao carregar o save. Só aceita o identificador de uma competição
+ * conhecida que ainda tenha partida a jogar; qualquer outra coisa (save antigo sem o campo, texto
+ * desconhecido, objeto, copa encerrada, amistoso sem adversário ou órfão) cai na liga, o padrão.
+ */
+export function resolvePrematchCompetition(saved: unknown, ctx: PrematchContext): MatchCompetition {
+  if (typeof saved !== 'string') return 'league'
+  const comp = ctx.known.find((c) => c === saved)
+  if (!comp || comp === 'league') return 'league'
+  if (comp === 'friendly') return ctx.friendlyReady ? 'friendly' : 'league'
+  return ctx.isPlayable(comp) ? comp : 'league'
+}
+```
+
+- [ ] **Passo 2: checagem `scripts/verify-friendlies/prematch.check.ts` e registro no verificador**
+
+2a. Criar `scripts/verify-friendlies/prematch.check.ts` com exatamente:
+
+```ts
+import { createChecker } from './assert'
+import type { MatchCompetition } from '@/types/match'
+import { resolvePrematchCompetition, type PrematchContext } from '@/utils/match/prematchMemory'
+
+const KNOWN: MatchCompetition[] = ['league', 'cup', 'continental', 'supercup', 'recopa', 'friendly']
+const CUPS = ['cup', 'continental', 'supercup', 'recopa'] as const
+
+function ctx(playable: MatchCompetition[], friendlyReady: boolean): PrematchContext {
+  return { known: KNOWN, isPlayable: (c) => playable.includes(c), friendlyReady }
+}
+
+export function run(): string[] {
+  const c = createChecker()
+  const all = ctx([...CUPS], true)
+  const none = ctx([], false)
+
+  // Save antigo (sem o campo) e liga: padrão.
+  c.eq('save antigo sem o campo', resolvePrematchCompetition(undefined, all), 'league')
+  c.eq('campo null', resolvePrematchCompetition(null, all), 'league')
+  c.eq('liga', resolvePrematchCompetition('league', all), 'league')
+  c.eq('liga com tudo encerrado', resolvePrematchCompetition('league', none), 'league')
+
+  // Copas: voltam só se ainda houver partida do usuário a jogar.
+  for (const comp of CUPS) {
+    c.eq(`${comp} com partida pendente`, resolvePrematchCompetition(comp, all), comp)
+    c.eq(`${comp} sem partida pendente`, resolvePrematchCompetition(comp, none), 'league')
+  }
+  c.eq('outra copa jogavel nao salva a encerrada', resolvePrematchCompetition('continental', ctx(['cup'], true)), 'league')
+
+  // Amistoso: só com adversário escolhido e sem desafio em andamento (órfão ou ao vivo caem na liga).
+  c.eq('amistoso pronto', resolvePrematchCompetition('friendly', all), 'friendly')
+  c.eq('amistoso sem adversario', resolvePrematchCompetition('friendly', ctx([...CUPS], false)), 'league')
+  c.eq('amistoso nao depende das copas', resolvePrematchCompetition('friendly', ctx([], true)), 'friendly')
+
+  // Lixo no save: nunca vira estado de partida nem lança erro.
+  const junk: unknown[] = ['xyz', '', 'Cup', 'toString', 42, true, {}, { comp: 'cup' }, ['cup'], { matchState: {} }]
+  junk.forEach((j, i) => c.eq(`lixo #${i} (${JSON.stringify(j)})`, resolvePrematchCompetition(j, all), 'league'))
+
+  // A lista conhecida manda: competição fora dela não volta.
+  c.eq('fora da lista conhecida', resolvePrematchCompetition('cup', { ...all, known: ['league'] }), 'league')
+  return c.fails
+}
+```
+
+2b. Em `scripts/verify-friendlies/run.mjs`, localizar:
+
+```js
+const ALL = ['ranking', 'tokens', 'fame', 'draw', 'bots', 'provider', 'store', 'strength']
+```
+
+substituir por:
+
+```js
+const ALL = ['ranking', 'tokens', 'fame', 'draw', 'bots', 'provider', 'store', 'strength', 'prematch']
+```
+
+2c. Rodar: `node scripts/verify-friendlies/run.mjs prematch` → `OK prematch`. (A função e a checagem dos Passos 1 e 2a foram rodadas ao escrever este plano e passaram.)
+
+- [ ] **Passo 3: `src/composables/usePersistence.ts`**
+
+3a. Localizar:
+
+```ts
+import { useMatchStore } from '@/stores/match'
+```
+
+substituir por:
+
+```ts
+import { COMPETITIONS_ORDER, useMatchStore } from '@/stores/match'
+```
+
+3b. Localizar:
+
+```ts
+import { checkMilestones } from '@/utils/club/progression'
+```
+
+substituir por:
+
+```ts
+import { checkMilestones } from '@/utils/club/progression'
+import { resolvePrematchCompetition } from '@/utils/match/prematchMemory'
+```
+
+3c. Em `saveGame`, localizar:
+
+```ts
+          // Campo aditivo (sem trocar STORAGE_KEY nem migração numerada): saves antigos ganham estado novo no load.
+          friendlies: friendlies.toSave()
+        })
+```
+
+substituir por:
+
+```ts
+          // Campo aditivo (sem trocar STORAGE_KEY nem migração numerada): saves antigos ganham estado novo no load.
+          friendlies: friendlies.toSave(),
+          // Campo aditivo: só o identificador da competição exibida (nunca estado de partida), para o pré-jogo voltar ao recarregar.
+          prematchCompetition: match.activeMatchCompetition
+        })
+```
+
+3d. Em `loadGame`, localizar (bloco único, logo depois de `league.selectedRound = league.currentRound`):
+
+```ts
+        loading = false
+        applyOfflineReward()
+        return true
+```
+
+substituir por:
+
+```ts
+        // Pré-jogo de copa ou amistoso volta ao recarregar se ainda houver partida a jogar; senão, liga (padrão e save antigo).
+        // Partida ao vivo manda: no boot, restoreLiveMatches (App.vue) roda depois e troca a competição; num import com partida rodando, nada muda.
+        if (!match.liveCompetitions.length) {
+          match.activeMatchCompetition = resolvePrematchCompetition(p.prematchCompetition, {
+            known: COMPETITIONS_ORDER,
+            isPlayable: (c) => competitions.isCompetitionPlayable(c),
+            friendlyReady: friendlies.selectedOption !== null && friendlies.active === null
+          })
+        }
+        loading = false
+        applyOfflineReward()
+        return true
+```
+
+Por que aqui: depois de `competitions.fromSave`/`ensureBrackets` (copas carregadas), `friendlies.fromSave` (opção e `active` carregados) e das migrações; antes de `restoreLiveMatches`, que é chamado pelo `App.vue` depois de `loadGame` e sobrescreve a competição quando há partida ao vivo. `friendlies.active` presente significa amistoso ao vivo (será retomado) ou órfão (será descartado por `resolveOrphan`): nos dois casos a carga põe a liga, e a partida ao vivo, se existir, assume em seguida.
+
+- [ ] **Passo 4: `src/App.vue`**
+
+4a. Localizar:
+
+```ts
+import { onBeforeUnmount, onMounted } from 'vue'
+```
+
+substituir por:
+
+```ts
+import { onBeforeUnmount, onMounted, watch } from 'vue'
+```
+
+4b. Localizar:
+
+```ts
+const friendlies = useFriendliesStore()
+
+function onVisibility() {
+```
+
+substituir por:
+
+```ts
+const friendlies = useFriendliesStore()
+
+// A competição exibida vai no save (pré-jogo de copa ou amistoso volta ao recarregar): grava a cada troca,
+// sem depender só do beforeunload, que o celular nem sempre dispara.
+watch(
+  () => match.activeMatchCompetition,
+  () => saveGame()
+)
+
+function onVisibility() {
+```
+
+O `watch` roda depois do ciclo síncrono (`flush: 'pre'`): a troca feita dentro de `loadGame` só grava depois que a carga terminou (e depois de `applyOfflineReward`), então não sobrescreve `lastActiveAt` antes da recompensa offline.
+
+- [ ] **Passo 5: verificar**
+
+Rodar: `node scripts/verify-friendlies/run.mjs` → `OK` em ranking, tokens, fame, draw, bots, provider, store, strength, prematch.
+Rodar: `npm run build` → `✓ built in ...`, sem erro de tipo.
+
+Manual (`npm run dev`). Para editar o save sem o `beforeunload` sobrescrever a edição, use o console do DevTools (exemplo para apagar o campo):
+
+```js
+const k = 'super_xi_full_save_v7'; const s = JSON.parse(localStorage.getItem(k)); delete s.prematchCompetition; localStorage.setItem(k, JSON.stringify(s)); Storage.prototype.setItem = () => {}; location.reload()
+```
+
+(para gravar um valor, troque `delete s.prematchCompetition` por `s.prematchCompetition = <valor>`; o `setItem` desligado só vale até a página recarregar).
+
+1. **Amistoso:** `/friendlies` → Desafiar → Jogar → pré-jogo "Amistoso • Ranking #n". Recarregar (F5) → mesmo pré-jogo, mesmo rival, mesmo OVER estimado/prêmio/fama em jogo; fichas e "Sorteios restantes" iguais em `/friendlies`; item Amistosos ativo na Sidebar. No save: `"prematchCompetition": "friendly"`.
+2. **Copa:** com a copa (Taça) com adversário, abrir o pré-jogo dela e recarregar → mesmo pré-jogo da copa; item Competições ativo; clicar em Liga → `/league` (não o pré-jogo da liga).
+3. **Save antigo e lixo:** no pré-jogo da copa, apagar o campo pelo console → pré-jogo da liga, sem erro no console. Repetir com `s.prematchCompetition = 'xyz'`, `= 42` e `= { matchState: { isRunning: true } }` → pré-jogo da liga, nenhuma partida aberta.
+4. **Copa sem partida:** gravar `s.prematchCompetition = 'supercup'` numa carreira sem supercopa classificada (ou `'cup'` depois de eliminado) → pré-jogo da liga, sem aviso.
+5. **Amistoso órfão:** iniciar um amistoso; no console `localStorage.removeItem('super_xi_live_match_v1'); Storage.prototype.setItem = () => {}; location.reload()` → toast "O amistoso anterior foi interrompido e não contou.", ficha não volta, e o pré-jogo exibido (atalho de partida do cabeçalho ou `/#/pre-match`) é o da liga.
+6. **Ao vivo manda:** iniciar uma partida de liga e, com ela rodando, abrir o pré-jogo da copa (Competições) → recarregar → toast "Partida retomada de onde você parou." e `/match` da liga. Encerrar a liga e voltar a Competições → o pré-jogo da copa abre normalmente.
+7. **Fim do amistoso:** jogar um amistoso até o fim, "Voltar aos Amistosos", recarregar → fica em `/friendlies`; no save `"prematchCompetition": "league"`.
+
+- [ ] **Passo 6: commit**
+
+```bash
+git add src/utils/match/prematchMemory.ts scripts/verify-friendlies/prematch.check.ts scripts/verify-friendlies/run.mjs src/composables/usePersistence.ts src/App.vue
+git commit -m "feat(partida): pre-jogo de copa e amistoso sobrevive a recarregar"
+```
+
+**Pronto quando:** `node scripts/verify-friendlies/run.mjs` com `OK` nas 9 checagens, `npm run build` passa e os 7 itens manuais conferem.
+
+**Não fazer:**
+- Não gravar sessão, placar, relógio, `snapshot` ou qualquer estado de partida no save principal: só o identificador.
+- Não mexer em `LIVE_MATCH_KEY`, `saveLiveMatch` nem `restoreLiveMatches`; não trocar `STORAGE_KEY`; não criar migração numerada.
+- Não restaurar no guarda do router nem no `PreMatch.vue`; não persistir `sectionMemory`; não alterar `src/stores/match.ts`, `src/router/index.ts`, `src/utils/navigation/sectionMemory.ts` nem `useMatchSimulation.ts`.
+- Não inventar critério novo de "copa com partida" (é `competitions.isCompetitionPlayable`); não exigir ficha para o amistoso valer.
+- Não espalhar `saveGame()` pelos lugares que trocam a competição (o `watch` do `App.vue` cobre todos).
+- Não alterar `package.json`/versão; sem merge, sem push.
+
+---
+
 ## Tarefa 19: verificação manual e ajustes
 
 **Commit (só se houver correção):** `chore(amistosos): verificacao manual e ajustes`
-**Depende de:** Tarefas 1–18 (inclui 6b e 13b).
+**Depende de:** Tarefas 1–18 (inclui 6b e 13b) e **20**. É a última tarefa.
 
 Só correções: nada de funcionalidade nova, nada de refatoração. Se não houver o que corrigir, **não** faça commit vazio; relate "roteiro sem falhas".
 
@@ -7432,7 +7703,7 @@ Só correções: nada de funcionalidade nova, nada de refatoração. Se não hou
 
 - [ ] **Passo 1: checagens automáticas**
 
-Rodar: `node scripts/verify-friendlies/run.mjs` → `OK` em ranking, tokens, fame, draw, bots, provider, store, strength.
+Rodar: `node scripts/verify-friendlies/run.mjs` → `OK` em ranking, tokens, fame, draw, bots, provider, store, strength, prematch.
 Rodar: `npm run build` → `✓ built in ...`.
 
 - [ ] **Passo 2: roteiro manual (spec §9), com `npm run dev`**
@@ -7459,6 +7730,8 @@ Para editar o save: DevTools → Application → Local Storage → chave `super_
 16. **Aviso de recuperação no Elenco:** com só um amistoso ao vivo, "Recuperação natural: ... próximo ponto em m:ss" (não "pausada"); com partida de liga ao vivo, "pausada".
 17. **Pré-jogo do amistoso:** titular lesionado → aviso "está lesionado ou suspenso" (nunca "suspenso na Amistoso"); menos de 11 titulares → "Iniciar" desabilitado e aviso "Escalação incompleta".
 18. **Desfazer o apito e encerramento idempotente:** cobertos pela checagem `store` do passo 1 (`cancelBegin`, motivos de `beginMatch`, `settle` repetido devolve `null`); a falha de rota não se reproduz à mão sem mexer no código.
+19. **Recarregar no pré-jogo do amistoso (Tarefa 20):** `/friendlies` → Desafiar → Jogar → pré-jogo do amistoso; recarregar (F5) → continua no pré-jogo do **Amistoso** com o mesmo rival e os mesmos valores estimados; nenhuma ficha gasta, "Sorteios restantes" igual; item Amistosos ativo. Com 0 fichas: volta ao mesmo pré-jogo com "Iniciar" desabilitado e o contador. Amistoso órfão (apagar `super_xi_live_match_v1` com o amistoso rodando e recarregar, ver o truque do console na Tarefa 20, Passo 5) → toast de interrompido e pré-jogo da liga.
+20. **Recarregar no pré-jogo de uma copa (Tarefa 20):** com uma copa com partida pendente (Taça, ou Continental/Supercopa/Recopa se classificado), abrir o pré-jogo dela e recarregar → mesmo pré-jogo da copa, item Competições ativo, clicar em Liga leva a `/league`. Save sem `prematchCompetition`, com valor inválido (`"xyz"`, objeto) ou com uma copa que não tem mais partida → pré-jogo da liga, sem erro. Partida de liga ao vivo com o pré-jogo da copa exibido → recarregar retoma a liga em `/match`.
 
 - [ ] **Passo 3: corrigir o que falhar**
 
@@ -7471,7 +7744,7 @@ git add <arquivos corrigidos, um a um>
 git commit -m "chore(amistosos): verificacao manual e ajustes"
 ```
 
-**Pronto quando:** checagens automáticas OK, build passa e os 18 itens do roteiro (mais 5b e 5c) conferem (ou as falhas foram corrigidas e reverificadas).
+**Pronto quando:** checagens automáticas OK (9 checagens, inclui `prematch`), build passa e os 20 itens do roteiro (mais 5b e 5c) conferem (ou as falhas foram corrigidas e reverificadas).
 
 **Não fazer:** não alterar `package.json`/versão; não fazer merge na `develop` nem push (a integração é decisão do dono do produto); não adicionar test runner.
 
@@ -7482,4 +7755,5 @@ git commit -m "chore(amistosos): verificacao manual e ajustes"
 - **Cobertura da spec:** regras 1–12 (§2) → Tarefas 2, 4, 7, 8, 10–13, 15; modelo e persistência (§5) → 1, 7; fórmulas (§6) → 2–5; UI (§7) → 14–18; casos de borda (§8) → 7, 11, 13, 15, 19; testes (§9) → verificador das Tarefas 1–7 e roteiro da 19; tarefas da §10 → mesma numeração; decisões da §11 → respeitadas (fama separada da reputação, 3 sorteios, BottomNav 4 + "+").
 - **Revisão do lote 1-7 (Tarefa 6b):** nomes novos `FriendlyStats`, `FriendlyStanding`, `FriendlyQuote`, `FriendlyReport`, `FriendlyRankingRow`; `emptyStats`/`sanitizeStats`/`addResult`/`goalDiff`/`compareStanding` (6b.1); `unit`/`safeRng`/`randIntWith`, `simScore` (6b.2); `drawOffset`/`opponentOverFrom`/`quoteOption`/`rankPool`, store `quote`, `stats`, `standing` e `draw()` sem argumentos (6b.3). As Tarefas 11, 14, 15, 16 e 19 foram ajustadas a essa API.
 - **Revisão do bloco 8-13 (Tarefa 13b):** nomes novos `isFriendlyEligible`, `friendlyStrengthOf`, `FriendlyStrength`, `squad.friendlyStrength` (13b.1); `FriendlyBeginResult`, `cancelBegin` (13b.2); `friendlyLiveBlock` (13b.3). As Tarefas 14, 15 e 19 foram ajustadas: PreMatch e tela usam `friendlyStrength.over` e `friendlyLiveBlock`; roteiro manual com os itens 14–18 e a checagem `strength`.
+- **Tarefa 20 (persistência do pré-jogo):** nomes novos `resolvePrematchCompetition`, `PrematchContext` (`src/utils/match/prematchMemory.ts`), campo de save `prematchCompetition`, checagem `prematch`. O ajuste 9 foi substituído; a Tarefa 19 ganhou os itens 19 e 20 do roteiro e a checagem `prematch`.
 - **Consistência de nomes:** `userRank`/`rankedBots` (1), `regenTokens`/`spendToken`/`msToNextToken`/`formatTokenCountdown` (2), `expectedScore`/`fameDelta`/`applyFame`/`outcomeFromScore`/`signedFame` (3), `rankBonus`/`opponentOver`/`friendlyPrize`/`drawOptions` (4), `allBotNames`/`generateBots`/`simulateBots`/`rankingView` (5), `createLocalBotProvider` (6), store `useFriendliesStore` com `rank`, `ranking`, `drawsLeft`, `selectedOption`, `msToNext`, `paidWinsLeft`, `regenTokens`, `refresh`, `draw`, `select`, `beginMatch`, `settle`, `resolveOrphan`, `toSave`, `fromSave`, `reset` (7), `freshTeamStrength`/`friendlyEligibleCount` (10), `lineupShort` (11), `useFriendlies` (15).

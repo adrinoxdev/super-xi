@@ -32,6 +32,11 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
     - **Fama** (`friendlies.fame`): exclusiva do PvP dos amistosos. Só o resultado de amistoso a altera; nenhuma outra competição (liga, copas) nem upgrade mexe na fama.
     - **Reputação** (`club.reputation`): do treinador/jogador. Sobe nas partidas de liga e com upgrades, alimenta o header e o ranking de treinadores. **Amistoso nunca altera `club.reputation`**.
     - A fama aparece só na tela de Amistosos (header de `/friendlies`, cartão do usuário, ranking) e no resumo pós-jogo do amistoso. O header das demais telas continua como hoje, com a reputação.
+13. **Pré-jogo sobrevive a recarregar (Tarefa 20, decisão do dono)**: recarregar a página no pré-jogo do **amistoso** ou de uma **copa** (`cup`, `continental`, `supercup`, `recopa`: toda competição selecionável no pré-jogo além da liga) volta ao mesmo pré-jogo, desde que essa competição ainda tenha partida a jogar. A liga é o padrão: sem competição válida salva, o pré-jogo é o da liga, sem erro nem aviso. "Ainda tem partida a jogar":
+    - copa: `competitions.isCompetitionPlayable(comp)` (o mesmo critério de `prepareMatch` e `goToMatchTab`: copa com adversário atual, continental classificado e vivo, supercopa/recopa classificada e não jogada);
+    - amistoso: adversário escolhido (`friendlies.selectedOption !== null`) e nenhum desafio em andamento (`friendlies.active === null`). Ficha zerada **não** invalida: o pré-jogo volta com "Iniciar" desabilitado e o contador, como antes de recarregar.
+    - Partida ao vivo salva continua mandando (`restoreLiveMatches` roda depois e abre `/match` na competição ao vivo, como hoje).
+    - O save guarda **só o identificador** da competição (`prematchCompetition: MatchCompetition`), nunca estado de partida (placar, relógio, sessão): o pré-jogo é recomposto a partir do estado da competição já salvo (chave da copa, opção do amistoso).
 
 ## 3. Como o código atual funciona (pontos de apoio)
 
@@ -44,7 +49,8 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 - **Créditos de estatística ao vivo**: `club.recordGoal`/`recordAssist` em `simulateMatchTick` (4 pontos: jogada, falta, pênalti, assistência), revertidos por `discardInProgressGoals`.
 - **Suspensão**: `isSuspendedFor(p, comp)` e `COMP_SHORT` em `src/utils/player/suspension.ts`.
 - **Energia por tempo real**: `squad.regenStamina(now)` com `club.staminaTickAt` e `STAMINA_REGEN_MS_PER_POINT` (`src/config/squad.ts`), chamada pelo ticker de 1 s em `useScouting().startMissionTicker` (iniciado em `src/App.vue`), que congela a energia se `match.liveCompetitions.length`.
-- **Save**: `usePersistence().saveGame/loadGame` (`src/composables/usePersistence.ts`), chave `STORAGE_KEY = 'super_xi_full_save_v7'`; partida ao vivo à parte em `LIVE_MATCH_KEY` (`saveLiveMatch`/`restoreLiveMatches`). Migrações em `src/migrations/*`.
+- **Save**: `usePersistence().saveGame/loadGame` (`src/composables/usePersistence.ts`), chave `STORAGE_KEY = 'super_xi_full_save_v7'`; partida ao vivo à parte em `LIVE_MATCH_KEY` (`saveLiveMatch`/`restoreLiveMatches`). Migrações em `src/migrations/*`. Até a Tarefa 18, `match.activeMatchCompetition` não ia no save principal (só no save ao vivo, campo `active`, e só com partida ao vivo): recarregar no pré-jogo de copa ou amistoso voltava ao pré-jogo da liga. A Tarefa 20 corrige (regra 13).
+- **Boot** (`src/App.vue`, `onMounted`): `loadGame()` → `restoreLiveMatches()` → `friendlies.resolveOrphan(...)`. A navegação inicial do router (hash) é assíncrona e o `afterEach` (`rememberSection(to.path, activeMatchCompetition)`) roda depois do `onMounted`, então vê a competição já restaurada. O guarda `beforeEach` só troca `/match` ↔ `/pre-match` conforme `match.isMatchActive`; `PreMatch.vue`, `MatchView`, cabeçalho, subtítulo e item ativo da navegação leem `activeMatchCompetition` de forma reativa.
 - **Navegação**: `useNavigation().navItems` (Sidebar e BottomNav), `navIdForCompetition`/`rememberSection` em `src/utils/navigation/sectionMemory.ts`, guarda de rota em `src/router/index.ts`. Hoje são 7 itens (Início, Liga, Competições, Scouting, Elenco & Tática, Partidas, Clube) e `src/components/layout/BottomNav.vue` mostra todos numa grade `grid-cols-7`.
 
 ## 4. Arquitetura
@@ -72,6 +78,8 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 | `src/components/friendlies/FriendlyRanking.vue` | Tabela de classificação (Fama, J, V, E, D, GP, GC, SG): top 10 + linha do usuário. |
 | `src/components/friendlies/FriendlyHistory.vue` | Últimos 20 resultados. |
 | `src/components/layout/BottomNavMore.vue` | Painel do botão "+" da BottomNav com os itens secundários (seção 7, Navegação). |
+| `src/utils/match/prematchMemory.ts` | (Tarefa 20) `resolvePrematchCompetition(saved, ctx)` e `PrematchContext`: decide, na carga, qual pré-jogo restaurar (regra 13). Pura. |
+| `scripts/verify-friendlies/prematch.check.ts` | (Tarefa 20) Checagem de `resolvePrematchCompetition`. |
 
 ### 4.2 Arquivos alterados (integração)
 
@@ -96,8 +104,9 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 | `src/composables/usePageSubtitle.ts` | `'/friendlies': 'Fichas e ranking'`. |
 | `src/composables/useHeaderStats.ts` | Caso `'/friendlies'`: Fichas, Fama, Posição (só nessa rota; as demais não mudam e seguem com `club.reputation`). |
 | `src/composables/useScouting.ts` | No ticker: `friendlies.regenTokens(now)` a cada segundo; a energia só congela se houver partida ao vivo **de outra competição** (`match.liveCompetitions.some(c => c !== 'friendly')`). |
-| `src/composables/usePersistence.ts` | `saveGame` grava `friendlies: friendlies.toSave()`; `loadGame` chama `friendlies.fromSave(p.friendlies)`; `clearSave` chama `friendlies.reset()`. |
-| `src/App.vue` | Depois de `restoreLiveMatches()`: `friendlies.resolveOrphan(match.isCompetitionLive('friendly'))` (seção 8). |
+| `src/composables/usePersistence.ts` | `saveGame` grava `friendlies: friendlies.toSave()`; `loadGame` chama `friendlies.fromSave(p.friendlies)`; `clearSave` chama `friendlies.reset()`. (Tarefa 20) `saveGame` grava `prematchCompetition: match.activeMatchCompetition`; no fim de `loadGame`, se nenhuma competição estiver ao vivo na memória, `match.activeMatchCompetition = resolvePrematchCompetition(p.prematchCompetition, { known: COMPETITIONS_ORDER, isPlayable, friendlyReady })`. |
+| `src/App.vue` | Depois de `restoreLiveMatches()`: `friendlies.resolveOrphan(match.isCompetitionLive('friendly'))` (seção 8). (Tarefa 20) `watch(() => match.activeMatchCompetition, () => saveGame())`: toda troca da competição exibida (pré-jogo, `MatchSwitcher`, navegação, fim de partida) vai ao save na hora, sem depender só do `beforeunload`. |
+| `scripts/verify-friendlies/run.mjs` | (Tarefa 20) `'prematch'` no fim de `ALL`. |
 
 ### 4.3 Provedor de adversários (fonte trocável)
 
@@ -193,6 +202,18 @@ export interface FriendliesSave {
 - `reset()` (nova carreira, `clearSave`) volta ao estado novo.
 - Importar código de carreira passa por `loadGame`, então herda as regras acima. Saves antigos exportados sem o campo ganham estado novo.
 - Partida ao vivo: a sessão `friendly` vai em `LIVE_MATCH_KEY` pelo mecanismo existente.
+
+### Persistência do pré-jogo (Tarefa 20)
+
+- Campo novo `prematchCompetition` na raiz do JSON do `STORAGE_KEY`, gravado por `saveGame` com o valor de `match.activeMatchCompetition` (uma string de `MatchCompetition`). **Sem trocar a chave nem criar migração numerada**: aditivo, como `friendlies`. Não vai no `LIVE_MATCH_KEY` (o save ao vivo é apagado quando não há partida ao vivo, justamente o caso do pré-jogo).
+- O campo nunca carrega estado de partida: é só o identificador. Na carga, qualquer valor que não seja uma string idêntica a um item de `COMPETITIONS_ORDER` (objeto, número, `null`, texto desconhecido ou com outra caixa) vira `'league'`.
+- Carga (`loadGame`, depois de `competitions.fromSave`/`ensureBrackets`, `friendlies.fromSave` e das migrações, antes de `loading = false`): `resolvePrematchCompetition(p.prematchCompetition, ctx)` com `ctx = { known: COMPETITIONS_ORDER, isPlayable: competitions.isCompetitionPlayable, friendlyReady: friendlies.selectedOption !== null && friendlies.active === null }`:
+  - ausente (save antigo), inválido ou `'league'` → `'league'`;
+  - copa → ela mesma se `isPlayable(comp)`, senão `'league'`;
+  - `'friendly'` → `'friendly'` se `friendlyReady`, senão `'league'`.
+- Só aplica se `match.liveCompetitions` estiver vazio. No boot sempre está (as sessões nascem zeradas e `restoreLiveMatches` roda depois); num import de código de carreira com partida rodando na sessão, a competição exibida não muda (a partida ao vivo manda). Num import sem partida rodando, a competição da carreira importada é validada como no boot (a da carreira anterior não sobra).
+- Gravação imediata: `App.vue` observa `match.activeMatchCompetition` e chama `saveGame()` a cada troca. `beforeunload` e `visibilitychange` continuam gravando como hoje.
+- Importar código de carreira e exportar herdam o campo pelo JSON do save. `clearSave` apaga o save inteiro (o campo some junto).
 
 ## 6. Fórmulas e parâmetros iniciais (`src/config/friendlies.ts`)
 
@@ -320,7 +341,18 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 | Sem fichas | Sortear pode; "Jogar" e "Iniciar" desabilitados com contador; `beginMatch` devolve `false` como rede de segurança. |
 | Elenco com < 11 elegíveis | "Desafiar" desabilitado com aviso; `lineupBlockers('friendly')` também bloqueia "Iniciar". |
 | Titular lesionado/suspenso no PreMatch | `fixLineupFor` troca pelo melhor reserva elegível; se ainda sobrar, aviso e "Iniciar" bloqueado. |
-| Recarregar a página no PreMatch | `options`/`selectedBotId` estão no save: o PreMatch reabre com o mesmo rival. Nada foi gasto. |
+| Recarregar a página no PreMatch do amistoso | (Tarefa 20) `options`/`selectedBotId` e `prematchCompetition: 'friendly'` estão no save: o PreMatch do amistoso reabre com o mesmo rival e o mesmo contador de sorteios. Nada foi gasto. Até a Tarefa 18 voltava ao pré-jogo da liga. |
+| Recarregar no PreMatch de uma copa | (Tarefa 20) Reabre o pré-jogo da mesma copa se `isCompetitionPlayable(comp)`; item "Copas" ativo na navegação. |
+| Save antigo sem `prematchCompetition` | Pré-jogo da liga (padrão), sem erro nem aviso. |
+| `prematchCompetition` inválido (objeto, número, texto desconhecido, estado de partida colado à mão) | Ignorado: pré-jogo da liga. Nunca vira sessão de partida. |
+| Copa salva que deixou de ter partida entre sessões (eliminado, campeão, supercopa já jogada, save editado) | Pré-jogo da liga, sem aviso. |
+| Amistoso salvo sem adversário escolhido (opções esgotadas pelo apito, `selectedBotId` nulo) | Pré-jogo da liga; em `/friendlies` o estado do sorteio continua como estava. |
+| Amistoso órfão (apito dado, save ao vivo perdido) | `beginMatch` já limpou `options`/`selectedBotId`, e `active` ainda está presente na carga: `friendlyReady` é falso → pré-jogo da liga. Depois `resolveOrphan(false)` limpa `active`, toast de interrompido, ficha não volta (regra já existente). |
+| Amistoso ao vivo salvo | Na carga `active` está presente → a carga põe a liga; `restoreLiveMatches` retoma a sessão `friendly` e abre `/match` (a partida ao vivo manda). |
+| Pré-jogo de copa ou amistoso exibido e outra competição ao vivo | `restoreLiveMatches` abre `/match` na competição ao vivo (o `active` do save ao vivo não está entre as retomadas, cai na primeira retomada). O pré-jogo salvo não reaparece sozinho; o usuário volta a ele pela seção (Copas/Amistosos) como antes. |
+| Troca de competição no `MatchSwitcher` (ou pela navegação, ou fim de partida) | A troca muda `activeMatchCompetition`, o `watch` do `App.vue` grava; recarregar volta à última competição exibida (validada como acima). Se era uma partida ao vivo, ela é retomada pelo save ao vivo; se ficou só o pré-jogo, ele volta se ainda for válido. |
+| Recarregar no resumo pós-jogo (partida encerrada, ainda não fechada) | O save ao vivo não guarda partida encerrada (comportamento existente: o resumo se perde). Amistoso: `active` já foi limpo e não há opção → liga. Copa: se a copa tem a próxima partida, abre o pré-jogo dela; senão, liga. |
+| Ficha zerada no PreMatch do amistoso e recarregar | Volta ao PreMatch do amistoso com "Iniciar" desabilitado e o contador (a ficha não é critério de validade). |
 | Recarregar no meio da partida | `restoreLiveMatches` retoma a sessão `friendly` (como as outras); `active` está no save. Resultado normal no fim. |
 | Partida perdida (live save corrompido ou ausente, mas `active` presente) | `resolveOrphan(false)` no boot: limpa `active`, ficha não volta, fama e dinheiro não mudam; toast "O amistoso anterior foi interrompido e não contou." |
 | Sair da tela durante o amistoso | Partida segue (timer por competição, como hoje); ponto "ao vivo" no item Amistosos (Sidebar e menu "+") e no botão "+" da BottomNav. |
@@ -374,6 +406,7 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
   14. (Revisão do bloco 8-13) Partida de liga ao vivo (rodando ou na gaveta): em `/friendlies`, "Jogar" desabilitado com "Outra partida ao vivo" e o motivo completo abaixo de "Desafiar"; sortear funciona; PreMatch do amistoso com "Iniciar" desabilitado e aviso vermelho. Encerrada a partida de liga, tudo volta a funcionar. Amistoso rodando e iniciar uma partida de liga → permitido.
   15. (Revisão do bloco 8-13) Desfazer o apito, motivos de `beginMatch`: `node scripts/verify-friendlies/run.mjs store` (a falha de rota não é reproduzível à mão sem mexer no código).
   16. (Revisão do bloco 8-13) PreMatch do amistoso com titular lesionado: aviso "está lesionado ou suspenso" (nunca "suspenso na Amistoso"); com menos de 11 titulares: "Iniciar" desabilitado e aviso "Escalação incompleta".
+  17. (Tarefa 20) Pré-jogo ao recarregar: no PreMatch do amistoso, recarregar → mesmo PreMatch, mesmo rival, ficha e sorteios iguais; no PreMatch de uma copa com partida pendente, recarregar → mesmo PreMatch; `prematchCompetition` apagado, `"xyz"`, `{}` ou uma copa encerrada no save → PreMatch da liga sem erro; amistoso órfão → toast de interrompido e "Partidas" abre o PreMatch da liga; partida de liga ao vivo com PreMatch de copa exibido → recarregar retoma a liga. Checagem automática: `node scripts/verify-friendlies/run.mjs prematch`.
 
 ## 10. Tarefas (uma tarefa = um commit, na ordem)
 
@@ -397,7 +430,8 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 16. `feat(amistosos): roleta animada` — `OpponentRoulette` (incl. reduced motion).
 17. `feat(amistosos): navegacao, subtitulo e cabecalho` — item Amistosos em `useNavigation`, `usePageSubtitle`, `useHeaderStats` (fama só em `/friendlies`).
 18. `feat(layout): bottomnav com 4 itens e menu +` — `primary`/`primaryNavItems`/`moreNavItems` em `useNavigation`, `BottomNav.vue` em 5 colunas, `BottomNavMore.vue` acessível (`aria-expanded`, `role="dialog"`, `Esc`, foco), conferida em 360 px.
-19. `chore(amistosos): verificacao manual e ajustes` — roteiro da seção 9, só correções.
+20. `feat(partida): pre-jogo de copa e amistoso sobrevive a recarregar` — regra 13: `src/utils/match/prematchMemory.ts`, `scripts/verify-friendlies/prematch.check.ts`, `run.mjs`, `usePersistence` (grava e restaura `prematchCompetition`), `watch` no `App.vue`. Executada **antes** da 19 (a numeração segue a ordem em que foi pedida).
+19. `chore(amistosos): verificacao manual e ajustes` — roteiro da seção 9 (inclui o item 17), só correções. Última tarefa; depende da 20.
 
 ## 11. Decisões
 
@@ -418,6 +452,8 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
   - Ferramentas da gaveta sem cansaço no amistoso (reorganizar, recomendar, rótulo de OVER na vaga), sem desempate por energia.
   - Aviso de recuperação natural do Elenco com o mesmo critério do ticker (amistoso não pausa).
   - Amistoso bloqueado enquanto outra partida (não amistosa) está ao vivo.
+
+- **Persistência do pré-jogo (Tarefa 20, 2026-11-19)**: recarregar a página no pré-jogo volta ao mesmo pré-jogo **no amistoso e nas copas** (copa, continental, supercopa, recopa), se a competição ainda tiver partida a jogar; senão, liga. A liga é o padrão. Partida ao vivo salva continua mandando. Substitui o "comportamento aceito" do ajuste 9 do plano (voltar ao pré-jogo da liga).
 
 ### Tomadas nesta spec (não vinham do dono)
 
@@ -444,3 +480,8 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 - (Revisão do bloco 8-13) `abortStart` passa a chamar `saveLiveMatch()` em todas as competições (antes a sessão abortada ficava no save ao vivo e voltava ao recarregar).
 - (Revisão do bloco 8-13) Com outra partida ao vivo, o sorteio continua liberado; só "Jogar"/"Iniciar" bloqueiam. O inverso (liga ou copa com amistoso rodando) segue permitido. **Ponto para o dono confirmar**: nesse caso inverso a escalação continua compartilhada e um lesionado que fique em campo nas duas agrava duas vezes.
 - (Revisão do bloco 8-13) `concludeFriendly` sem desafio grava, se não houver resumo, um resumo neutro de amistoso (zeros), para a tela pós-jogo ter o botão de saída.
+- (Tarefa 20) O campo salvo é `activeMatchCompetition` inteiro (a competição exibida), não "só quando a rota é `/pre-match`": dentro da sessão essa competição já sobrevive à navegação (o atalho "Partidas" e os avisos de suspensão do Elenco usam ela), e recarregar passa a repetir isso. A validação na carga é o que impede voltar a uma competição sem partida.
+- (Tarefa 20) Validade da copa = `competitions.isCompetitionPlayable` (o mesmo critério de `prepareMatch`/`goToMatchTab`), sem critério novo. Validade do amistoso = opção escolhida e sem `active`; ficha zerada não invalida.
+- (Tarefa 20) Campo na raiz do save principal (`prematchCompetition`), sem migração numerada e sem tocar no `LIVE_MATCH_KEY`; leitura por função pura (`src/utils/match/prematchMemory.ts`) testada pelo verificador dos amistosos (`prematch`), sem criar `scripts/verify-prematch`.
+- (Tarefa 20) Gravação imediata por `watch` no `App.vue` (um ponto só cobre `prepareMatch`, `MatchSwitcher`, navegação, `finishMatchAndReturn`, `useFriendlies.watchLive`), em vez de `saveGame()` espalhado por cada lugar que troca a competição.
+- (Tarefa 20) Na carga, a restauração só acontece sem partida ao vivo na memória (protege o import de código de carreira com partida rodando). `sectionMemory` continua só em memória: depois de recarregar, o `afterEach` da navegação inicial registra a seção certa, e as outras seções começam sem memória (como hoje).
