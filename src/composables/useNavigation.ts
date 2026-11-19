@@ -124,7 +124,7 @@ export function useNavigation() {
         router.push('/match')
         return
       }
-      if (mem.path === '/pre-match' && !match.isCompetitionMatchActive(comp) && competitions.isCompetitionPlayable(comp)) {
+      if (mem.path === '/pre-match' && !match.isCompetitionMatchActive(comp) && competitions.isCompetitionPlayable(comp) && (comp !== 'friendly' || (friendlies.selectedOption && !friendlies.active))) {
         match.activeMatchCompetition = comp
         router.push('/pre-match')
         return
