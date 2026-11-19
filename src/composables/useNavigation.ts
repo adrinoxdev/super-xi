@@ -1,7 +1,8 @@
 import { computed, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Award, Building2, History, LayoutDashboard, Radar, Shield, Trophy } from 'lucide-vue-next'
+import { Award, Building2, History, LayoutDashboard, Radar, Shield, Swords, Trophy } from 'lucide-vue-next'
 import { useCompetitionsStore } from '@/stores/competitions'
+import { useFriendliesStore } from '@/stores/friendlies'
 import { useLeagueStore } from '@/stores/league'
 import { useMarketStore } from '@/stores/market'
 import { useMatchStore } from '@/stores/match'
@@ -17,6 +18,8 @@ export interface NavItem {
   badge: string | number | null
   active: boolean
   live: boolean
+  /** Item fixo da BottomNav (4 telas de uso diário); os demais ficam no menu "+". */
+  primary: boolean
 }
 
 export function useNavigation() {
@@ -27,21 +30,32 @@ export function useNavigation() {
   const scouting = useScoutingStore()
   const market = useMarketStore()
   const match = useMatchStore()
+  const friendlies = useFriendliesStore()
 
   const matchPath = computed(() => (match.isMatchActive ? '/match' : '/pre-match'))
   const isMatchRoute = computed(() => route.path === '/match' || route.path === '/pre-match')
 
   const navItems = computed<NavItem[]>(() => {
     const base = [
-      { id: 'dashboard', label: 'Início', shortLabel: 'Início', icon: LayoutDashboard, path: '/', badge: null },
-      { id: 'league', label: 'Liga', shortLabel: 'Liga', icon: Trophy, path: '/league', badge: league.serieMeta.code },
+      { id: 'dashboard', label: 'Início', shortLabel: 'Início', icon: LayoutDashboard, path: '/', badge: null, primary: true },
+      { id: 'league', label: 'Liga', shortLabel: 'Liga', icon: Trophy, path: '/league', badge: league.serieMeta.code, primary: true },
       {
         id: 'competitions',
         label: 'Competições',
         shortLabel: 'Copas',
         icon: Award,
         path: '/competitions',
-        badge: competitions.hasPendingFinal || competitions.hasPendingThirdPlace ? '!' : null
+        badge: competitions.hasPendingFinal || competitions.hasPendingThirdPlace ? '!' : null,
+        primary: true
+      },
+      {
+        id: 'friendlies',
+        label: 'Amistosos',
+        shortLabel: 'Amist.',
+        icon: Swords,
+        path: '/friendlies',
+        badge: friendlies.tokens > 0 ? friendlies.tokens : null,
+        primary: false
       },
       {
         id: 'scouting',
@@ -49,7 +63,8 @@ export function useNavigation() {
         shortLabel: 'Scout',
         icon: Radar,
         path: '/scouting',
-        badge: scouting.visibleReports.length || null
+        badge: scouting.visibleReports.length || null,
+        primary: false
       },
       {
         id: 'squad',
@@ -57,10 +72,11 @@ export function useNavigation() {
         shortLabel: 'Elenco',
         icon: Shield,
         path: '/squad',
-        badge: market.incomingOffers.length || null
+        badge: market.incomingOffers.length || null,
+        primary: true
       },
-      { id: 'matches', label: 'Histórico', shortLabel: 'Histórico', icon: History, path: '/matches', badge: null },
-      { id: 'club', label: 'Clube', shortLabel: 'Clube', icon: Building2, path: '/club', badge: null }
+      { id: 'matches', label: 'Histórico', shortLabel: 'Histórico', icon: History, path: '/matches', badge: null, primary: false },
+      { id: 'club', label: 'Clube', shortLabel: 'Clube', icon: Building2, path: '/club', badge: null, primary: false }
     ]
     const p = route.path
     const ownerId = isMatchRoute.value ? navIdForCompetition(match.activeMatchCompetition) : null
@@ -71,6 +87,10 @@ export function useNavigation() {
       live: match.liveCompetitions.some((c) => navIdForCompetition(c) === i.id)
     }))
   })
+
+  // BottomNav: 4 itens fixos + menu "+" com o resto (a Sidebar usa navItems inteiro).
+  const primaryNavItems = computed(() => navItems.value.filter((i) => i.primary))
+  const moreNavItems = computed(() => navItems.value.filter((i) => !i.primary))
 
   const currentPageTitle = computed(() => {
     const label = navItems.value.find((i) => i.active)?.label ?? 'Super XI'
@@ -104,7 +124,7 @@ export function useNavigation() {
         router.push('/match')
         return
       }
-      if (mem.path === '/pre-match' && !match.isCompetitionMatchActive(comp) && competitions.isCompetitionPlayable(comp)) {
+      if (mem.path === '/pre-match' && !match.isCompetitionMatchActive(comp) && competitions.isCompetitionPlayable(comp) && (comp !== 'friendly' || (friendlies.selectedOption && !friendlies.active))) {
         match.activeMatchCompetition = comp
         router.push('/pre-match')
         return
@@ -113,5 +133,5 @@ export function useNavigation() {
     router.push(item.path)
   }
 
-  return { navItems, currentPageTitle, isMatchRoute, matchOwner, goToMatchTab, goTo }
+  return { navItems, primaryNavItems, moreNavItems, currentPageTitle, isMatchRoute, matchOwner, goToMatchTab, goTo }
 }

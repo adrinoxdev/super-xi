@@ -38,7 +38,7 @@ function initialMatchStats(): MatchStats {
   }
 }
 
-export const COMPETITIONS_ORDER: MatchCompetition[] = ['league', 'cup', 'continental', 'supercup', 'recopa']
+export const COMPETITIONS_ORDER: MatchCompetition[] = ['league', 'cup', 'continental', 'supercup', 'recopa', 'friendly']
 
 interface MatchSession {
   matchState: MatchState
@@ -74,7 +74,8 @@ export const useMatchStore = defineStore('match', () => {
     cup: newSession(),
     continental: newSession(),
     supercup: newSession(),
-    recopa: newSession()
+    recopa: newSession(),
+    friendly: newSession()
   })
   // Competição exibida nas telas de partida.
   const activeMatchCompetition = ref<MatchCompetition>('league')

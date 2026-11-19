@@ -13,7 +13,8 @@ const NAMES: Record<MatchCompetition, string> = {
   cup: 'Taça Cacique',
   continental: 'Continental',
   supercup: 'Supercopa',
-  recopa: 'Recopa'
+  recopa: 'Recopa',
+  friendly: 'Amistoso'
 }
 
 // Mostra o seletor só quando há mais de uma partida aberta (ou outra rodando enquanto vê um pré-jogo).

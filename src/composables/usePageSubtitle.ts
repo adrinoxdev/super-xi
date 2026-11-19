@@ -8,6 +8,7 @@ import { COMPETITION_NAMES } from '@/utils/match/matchResult'
 const STATIC_SUBTITLES: Record<string, string> = {
   '/': 'Visão geral',
   '/competitions': 'Copas e finais',
+  '/friendlies': 'Fichas e ranking',
   '/scouting': 'Olheiros e base',
   '/squad': 'Time e formação',
   '/matches': 'Jogos realizados',

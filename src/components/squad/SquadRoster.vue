@@ -33,10 +33,11 @@ const restTitle = computed(
     `Recupera energia de todo o elenco. Descansos hoje: ${club.restUsesToday}. O custo dobra a cada uso e volta ao valor inicial à meia-noite, em ${restResetLabel.value}.`
 )
 
-// Recuperação natural: aviso só enquanto alguém está abaixo de 100; pausa durante partida ao vivo.
+// Recuperação natural: aviso só enquanto alguém está abaixo de 100; pausa durante partida ao vivo de outra competição
+// (amistoso não pausa: mesmo critério do ticker em useScouting).
 const regenLabel = computed(() => {
   if (!squad.players.some((p) => (p.stamina ?? 100) < 100)) return ''
-  if (match.liveCompetitions.length) return `Recuperação natural pausada durante a partida (+${STAMINA_REGEN_PER_HOUR} de energia/h)`
+  if (match.liveCompetitions.some((c) => c !== 'friendly')) return `Recuperação natural pausada durante a partida (+${STAMINA_REGEN_PER_HOUR} de energia/h)`
   const left = Math.max(0, STAMINA_REGEN_MS_PER_POINT - (club.clubNow - club.staminaTickAt))
   const s = Math.ceil(left / 1000)
   return `Recuperação natural: +${STAMINA_REGEN_PER_HOUR} de energia/h • próximo ponto em ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`

@@ -6,6 +6,8 @@ import { useLeagueStore } from '@/stores/league'
 import { useMatchStore } from '@/stores/match'
 import { useScoutingStore } from '@/stores/scouting'
 import { useSquadStore } from '@/stores/squad'
+import { useFriendliesStore } from '@/stores/friendlies'
+import { FRIENDLIES } from '@/config'
 import { outcomeOf } from '@/utils/match/matchResult'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
 
@@ -23,6 +25,7 @@ export function useHeaderStats() {
   const competitions = useCompetitionsStore()
   const scouting = useScoutingStore()
   const match = useMatchStore()
+  const friendlies = useFriendliesStore()
   const { opponentFor, labelFor } = useMatchSimulation()
 
   const rankLabel = computed(() => `${league.userLeagueRank}º · ${league.userLeaguePoints} pts`)
@@ -52,6 +55,13 @@ export function useHeaderStats() {
           { label: serieLabel.value, value: rankLabel.value },
           { label: 'Rodada', value: `${league.currentRound}/${league.maxStageRounds}` },
           { label: 'Over', value: squad.teamStrength.total }
+        ]
+      case '/friendlies':
+        // A fama só aparece aqui; as demais telas seguem com a reputação (fama e reputação são separadas).
+        return [
+          { label: 'Fichas', value: `${friendlies.tokens}/${FRIENDLIES.tokens.max}` },
+          { label: 'Fama', value: friendlies.fame },
+          { label: 'Posição', value: `#${friendlies.rank} de ${FRIENDLIES.bots.count + 1}` }
         ]
       case '/competitions':
         return [
