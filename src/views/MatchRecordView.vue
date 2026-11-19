@@ -43,7 +43,7 @@ const rows = computed(() => {
   <section class="space-y-6 animate-pop">
     <button
       type="button"
-      @click="router.push('/matches')"
+      @click="router.push('/historico')"
       class="px-3 py-2 min-h-10 md:min-h-0 md:py-1.5 rounded-lg border border-borderline hover:bg-subtle text-ink-muted hover:text-ink font-bold text-xs flex items-center gap-1"
     >
       <ArrowLeft class="w-3.5 h-3.5" />

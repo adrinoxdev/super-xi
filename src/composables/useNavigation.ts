@@ -75,14 +75,14 @@ export function useNavigation() {
         badge: market.incomingOffers.length || null,
         primary: true
       },
-      { id: 'matches', label: 'Histórico', shortLabel: 'Histórico', icon: History, path: '/matches', badge: null, primary: false },
+      { id: 'matches', label: 'Histórico', shortLabel: 'Histórico', icon: History, path: '/historico', badge: null, primary: false },
       { id: 'club', label: 'Clube', shortLabel: 'Clube', icon: Building2, path: '/club', badge: null, primary: false }
     ]
     const p = route.path
     const ownerId = isMatchRoute.value ? navIdForCompetition(match.activeMatchCompetition) : null
     return base.map((i) => ({
       ...i,
-      active: ownerId ? i.id === ownerId : i.id === 'matches' ? p.startsWith('/matches') : p === i.path,
+      active: ownerId ? i.id === ownerId : i.id === 'matches' ? p.startsWith('/historico') : p === i.path,
       // Partida em andamento (rodando ou pausada para substituições, ainda não encerrada) desta competição.
       live: match.liveCompetitions.some((c) => navIdForCompetition(c) === i.id)
     }))
