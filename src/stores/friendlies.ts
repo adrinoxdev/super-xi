@@ -187,8 +187,9 @@ export const useFriendliesStore = defineStore('friendlies', () => {
       paidWins.value = { day: today, count: (paidWins.value.day === today ? paidWins.value.count : 0) + 1 }
       club.earn(prize)
     }
-    provider.reportResult(a.botId, delta)
     const applied = fame.value - before
+    // Soma zero pelo que o usuário EFETIVAMENTE ganhou ou perdeu (o piso 0 pode cortar o delta calculado).
+    provider.reportResult(a.botId, { userFameDelta: applied, userScore, oppScore })
     recent.value = [
       { at: now, botName: a.botName, oppOver: a.oppOver, userScore, oppScore, fameDelta: applied, prize },
       ...recent.value

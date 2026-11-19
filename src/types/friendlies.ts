@@ -105,8 +105,15 @@ export interface FriendlyOpponentProvider {
   refresh(now: number): void
   ranking(user: FriendlyStanding): FriendlyRankingView
   drawOptions(ctx: FriendlyDrawContext, rng: () => number): FriendlyOption[]
-  /** Aplica no adversário o efeito do resultado (bots: fama oposta). */
-  reportResult(botId: string, userFameDelta: number): void
+  /** Aplica no adversário o efeito do resultado: fama oposta à aplicada ao usuário e o jogo nas estatísticas. */
+  reportResult(botId: string, result: FriendlyReport): void
+}
+
+/** Resultado repassado ao provedor: delta de fama EFETIVAMENTE aplicado ao usuário e o placar do ponto de vista dele. */
+export interface FriendlyReport {
+  userFameDelta: number
+  userScore: number
+  oppScore: number
 }
 
 /** Campo `friendlies` do save principal (aditivo, sem migração numerada). */
