@@ -1,7 +1,8 @@
 import { computed, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Award, Building2, History, LayoutDashboard, Radar, Shield, Trophy } from 'lucide-vue-next'
+import { Award, Building2, History, LayoutDashboard, Radar, Shield, Swords, Trophy } from 'lucide-vue-next'
 import { useCompetitionsStore } from '@/stores/competitions'
+import { useFriendliesStore } from '@/stores/friendlies'
 import { useLeagueStore } from '@/stores/league'
 import { useMarketStore } from '@/stores/market'
 import { useMatchStore } from '@/stores/match'
@@ -27,6 +28,7 @@ export function useNavigation() {
   const scouting = useScoutingStore()
   const market = useMarketStore()
   const match = useMatchStore()
+  const friendlies = useFriendliesStore()
 
   const matchPath = computed(() => (match.isMatchActive ? '/match' : '/pre-match'))
   const isMatchRoute = computed(() => route.path === '/match' || route.path === '/pre-match')
@@ -42,6 +44,14 @@ export function useNavigation() {
         icon: Award,
         path: '/competitions',
         badge: competitions.hasPendingFinal || competitions.hasPendingThirdPlace ? '!' : null
+      },
+      {
+        id: 'friendlies',
+        label: 'Amistosos',
+        shortLabel: 'Amist.',
+        icon: Swords,
+        path: '/friendlies',
+        badge: friendlies.tokens > 0 ? friendlies.tokens : null
       },
       {
         id: 'scouting',
