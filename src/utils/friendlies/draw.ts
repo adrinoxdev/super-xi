@@ -26,7 +26,7 @@ export function opponentOverFrom(userOver: number, offset: number): number {
   return clamp(Math.round(userOver + offset), overMin, overMax)
 }
 
-/** OVER do rival num sorteio direto: OVER do usuário + bônus da posição + variação. */
+/** Usado só em verificação. OVER do rival num sorteio direto: OVER do usuário + bônus da posição + variação. */
 export function opponentOver(userOver: number, rank: number, rng: Rng): number {
   return opponentOverFrom(userOver, drawOffset(rank, rng))
 }
