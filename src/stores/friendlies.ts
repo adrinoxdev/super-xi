@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type {
   FriendliesSave,
+  FriendlyBeginResult,
   FriendlyBot,
   FriendlyChallenge,
   FriendlyOption,
@@ -86,6 +87,16 @@ export const useFriendliesStore = defineStore('friendlies', () => {
   const active = ref<FriendlyChallenge | null>(init.active)
   const paidWins = ref(init.paidWins)
   const recent = ref<FriendlyResult[]>(init.recent)
+  // Estado de antes do último apito, só em memória: desfaz o apito se a tela da partida não abrir (cancelBegin).
+  // Fora do save de propósito: depois de recarregar, desafio sem partida ao vivo é órfão e a ficha não volta (resolveOrphan).
+  let beginUndo: {
+    botId: string
+    tokens: number
+    tokenTickAt: number
+    options: FriendlyOption[] | null
+    selectedBotId: string | null
+    drawsUsed: number
+  } | null = null
 
   // A store só fala com a interface do provedor (spec §4.3); o local opera sobre bots/botsSimAt daqui.
   const provider = createLocalBotProvider({
@@ -149,18 +160,28 @@ export const useFriendliesStore = defineStore('friendlies', () => {
   }
 
   /**
-   * Apito inicial: gasta 1 ficha, fixa o OVER do rival pelo OVER do time que vai a campo (não o do sorteio: fecha a brecha
-   * de sortear com reservas e jogar com titulares), recalcula prêmio (com a virada do dia) e fama, grava o desafio e zera
-   * o contador de sorteios. Devolve false sem opção escolhida, com OVER inválido, sem ficha ou com outro amistoso em andamento.
+   * Apito inicial: gasta 1 ficha, fixa o OVER do rival pelo OVER efetivo do apito (não o do sorteio nem o da escalação
+   * mal montada: fecha as brechas de farm), recalcula prêmio (com a virada do dia) e fama, grava o desafio e zera o
+   * contador de sorteios. Recusa com o motivo: desafio já em andamento, sem opção escolhida, OVER inválido ou sem ficha.
    */
-  function beginMatch(userOver: number, now: number): boolean {
+  function beginMatch(userOver: number, now: number): FriendlyBeginResult {
+    if (active.value) return 'active'
     const opt = selectedOption.value
-    if (!opt || active.value || !Number.isFinite(userOver)) return false
+    if (!opt) return 'no-option'
+    if (!Number.isFinite(userOver)) return 'invalid-over'
+    const undo = {
+      botId: opt.botId,
+      tokens: tokens.value,
+      tokenTickAt: tokenTickAt.value,
+      options: options.value,
+      selectedBotId: selectedBotId.value,
+      drawsUsed: drawsUsed.value
+    }
     const regen = regenTokenState({ tokens: tokens.value, tokenTickAt: tokenTickAt.value }, now)
     const spent = spendToken(regen, now)
     if (!spent) {
       setTokens(regen)
-      return false
+      return 'no-token'
     }
     setTokens(spent)
     const q = quote(opt, userOver, now)
@@ -176,6 +197,24 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     options.value = null
     selectedBotId.value = null
     drawsUsed.value = 0
+    beginUndo = undo
+    return 'ok'
+  }
+
+  /**
+   * A partida não abriu depois do apito: volta ao estado de antes de beginMatch (ficha, relógio das fichas, opções,
+   * seleção e contador de sorteios) e limpa o desafio. Só vale na mesma sessão e antes do settle. Devolve true se desfez.
+   */
+  function cancelBegin(): boolean {
+    const u = beginUndo
+    beginUndo = null
+    if (!u || !active.value || active.value.botId !== u.botId) return false
+    tokens.value = u.tokens
+    tokenTickAt.value = u.tokenTickAt
+    options.value = u.options
+    selectedBotId.value = u.selectedBotId
+    drawsUsed.value = u.drawsUsed
+    active.value = null
     return true
   }
 
@@ -186,6 +225,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
   function settle(userScore: number, oppScore: number, now: number): FriendlySummary | null {
     const a = active.value
     if (!a) return null
+    beginUndo = null // o resultado vai contar: o apito não pode mais ser desfeito
     const outcome = outcomeFromScore(userScore, oppScore)
     const before = fame.value
     fame.value = applyFame(before, fameDelta(a.userOver, a.oppOver, outcome))
@@ -219,10 +259,12 @@ export const useFriendliesStore = defineStore('friendlies', () => {
   function resolveOrphan(isLive: boolean): boolean {
     if (!active.value || isLive) return false
     active.value = null
+    beginUndo = null
     return true
   }
 
   function apply(s: FriendliesSave) {
+    beginUndo = null // carregar save ou nova carreira: não há apito desta sessão a desfazer
     fame.value = s.fame
     stats.value = s.stats
     tokens.value = s.tokens
@@ -324,6 +366,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     draw,
     select,
     beginMatch,
+    cancelBegin,
     settle,
     resolveOrphan,
     toSave,

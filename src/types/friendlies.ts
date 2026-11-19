@@ -101,6 +101,9 @@ export interface FriendlyRankingView {
 
 export type FriendlyOutcome = 'win' | 'draw' | 'loss'
 
+/** Resultado de beginMatch: 'ok' ou o motivo da recusa (cada um tem o seu toast em startLiveMatch). */
+export type FriendlyBeginResult = 'ok' | 'active' | 'no-option' | 'invalid-over' | 'no-token'
+
 /** Dados do usuário que o sorteio precisa: só a posição (o OVER entra depois, na cotação). */
 export interface FriendlyDrawContext {
   user: FriendlyStanding

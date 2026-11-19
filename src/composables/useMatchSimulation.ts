@@ -399,8 +399,14 @@ export function useMatchSimulation() {
         return
       }
       // A ficha é gasta no apito inicial; grava o desafio e zera os sorteios.
-      if (!friendlies.beginMatch(squad.friendlyStrength.over,Date.now())) {
-        ui.showToast(`Sem fichas. Próxima em ${formatTokenCountdown(friendlies.msToNext)}.`, 'warning')
+      const begun = friendlies.beginMatch(squad.friendlyStrength.over, Date.now())
+      if (begun !== 'ok') {
+        if (begun === 'no-token') ui.showToast(`Sem fichas. Próxima em ${formatTokenCountdown(friendlies.msToNext)}.`, 'warning')
+        else if (begun === 'active') ui.showToast('Já há um amistoso em andamento.', 'warning')
+        else if (begun === 'no-option') {
+          ui.showToast('Sorteie um adversário.', 'warning')
+          router.push('/friendlies')
+        } else ui.showToast('Não foi possível calcular a força do time. Recarregue a página.', 'danger')
         return
       }
       // beginMatch recalculou e fixou o OVER do rival com o OVER do apito: o motor usa exatamente o mesmo número que fama e prêmio.
@@ -437,6 +443,14 @@ export function useMatchSimulation() {
     const abortStart = () => {
       clearMatchTimer(comp)
       match.resetMatchState(comp)
+      // A sessão abortada sai do save ao vivo (senão voltaria ao recarregar a página).
+      saveLiveMatch()
+      // Amistoso: a ficha foi gasta no apito e a partida não abriu. Desfaz o apito (ficha, opções e sorteios voltam) e salva.
+      if (comp === 'friendly' && friendlies.cancelBegin()) {
+        saveGame()
+        ui.showToast('Não foi possível abrir a partida. A ficha foi devolvida; tente de novo.', 'danger')
+        return
+      }
       ui.showToast('Não foi possível abrir a partida. Recarregue a página.', 'danger')
     }
     saveLiveMatch()
@@ -1295,18 +1309,37 @@ export function useMatchSimulation() {
     matchGoalLogs[comp] = []
     matchAssistLogs[comp] = []
     delete matchCards[comp]
-    applyFriendlyInjuries()
+    // settle antes das lesões: sem desafio gravado (fim repetido ou apito desfeito) devolve null e nada mais é aplicado
+    // (nem lesão agravada de novo, nem resumo sobrescrito com zeros).
     const fs = friendlies.settle(session.matchState.userScore, session.matchState.opponentScore, Date.now())
-    const prize = fs?.prize ?? 0
+    if (!fs) {
+      if (!session.lastMatchSummary) {
+        // Resumo neutro só para a tela pós-jogo ter o botão "Voltar aos Amistosos".
+        session.lastMatchSummary = {
+          ticket: 0,
+          sponsor: 0,
+          winBonus: 0,
+          wages: 0,
+          net: 0,
+          interest: 0,
+          maintenance: 0,
+          friendly: { prize: 0, fameDelta: 0, fameAfter: friendlies.fame, rankBefore: friendlies.rank, rankAfter: friendlies.rank, paidCapReached: false }
+        }
+        ui.showToast('Este amistoso não contou: o desafio já tinha sido encerrado.', 'info')
+      }
+      saveLiveMatch()
+      return
+    }
+    applyFriendlyInjuries()
     session.lastMatchSummary = {
       ticket: 0,
       sponsor: 0,
-      winBonus: prize,
+      winBonus: fs.prize,
       wages: 0,
-      net: prize,
+      net: fs.prize,
       interest: 0,
       maintenance: 0,
-      ...(fs ? { friendly: fs } : {})
+      friendly: fs
     }
     saveGame()
     saveLiveMatch()

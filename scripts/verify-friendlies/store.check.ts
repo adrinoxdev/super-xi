@@ -49,7 +49,7 @@ export function run(): string[] {
   c.eq('recarregar mantem o contador', f.drawsUsed, 3)
   c.eq('recarregar mantem as opcoes', f.options, saved.options)
 
-  c.ok('beginMatch sem selecao falha', !f.beginMatch(60, now))
+  c.eq('beginMatch sem selecao falha', f.beginMatch(60, now), 'no-option')
   const pick = f.options![0]
   c.ok('select', f.select(pick.botId))
   c.eq('selectedOption', f.selectedOption?.botId, pick.botId)
@@ -61,7 +61,7 @@ export function run(): string[] {
   const reputation = club.reputation
   const botFame = f.bots.find((b) => b.id === pick.botId)!.fame
   const botPlayed = f.bots.find((b) => b.id === pick.botId)!.stats.played
-  c.ok('beginMatch', f.beginMatch(80, now))
+  c.eq('beginMatch', f.beginMatch(80, now), 'ok')
   const oppOver = opponentOverFrom(80, pick.offset)
   c.eq('OVER do rival recalculado no apito', f.active?.oppOver, oppOver)
   c.ok('apito nao usa o OVER da estimativa com reservas', f.active!.oppOver > low.oppOver)
@@ -94,7 +94,7 @@ export function run(): string[] {
   const pick2 = f.options![0]
   f.select(pick2.botId)
   const bot2Fame = f.bots.find((b) => b.id === pick2.botId)!.fame
-  c.ok('beginMatch 2', f.beginMatch(60, now))
+  c.eq('beginMatch 2', f.beginMatch(60, now), 'ok')
   const s2 = f.settle(0, 2, now)
   c.eq('derrota com fama 2 vai a 0', f.fame, 0)
   c.eq('resumo com o delta aplicado', s2?.fameDelta, -2)
@@ -147,7 +147,37 @@ export function run(): string[] {
 
   f.draw()
   f.select(f.options![0].botId)
-  c.ok('beginMatch com OVER invalido falha', !f.beginMatch(Number.NaN, now))
+  c.eq('beginMatch com OVER invalido falha', f.beginMatch(Number.NaN, now), 'invalid-over')
   c.eq('OVER invalido: ficha intacta', f.tokens, 9)
+
+  // Desfazer o apito (a tela da partida não abriu): ficha, relógio, opções, seleção e contador voltam como estavam.
+  const undoOpts = JSON.parse(JSON.stringify(f.options))
+  const undoSel = f.selectedBotId
+  const undoDraws = f.drawsUsed
+  const undoTick = f.tokenTickAt
+  c.eq('beginMatch para desfazer', f.beginMatch(60, now), 'ok')
+  c.eq('ficha gasta antes de desfazer', f.tokens, 8)
+  c.eq('beginMatch com desafio ativo', f.beginMatch(60, now), 'active')
+  c.ok('cancelBegin', f.cancelBegin())
+  c.eq('cancelBegin: ficha devolvida', f.tokens, 9)
+  c.eq('cancelBegin: tokenTickAt restaurado', f.tokenTickAt, undoTick)
+  c.eq('cancelBegin: desafio limpo', f.active, null)
+  c.eq('cancelBegin: opcoes de volta', f.options, undoOpts)
+  c.eq('cancelBegin: selecao de volta', f.selectedBotId, undoSel)
+  c.eq('cancelBegin: contador de volta', f.drawsUsed, undoDraws)
+  c.ok('cancelBegin sem apito pendente nao faz nada', !f.cancelBegin())
+
+  // Sem ficha: motivo próprio (o toast certo) e nada gravado.
+  f.tokens = 0
+  f.tokenTickAt = now
+  c.eq('beginMatch sem ficha', f.beginMatch(60, now), 'no-token')
+  c.eq('sem ficha: nada gravado', f.active, null)
+
+  // Depois do settle o apito não pode mais ser desfeito (o resultado já contou).
+  f.tokens = 10
+  c.eq('beginMatch para settle', f.beginMatch(60, now), 'ok')
+  f.settle(1, 1, now)
+  c.ok('cancelBegin depois do settle recusa', !f.cancelBegin())
+  c.eq('settle repetido devolve null', f.settle(1, 1, now), null)
   return c.fails
 }
