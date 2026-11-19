@@ -12,7 +12,7 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 
 ## 2. Regras
 
-1. **Fichas**: máximo 10; +1 a cada 6 min de tempo real, inclusive com o jogo fechado. Começa com 10. Cada amistoso gasta 1 ficha **no apito inicial** (`startLiveMatch`), não no sorteio.
+1. **Fichas**: máximo 10; +1 a cada 10 min de tempo real, inclusive com o jogo fechado. Começa com 10. Cada amistoso gasta 1 ficha **no apito inicial** (`startLiveMatch`), não no sorteio.
 2. **Sorteio**: botão "Desafiar" abre a roleta, que revela 3 opções (1º sorteio). "Re-sortear" gera 3 opções novas. **Limite: até 3 sorteios por desafio** (o do "Desafiar" conta como o 1º; sobram 2 re-sorteios). Ao esgotar os 3, é obrigatório escolher uma das 3 opções do último sorteio. O contador (`drawsUsed`) fica no save e **só zera quando a partida é iniciada** (`beginMatch`, no apito inicial); sair da tela, ir ao PreMatch e voltar, recarregar a página ou fechar o jogo **não** zera (impede farm de re-sorteio saindo e voltando). Enquanto houver opções sorteadas, "Desafiar" reabre as mesmas opções em vez de sortear de novo. Sortear não exige ficha; jogar exige.
 3. **Adversário**: o sorteio guarda o **deslocamento** do rival (`offset` = bônus de posição + variação uniforme em [−5, +5]), não o OVER absoluto. O OVER do rival é sempre `OVER do usuário (energia 100) + offset`, limitado a [35, 99]: no cartão do sorteio e no PreMatch ele é uma **estimativa** com a escalação do momento; no apito inicial (`beginMatch`) é recalculado com o OVER do time que vai a campo e fixado, junto com o prêmio e a fama em jogo. Assim, sortear com reservas fracos e voltar com o time forte não rende rival fraco com prêmio de rival fraco (brecha de farm fechada, decisão do dono). Cada opção mostra nome, escudo, OVER estimado (marcado como estimativa), fama, posição no ranking, dinheiro em jogo e fama em jogo (ganho na vitória / perda na derrota), todos estimados com o OVER atual.
    - **OVER efetivo do usuário (revisão do bloco 8-13, decisão do dono)**: "OVER do usuário" nesta regra é sempre o OVER efetivo `userOver = max(OVER da escalação atual, OVER da melhor escalação elegível)`, os dois com energia 100 (ver §6, OVER do usuário no amistoso). Fecha a segunda brecha de farm: apitar com titulares fora de posição ou reservas fracos (rival fraco fixado no apito) e corrigir o time ao vivo com "Reorganizar" (não gasta substituição) ou com as 5 trocas. Com o piso da melhor escalação, escalar mal não baixa o rival, o prêmio nem a fama em jogo; só piora a chance real de vencer. Cartão, PreMatch e apito usam o mesmo cálculo.
@@ -220,7 +220,7 @@ export interface FriendliesSave {
 ```ts
 // export const FRIENDLIES: DeepReadonly<typeof config> = config  → só leitura no tipo (números continuam `number`)
 const config = {
-  tokens: { max: 10, msPerToken: 6 * 60 * 1000, initial: 10 },
+  tokens: { max: 10, msPerToken: 10 * 60 * 1000, initial: 10 },
   bots: { count: 100, fameTop: 1800, fameCurve: 1.6, fameJitter: 20, fameMinStart: 10,
           overMin: 48, overSpan: 40, overJitter: 4, overFloor: 40, overCeil: 92,
           simStepMs: 60 * 60 * 1000, simMaxSteps: 72, simNoise: 6, simPull: 0.03,
