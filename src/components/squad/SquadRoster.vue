@@ -9,6 +9,8 @@ import { Bandage, Goal, HandHelping, Shirt } from 'lucide-vue-next'
 import { useSquadStore } from '@/stores/squad'
 import { useClubStore } from '@/stores/club'
 import { useUiStore } from '@/stores/ui'
+import { useMatchStore } from '@/stores/match'
+import { STAMINA_REGEN_MS_PER_POINT, STAMINA_REGEN_PER_HOUR } from '@/config'
 import { useSquad } from '@/composables/useSquad'
 import { retireAgeFor } from '@/utils/player/generatePlayer'
 import { formatPosBR } from '@/utils/format/formatCurrency'
@@ -16,6 +18,7 @@ import { formatPosBR } from '@/utils/format/formatCurrency'
 const squad = useSquadStore()
 const club = useClubStore()
 const ui = useUiStore()
+const match = useMatchStore()
 const { filteredSquadPlayers, assignPlayerToSlot, selectRosterPlayer, cancelSelection, recoverSquadStamina, openLoanMarketModal, openPlayerModal } = useSquad()
 
 // Custo curto no botão (R$ 9,5k); o detalhe fica na dica.
@@ -29,6 +32,15 @@ const restTitle = computed(
   () =>
     `Recupera energia de todo o elenco. Descansos hoje: ${club.restUsesToday}. O custo dobra a cada uso e volta ao valor inicial à meia-noite, em ${restResetLabel.value}.`
 )
+
+// Recuperação natural: aviso só enquanto alguém está abaixo de 100; pausa durante partida ao vivo.
+const regenLabel = computed(() => {
+  if (!squad.players.some((p) => (p.stamina ?? 100) < 100)) return ''
+  if (match.liveCompetitions.length) return `Recuperação natural pausada durante a partida (+${STAMINA_REGEN_PER_HOUR} de energia/h)`
+  const left = Math.max(0, STAMINA_REGEN_MS_PER_POINT - (club.clubNow - club.staminaTickAt))
+  const s = Math.ceil(left / 1000)
+  return `Recuperação natural: +${STAMINA_REGEN_PER_HOUR} de energia/h • próximo ponto em ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+})
 
 const filters = ['ALL', 'GK', 'DEF', 'MID', 'ATT'] as const
 const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DEF', MID: 'MEI', ATT: 'ATQ' }
@@ -46,6 +58,7 @@ const filterLabels: Record<string, string> = { ALL: 'Todos', GK: 'GOL', DEF: 'DE
         <p v-if="club.restUsesToday > 0" class="text-[11px] text-ink-muted break-words">
           Descansos hoje: {{ club.restUsesToday }} • custo reinicia em {{ restResetLabel }}
         </p>
+        <p v-if="regenLabel" class="text-[11px] text-ink-muted break-words">{{ regenLabel }}</p>
         <p v-if="ui.selectedRosterPlayerId" class="text-[11px] font-bold text-amberpro break-words">
           Veja no campo onde o atleta rende mais e toque na vaga.
           <button type="button" @click="cancelSelection" class="underline ml-1">Cancelar</button>
