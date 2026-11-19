@@ -249,6 +249,9 @@ export function usePersistence() {
       }
       // A partida ao vivo salva pertence à carreira anterior: não pode ser retomada sobre a importada.
       try { localStorage.removeItem(LIVE_MATCH_KEY) } catch { /* ignora */ }
+      // Amistoso ao vivo no código exportado: sem partida ao vivo ele é órfão (não conta, ficha não volta).
+      friendlies.resolveOrphan(false)
+      saveGame()
       ui.showToast('Carreira importada com sucesso!', 'success')
     } catch {
       ui.showToast('Código inválido.', 'danger')

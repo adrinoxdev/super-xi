@@ -50,6 +50,10 @@ export function useFriendlies() {
   }
 
   function runDraw(): boolean {
+    if (friendlies.active) {
+      ui.showToast('Há um amistoso em andamento.', 'warning')
+      return false
+    }
     if (!friendlies.draw()) {
       ui.showToast(NO_DRAWS, 'warning')
       return false
