@@ -14,7 +14,7 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 
 1. **Fichas**: máximo 10; +1 a cada 6 min de tempo real, inclusive com o jogo fechado. Começa com 10. Cada amistoso gasta 1 ficha **no apito inicial** (`startLiveMatch`), não no sorteio.
 2. **Sorteio**: botão "Desafiar" abre a roleta, que revela 3 opções (1º sorteio). "Re-sortear" gera 3 opções novas. **Limite: até 3 sorteios por desafio** (o do "Desafiar" conta como o 1º; sobram 2 re-sorteios). Ao esgotar os 3, é obrigatório escolher uma das 3 opções do último sorteio. O contador (`drawsUsed`) fica no save e **só zera quando a partida é iniciada** (`beginMatch`, no apito inicial); sair da tela, ir ao PreMatch e voltar, recarregar a página ou fechar o jogo **não** zera (impede farm de re-sorteio saindo e voltando). Enquanto houver opções sorteadas, "Desafiar" reabre as mesmas opções em vez de sortear de novo. Sortear não exige ficha; jogar exige.
-3. **Adversário**: OVER do dia = OVER do usuário (com energia 100) + bônus de posição + variação uniforme em [−5, +5]. Cada opção mostra nome, escudo, OVER do dia, fama, posição no ranking, dinheiro em jogo e fama em jogo (ganho na vitória / perda na derrota).
+3. **Adversário**: o sorteio guarda o **deslocamento** do rival (`offset` = bônus de posição + variação uniforme em [−5, +5]), não o OVER absoluto. O OVER do rival é sempre `OVER do usuário (energia 100) + offset`, limitado a [35, 99]: no cartão do sorteio e no PreMatch ele é uma **estimativa** com a escalação do momento; no apito inicial (`beginMatch`) é recalculado com o OVER do time que vai a campo e fixado, junto com o prêmio e a fama em jogo. Assim, sortear com reservas fracos e voltar com o time forte não rende rival fraco com prêmio de rival fraco (brecha de farm fechada, decisão do dono). Cada opção mostra nome, escudo, OVER estimado (marcado como estimativa), fama, posição no ranking, dinheiro em jogo e fama em jogo (ganho na vitória / perda na derrota), todos estimados com o OVER atual.
 4. **Escalação**: a escalação real (`squad.starterIds`/`formation`). Não pode ter titular lesionado nem suspenso em **qualquer** competição. Precisa de 11 atletas elegíveis (não lesionados, não suspensos em nenhuma competição, não emprestados).
 5. **Energia**: no amistoso todos jogam como se tivessem energia 100 (sem penalidade de cansaço no OVER nem na chance de lesão). Nenhuma energia é consumida ou recuperada pelo jogo; a recuperação natural por tempo real **não** congela durante um amistoso ao vivo.
 6. **Lesões**: lesão sofrida no amistoso vale normalmente nas outras competições. O amistoso não desconta jogos de lesões existentes (senão vira cura por farm). Lesionado que fica em campo até o fim agrava a lesão como hoje.
@@ -25,7 +25,7 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
    - Empate: R$ 0; fama ± pequena (pode ser 0).
    - Derrota: R$ 0; perde fama (perda mínima 3); fama nunca abaixo de 0.
    - **Limite diário de vitórias pagas**: as 5 primeiras vitórias do dia (meia-noite local) pagam; depois disso a vitória rende só fama. Parâmetro `paidWinsPerDay` (0 = sem limite).
-10. **Ranking**: top 10 + linha do usuário (se fora do top 10). Os bots mudam de fama sozinhos, simulados quando a tela abre (sem timer em segundo plano).
+10. **Ranking**: é uma **tabela de classificação** com a mesma regra de ordenação da tabela da liga, com **fama no lugar dos pontos**: fama → vitórias → saldo de gols → gols pró (ver §6, Posição). Usuário e bots têm estatísticas de amistoso (J, V, E, D, GP, GC, SG). Tela: top 10 + linha do usuário (se fora do top 10). Os bots mudam de fama e somam jogos sozinhos, simulados quando a tela abre (sem timer em segundo plano).
 11. **Uma partida de amistoso por vez** (uma sessão `friendly`). Pode rodar em paralelo com partidas de outras competições, como as competições já fazem hoje.
 12. **Fama e reputação são separadas (decisão do dono)**: dois números independentes.
     - **Fama** (`friendlies.fame`): exclusiva do PvP dos amistosos. Só o resultado de amistoso a altera; nenhuma outra competição (liga, copas) nem upgrade mexe na fama.
@@ -52,12 +52,14 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 
 | Arquivo | Conteúdo |
 |---|---|
-| `src/config/friendlies.ts` | `FRIENDLIES` (todos os números da seção 6) e `FRIENDLY_BOT_NAME_PARTS`. Reexportado em `src/config/index.ts`. |
+| `src/config/friendlies.ts` | `FRIENDLIES` (todos os números da seção 6, só leitura) e `FRIENDLY_BOT_NAME_PARTS` (`as const`). Reexportado em `src/config/index.ts`. |
 | `src/types/friendlies.ts` | Tipos da seção 5 e `FriendlyOpponentProvider`. Reexportado em `src/types/index.ts`. |
-| `src/utils/friendlies/tokens.ts` | `regenTokens(state, now)`, `spendToken(state, now)`, `msToNextToken(state, now)`. Puras. |
+| `src/utils/friendlies/rng.ts` | `unit(rng)`, `safeRng(rng)`, `randIntWith(rng, min, max)`: contrato `[0, 1)` do `Rng` garantido com `Math.min(rng(), 1 − 1e-12)`. Puras. |
+| `src/utils/friendlies/ranking.ts` | `emptyStats`, `sanitizeStats`, `addResult`, `goalDiff`, `compareStanding`, `userRank(user, bots)`, `rankedBots(bots, user)`. Puras. |
+| `src/utils/friendlies/tokens.ts` | `regenTokens(state, now)`, `spendToken(state, now)`, `msToNextToken(state, now)` (saneiam `NaN`/`undefined`). Puras. |
 | `src/utils/friendlies/fame.ts` | `expectedScore`, `fameDelta(userOver, oppOver, outcome)`, `applyFame(fame, delta)`. Puras. |
-| `src/utils/friendlies/draw.ts` | `rankBonus(rank)`, `opponentOver(userOver, rank, rng)`, `friendlyPrize(oppOver)`, `drawOptions(ctx, rng)`. Puras. |
-| `src/utils/friendlies/bots.ts` | `generateBots(seed)`, `simulateBots(bots, lastSimAt, now, rng)`, `userRank(fame, bots)`, `rankingView(bots, userEntry)`. Puras. |
+| `src/utils/friendlies/draw.ts` | `rankBonus(rank)`, `drawOffset(rank, rng)`, `opponentOverFrom(userOver, offset)`, `opponentOver(userOver, rank, rng)`, `friendlyPrize(oppOver)`, `quoteOption(offset, userOver, paidWinsLeft)`, `rankPool(...)`, `drawOptions(ctx, rng)`. Puras. |
+| `src/utils/friendlies/bots.ts` | `generateBots(seed)`, `simScore(outcome, rng)`, `simulateBots(bots, lastSimAt, now, rng)`, `rankingView(bots, user)`; reexporta `userRank`. Puras. |
 | `src/utils/friendlies/localBotProvider.ts` | Implementação local de `FriendlyOpponentProvider` usando as funções acima. |
 | `src/stores/friendlies.ts` | Store Pinia: estado, ações, `toSave/fromSave/reset`. |
 | `src/composables/useFriendlies.ts` | Orquestra store + `useMatchSimulation().prepareMatch('friendly')` + toasts + `saveGame`. |
@@ -65,7 +67,7 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 | `src/components/friendlies/TokenBar.vue` | 10 fichas, contador para a próxima. |
 | `src/components/friendlies/OpponentRoulette.vue` | Roleta animada com 3 slots. |
 | `src/components/friendlies/OpponentCard.vue` | Cartão de uma opção, botão "Jogar". |
-| `src/components/friendlies/FriendlyRanking.vue` | Top 10 + linha do usuário. |
+| `src/components/friendlies/FriendlyRanking.vue` | Tabela de classificação (Fama, J, V, E, D, GP, GC, SG): top 10 + linha do usuário. |
 | `src/components/friendlies/FriendlyHistory.vue` | Últimos 20 resultados. |
 | `src/components/layout/BottomNavMore.vue` | Painel do botão "+" da BottomNav com os itens secundários (seção 7, Navegação). |
 
@@ -79,7 +81,7 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 | `src/utils/match/calculateTeamStrength.ts` | `getEffectiveOvr(player, role, opts?: { ignoreFatigue?: boolean })` e `calculateTeamStrength(slots, unavailable?, opts?)` repassando `opts`. Padrão inalterado. |
 | `src/stores/squad.ts` | `freshTeamStrength = computed(() => calculateTeamStrength(pitchSlots.value, undefined, { ignoreFatigue: true }))` e `friendlyEligibleCount` (não lesionado, `!isSuspendedFor(p,'friendly')`, não emprestado). |
 | `src/composables/useMatchSimulation.ts` | Ver 4.4. |
-| `src/components/match/PreMatch.vue` | Para `friendly`, `estimateOutcome` usa `squad.freshTeamStrength.rating`; aviso de bloqueio cobre lesionado/suspenso; mostra "Custa 1 ficha (X/10)" e desabilita "Iniciar" sem ficha. |
+| `src/components/match/PreMatch.vue` | Para `friendly`, `estimateOutcome` usa `squad.freshTeamStrength.rating`; OVER do rival, prêmio e fama em jogo vêm de `friendlies.quote(opção, OVER atual, agora)` (recalculados a cada troca de escalação, marcados como estimativa até o apito); aviso de bloqueio cobre lesionado/suspenso; mostra "Custa 1 ficha (X/10)" e desabilita "Iniciar" sem ficha. |
 | `src/components/match/PostMatchSummary.vue` | Se `summary.friendly`: bloco "Resultado do Amistoso" (prêmio, fama ±, fama atual, posição antes → depois, aviso de limite diário) no lugar da grade financeira; botão "Voltar aos Amistosos". |
 | `src/components/match/MatchSwitcher.vue` | `NAMES.friendly = 'Amistoso'`. |
 | `src/components/match/SubstitutionDrawer.vue` | Para `friendly`, `benchCandidates` também exclui lesionados. |
@@ -98,12 +100,13 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 
 ```ts
 export interface FriendlyOpponentProvider {
-  /** Avança o estado dos adversários até `now` (bots: simulação; futuro: busca remota). */
+  /** Avança o estado dos adversários até `now` (bots: simulação; futuro: busca remota). Sem passo a dar, não troca o array. */
   refresh(now: number): void
-  ranking(userFame: number): FriendlyRankingView
-  drawOptions(ctx: { userOver: number; userFame: number; paidWinsLeft: number }, rng: () => number): FriendlyOption[]
-  /** Aplica no adversário o efeito do resultado (bots: fama oposta). */
-  reportResult(botId: string, userFameDelta: number): void
+  ranking(user: FriendlyStanding): FriendlyRankingView
+  /** Opções com o deslocamento do rival (offset); o OVER absoluto, o prêmio e a fama em jogo saem de quoteOption. */
+  drawOptions(ctx: FriendlyDrawContext, rng: () => number): FriendlyOption[]
+  /** Aplica no adversário o efeito do resultado: fama oposta à EFETIVAMENTE aplicada ao usuário e o jogo nas estatísticas. */
+  reportResult(botId: string, result: FriendlyReport): void
 }
 ```
 
@@ -111,21 +114,21 @@ A store só fala com essa interface (`localBotProvider`, que opera sobre `bots` 
 
 ### 4.4 Integração em `useMatchSimulation.ts` (por função)
 
-- `rawOpponentFor('friendly')`: `{ name, power: over, style: 'Amistoso' }` da opção selecionada (`friendlies.selectedOption`); sem seleção, `{ name: 'Adversário', power: Math.round(squad.freshTeamStrength.rating), style: 'Amistoso' }` (só para não quebrar computeds).
+- `rawOpponentFor('friendly')`: com opção selecionada (`friendlies.selectedOption`), `{ name, power: friendlies.quote(opt, squad.freshTeamStrength.rating, Date.now()).oppOver, style: 'Amistoso' }` (estimativa viva: acompanha a escalação no PreMatch); depois do apito, `friendlies.active.oppOver` (fixado); sem nenhum, `{ name: 'Adversário', power: Math.round(squad.freshTeamStrength.rating), style: 'Amistoso' }` (só para não quebrar computeds).
 - `rawLabelFor('friendly')`: `'Amistoso • Ranking #' + rank` do adversário.
 - `rawIsHomeFor`: já devolve `true` por padrão; `homeBonusApplies('friendly')` já é `false`. Sem mudança.
 - `userBaseRating(comp)`: para `friendly`, sempre `calculateTeamStrength(squad.pitchSlots, ids, { ignoreFatigue: true }).rating`.
 - `lineupBlockers('friendly')`: titulares lesionados ou `isSuspendedFor(p,'friendly')`, ou menos de 11 titulares, **independente** de haver reserva (bloqueia sempre).
 - `fixLineupFor('friendly')`: inalterado (já troca lesionados e suspensos via `replaceInjuredStarters(isSuspendedFor)`).
 - `prepareMatch('friendly')`: se não houver opção selecionada, toast "Sorteie um adversário." e `router.push('/friendlies')`.
-- `startLiveMatch()`: para `friendly`, depois de `lineupBlockers` e antes do `snapshot`, chama `friendlies.beginMatch(userOver)` (gasta a ficha, grava `active`, limpa `options`/`selectedBotId` e zera `drawsUsed`). Se devolver `false` (sem ficha), toast "Sem fichas. Próxima em mm:ss." e retorna. `saveGame()` logo depois.
+- `startLiveMatch()`: para `friendly`, depois de `lineupBlockers` e antes do `snapshot`, chama `friendlies.beginMatch(userOver, now)` com `userOver = squad.freshTeamStrength.rating` (gasta a ficha, recalcula `oppOver = clamp(round(userOver + offset), 35, 99)`, prêmio e fama com esse OVER, grava `active`, limpa `options`/`selectedBotId` e zera `drawsUsed`). Se devolver `false` (sem ficha), toast "Sem fichas. Próxima em mm:ss." e retorna. Depois do `true`, o `power` do adversário congelado no snapshot é sobrescrito por `friendlies.active.oppOver` (garante que motor, fama e prêmio usam o mesmo número). `saveGame()` logo depois.
 - `simulateMatchTick`: os 4 `club.recordGoal`/`recordAssist` passam por um helper `credit(comp, fn)` que não faz nada em `friendly`; os logs `matchGoalLogs/matchAssistLogs` ficam vazios no amistoso.
 - `rollLiveInjury`: em `friendly`, `tired = 0` e `matchesLeft = matches` (sem o `+1`, porque o amistoso não desconta jogo).
 - `needsShootout('friendly')`: `false`.
 - `concludeMatch('friendly')`: ramo próprio no início, que retorna cedo:
   1. limpa logs e `matchCards[comp]` (sem `applyDiscipline`);
   2. `applyFriendlyInjuries()`: titular lesionado em campo agrava (`INJURY.aggravateMatches`, teto `aggravateCap`); os demais não mudam; depois `squad.replaceInjuredStarters()`;
-  3. `const summary = friendlies.settle(uGoals, oGoals, now)` (fama, prêmio, `club.earn(prize)`, bot, histórico próprio, limpa `active`; **não** toca em `club.reputation`);
+  3. `const summary = friendlies.settle(uGoals, oGoals, now)` (fama, prêmio, `club.earn(prize)`, estatísticas do usuário, bot com a fama oposta à aplicada e o jogo espelhado nas estatísticas dele, histórico próprio, limpa `active`; **não** toca em `club.reputation`);
   4. `session.lastMatchSummary = summary`; `saveGame(); saveLiveMatch()`.
   Não chama `settleMatch`, `applyPostMatchProgression`, marcos, `addMatchRecord` nem `generateIncomingTransferOffer`.
 - `finishMatchAndReturn`: destino `'/friendlies'` quando `comp === 'friendly'`.
@@ -134,19 +137,29 @@ A store só fala com essa interface (`localBotProvider`, que opera sobre `bots` 
 
 ```ts
 // src/types/friendlies.ts
-export interface FriendlyBot { id: string; name: string; over: number; fame: number }   // id 'fb_1'..'fb_100'
-export interface FriendlyOption {
-  botId: string; name: string; over: number; fame: number; rank: number
-  prize: number                         // já considera o limite diário (0 se esgotado)
-  fameWin: number; fameDraw: number; fameLoss: number
-}
+/** Estatísticas de amistoso (mesmas colunas da tabela da liga). played = won + drawn + lost. */
+export interface FriendlyStats { played: number; won: number; drawn: number; lost: number; gf: number; ga: number }
+/** Quem entra no ranking: fama + estatísticas (FriendlyBot satisfaz por estrutura). */
+export interface FriendlyStanding { fame: number; stats: FriendlyStats }
+export interface FriendlyBot { id: string; name: string; over: number; fame: number; stats: FriendlyStats }   // id 'fb_1'..'fb_100'
+/** Opção do sorteio: guarda o DESLOCAMENTO do rival (bônus de posição + variação), não o OVER absoluto. */
+export interface FriendlyOption { botId: string; name: string; fame: number; rank: number; offset: number }
+/** Valores de uma opção com um OVER do usuário (estimativa no cartão/PreMatch; fixados no apito). */
+export interface FriendlyQuote { oppOver: number; prize: number; fameWin: number; fameDraw: number; fameLoss: number }
 export interface FriendlyChallenge { botId: string; botName: string; userOver: number; oppOver: number; prize: number; rankBefore: number; startedAt: number }
 export interface FriendlyResult { at: number; botName: string; oppOver: number; userScore: number; oppScore: number; fameDelta: number; prize: number }
 export interface FriendlySummary { prize: number; fameDelta: number; fameAfter: number; rankBefore: number; rankAfter: number; paidCapReached: boolean }
-export interface FriendlyRankingView { top: Array<{ rank: number; name: string; fame: number; isUser: boolean }>; user: { rank: number; fame: number } }
+/** Linha da tabela de classificação. id = botId ou 'user'; gd = gf − ga. */
+export interface FriendlyRankingRow { rank: number; id: string; name: string; fame: number; isUser: boolean
+  played: number; won: number; drawn: number; lost: number; gf: number; ga: number; gd: number }
+export interface FriendlyRankingView { top: FriendlyRankingRow[]; user: FriendlyRankingRow }
+export interface FriendlyDrawContext { user: FriendlyStanding }
+/** Resultado repassado ao provedor: delta de fama EFETIVAMENTE aplicado ao usuário e o placar do ponto de vista dele. */
+export interface FriendlyReport { userFameDelta: number; userScore: number; oppScore: number }
 export interface FriendliesSave {
   v: 1
   fame: number
+  stats: FriendlyStats                        // campo novo; ausente em save antigo → zerado
   tokens: number
   tokenTickAt: number
   seed: number
@@ -166,7 +179,8 @@ export interface FriendliesSave {
 ### Persistência e migração
 
 - Campo novo `friendlies` no JSON do `STORAGE_KEY`. **Sem trocar a chave nem criar migração numerada**: o campo é aditivo.
-- `fromSave(raw)`: ausente ou `v !== 1` → estado novo (`fame 0`, `tokens 10`, `tokenTickAt = now`, `seed = Date.now()`, `bots = generateBots(seed)`, `botsSimAt = now`, resto vazio). Presente: valida campo a campo — `bots` com tamanho diferente de 100 é regenerado mantendo `fame` do usuário; `tokens` limitado a `[0, 10]`; `drawsUsed` limitado a `[0, maxDraws]` e forçado a 0 se `options` for `null` (sem opções não há desafio em curso, e o usuário não fica travado sem nada para escolher); `tokenTickAt` e `botsSimAt` limitados a `≤ now` (mesmo cuidado de `staminaTickAt` em `club.fromSave`); `fame ≥ 0`; `recent` cortado em 20.
+- `fromSave(raw)`: ausente ou `v !== 1` → estado novo (`fame 0`, `stats` zeradas, `tokens 10`, `tokenTickAt = now`, `seed = Date.now()`, `bots = generateBots(seed)`, `botsSimAt = now`, resto vazio). Presente: valida campo a campo, todo número com `Number.isFinite` (`NaN`, `Infinity`, `undefined` e texto caem no padrão) — `bots` com tamanho diferente de 100 ou com bot sem `id`/`name`/`over`/`fame` válidos é regenerado mantendo `fame` e `stats` do usuário; bot sem `stats` (save anterior a esta revisão) **é mantido** com `stats` zeradas; `over` do bot limitado a `[overFloor, overCeil]` e `fame ≥ 0`; `stats` (usuário e bots) saneadas por `sanitizeStats` (cada campo inteiro `≥ 0`, `played = won + drawn + lost`); `tokens` limitado a `[0, 10]`; `options` só valem se todas tiverem `botId`, `name`, `fame`, `rank` e `offset` válidos (`offset` limitado a `[−spread, rankBonusMax + spread]`); opções no formato antigo (com `over`, sem `offset`) são descartadas; `drawsUsed` limitado a `[0, maxDraws]` e forçado a 0 se `options` for `null` (sem opções não há desafio em curso, e o usuário não fica travado sem nada para escolher); `tokenTickAt` e `botsSimAt` limitados a `≤ now` (mesmo cuidado de `staminaTickAt` em `club.fromSave`); `fame ≥ 0`; `recent` cortado em 20.
+- Campos novos desta revisão (`stats` do usuário, `stats` dos bots, `offset` da opção) **não** trocam `v` (continua `1`): são aditivos com padrão seguro. O único efeito num save antigo é perder as opções sorteadas no formato antigo (o contador de sorteios volta a 0 junto, pela regra acima). Como ainda não houve lançamento com amistosos, isso só afeta saves de desenvolvimento.
 - `reset()` (nova carreira, `clearSave`) volta ao estado novo.
 - Importar código de carreira passa por `loadGame`, então herda as regras acima. Saves antigos exportados sem o campo ganham estado novo.
 - Partida ao vivo: a sessão `friendly` vai em `LIVE_MATCH_KEY` pelo mecanismo existente.
@@ -174,57 +188,83 @@ export interface FriendliesSave {
 ## 6. Fórmulas e parâmetros iniciais (`src/config/friendlies.ts`)
 
 ```ts
-export const FRIENDLIES = {
+// export const FRIENDLIES: DeepReadonly<typeof config> = config  → só leitura no tipo (números continuam `number`)
+const config = {
   tokens: { max: 10, msPerToken: 6 * 60 * 1000, initial: 10 },
   bots: { count: 100, fameTop: 1800, fameCurve: 1.6, fameJitter: 20, fameMinStart: 10,
-          overMin: 48, overSpan: 40, overJitter: 4,
-          simStepMs: 60 * 60 * 1000, simMaxSteps: 72, simNoise: 6, simPull: 0.03 },
+          overMin: 48, overSpan: 40, overJitter: 4, overFloor: 40, overCeil: 92,
+          simStepMs: 60 * 60 * 1000, simMaxSteps: 72, simNoise: 6, simPull: 0.03,
+          simDrawBand: 1, simWinGoalsMax: 4, simDrawGoalsMax: 2 },
   draw: { spread: 5, rankBonusMax: 6, rankBonusTop: 10, rankBonusFrom: 50, overMin: 35, overMax: 99,
-          rankWindow: 15, options: 3, maxDraws: 3 },
+          rankWindow: 15, rankWindowGrow: 5, options: 3, maxDraws: 3 },
   prize: { base: 8000, refOver: 50, perOver: 500, min: 8000, max: 25000, step: 500, paidWinsPerDay: 5 },
   fame: { k: 30, scale: 20, minWin: 4, minLoss: 3, drawCap: 6, start: 0 },
+  rankingTop: 10,
   recentMax: 20
 }
 ```
 
+- `bots.overFloor`/`overCeil`: limites do OVER interno dos bots na geração (e no `fromSave`).
+- `bots.simDrawBand`, `simWinGoalsMax`, `simDrawGoalsMax`: como a evolução simulada vira jogo (ver Evolução dos bots).
+- `draw.rankWindowGrow`: passo de crescimento da janela de posições quando faltam bots.
+- `rankingTop`: linhas do topo exibidas na tabela.
+
 **Fichas** (`regenTokens`, mesmo padrão de `squad.regenStamina`):
 `n = floor((now − tokenTickAt) / msPerToken)`; se `tokens ≥ max` → `tokenTickAt = now`; se `n ≤ 0` → se `now < tokenTickAt`, `tokenTickAt = now` (relógio voltado); senão `tokens = min(max, tokens + n)`, `tokenTickAt += n·msPerToken`, e se encheu `tokenTickAt = now`.
 `spendToken`: se `tokens === max` antes de gastar, `tokenTickAt = now`; `tokens −= 1`. Offline funciona porque o primeiro tick depois de abrir aplica todo o tempo decorrido (teto natural de 10).
+Saneamento (as três funções): `tokens` não finito → `max` (mesmo padrão do `fromSave`, que usa `initial = max`); finito → `clamp(floor(tokens), 0, max)`; `tokenTickAt` não finito → `now`; `now` não finito → devolve o estado saneado sem avançar (com `tokenTickAt` inválido virando 0).
+
+**Contrato do `Rng`**: `() => number` em `[0, 1)`. Todo uso que vira índice ou inteiro (`randIntWith`, `shuffle`) passa por `unit(rng) = Math.min(Math.max(rng(), 0), 1 − 1e-12)` (valor não finito vira 0), via `src/utils/friendlies/rng.ts`, para um `rng` injetado fora do contrato (ex.: `() => 1` num teste) não estourar índice. `src/utils/core/random.ts` não muda.
 
 **OVER do usuário no amistoso**: `userOver = squad.freshTeamStrength.rating` (sem arredondar; exibido arredondado).
 
-**Posição**: `rank = 1 + nº de bots com fame > userFame` (empate favorece o usuário). Vai de 1 a 101.
+**Posição (tabela de classificação)**: mesma ordem da tabela da liga (`computeStandings`, `src/utils/league/leagueScheduler.ts:275`: `pontos → vitórias → saldo de gols → gols pró`), com **fama no lugar dos pontos**:
+`compareStanding(a, b) = (b.fame − a.fame) || (b.won − a.won) || (b.gd − a.gd) || (b.gf − a.gf)` (negativo: `a` fica acima).
+- `rank = 1 + nº de bots com compareStanding(bot, usuário) < 0`, ou seja, bots estritamente à frente pelos quatro critérios. **Empate total nos quatro critérios favorece o usuário** (fica acima do bot). Vai de 1 a 101.
+- Entre bots, depois dos quatro critérios: nome (`localeCompare(…, 'pt-BR')`) e, por último, `id` — ordem total e determinística (a liga cai na ordem de inserção; aqui não há ordem de inserção estável entre saves).
+- Partidas jogadas (`played`) não entram no desempate (a liga também não usa).
 
 **Bônus de posição**:
 `rankBonus(rank) = rank ≤ 10 ? 6 : rank ≤ 50 ? round1(6 · (51 − rank) / 41) : 0`
 (rank 11 → 5.9; 30 → 3.1; 50 → 0.1; 51+ → 0).
 
-**OVER do adversário**: `oppOver = clamp(round(userOver + rankBonus(rank) + U(−5, +5)), 35, 99)`, com `U` uniforme contínuo vindo do `rng`. Cada uma das 3 opções sorteia o seu.
+**Deslocamento do adversário** (gravado na opção): `offset = round1(rankBonus(rank) + U(−5, +5))`, com `U` uniforme contínuo vindo do `rng` e `rank` = posição do usuário no sorteio. Cada uma das 3 opções sorteia o seu. Faixa: `[−5, 11]`.
 
-**Limite de sorteios** (`draw(now)` na store): se `drawsUsed ≥ maxDraws` → recusa e devolve `false`; senão sorteia, grava `options`, `drawsUsed += 1`, limpa `selectedBotId` e salva. `drawsLeft = maxDraws − drawsUsed`. Só `beginMatch` zera `drawsUsed`.
+**OVER do adversário**: `oppOver = opponentOverFrom(userOver, offset) = clamp(round(userOver + offset), 35, 99)`.
+- No cartão do sorteio e no PreMatch: `userOver` = OVER do momento (estimativa, recalculada a cada troca de escalação).
+- No apito (`beginMatch(userOver, now)`): `userOver` = OVER do time que vai a campo; `oppOver`, prêmio (com o limite diário de `now`) e a fama em jogo são recalculados e fixados em `active`. `settle` usa só `active.userOver`/`active.oppOver`.
 
-**Escolha dos bots das opções**: 3 bots distintos sorteados entre os de posição a até ±15 da posição do usuário (janela cresce de 5 em 5 se houver menos de 3). O cartão mostra a fama e a posição do bot; o OVER mostrado é o OVER do dia (`oppOver`), não o `over` interno do bot.
+**Cotação** (`quoteOption(offset, userOver, paidWinsLeft)` → `FriendlyQuote`): `oppOver` como acima; `prize = paidWinsLeft > 0 ? friendlyPrize(oppOver) : 0`; `fameWin/Draw/Loss = fameDelta(userOver, oppOver, …)`. A store expõe `quote(opção, userOver, now)` (usa `paidWinsLeft(now)`).
 
-**Prêmio da vitória**: `friendlyPrize(oppOver) = clamp(roundTo500(8000 + (oppOver − 50) · 500), 8000, 25000)` (OVER 50 → 8k; 60 → 13k; 70 → 18k; 84+ → 25k). Se `paidWins.count ≥ paidWinsPerDay` no dia corrente → 0. O valor é fixado em `active.prize` no apito inicial.
+**Limite de sorteios** (`draw()` na store, sem `userOver`: o sorteio só depende da posição): se `drawsUsed ≥ maxDraws` → recusa e devolve `false`; senão sorteia, grava `options`, `drawsUsed += 1`, limpa `selectedBotId` e salva. `drawsLeft = maxDraws − drawsUsed`. Só `beginMatch` zera `drawsUsed`.
+
+**Escolha dos bots das opções**: 3 bots distintos sorteados entre os de posição a até ±15 da posição do usuário (`rankPool`: a janela cresce de `rankWindowGrow` em `rankWindowGrow`, mínimo 1, enquanto houver menos de 3 e ainda sobrar bot fora dela). Posições pela tabela de classificação acima. O cartão mostra a fama e a posição do bot; o OVER mostrado é a estimativa `opponentOverFrom(OVER atual, offset)`, não o `over` interno do bot.
+
+**Prêmio da vitória**: `friendlyPrize(oppOver) = clamp(roundTo500(8000 + (oppOver − 50) · 500), 8000, 25000)` (OVER 50 → 8k; 60 → 13k; 70 → 18k; 84+ → 25k). Se `paidWins.count ≥ paidWinsPerDay` no dia corrente → 0. O valor é recalculado e fixado em `active.prize` no apito inicial (com o `oppOver` do apito).
 
 **Fama (Elo sobre OVER)**:
 `E = 1 / (1 + 10^((oppOver − userOver) / 20))`
 - vitória: `Δ = max(4, round(30 · (1 − E)))`
 - empate: `Δ = clamp(round(30 · (0.5 − E)), −6, 6)`
 - derrota: `Δ = −max(3, round(30 · E))`
-- `fame = max(0, fame + Δ)`; o bot recebe `−Δ` (também `≥ 0`).
+- `fame = max(0, fame + Δ)`; `aplicado = fama depois − fama antes` (difere de `Δ` quando o piso 0 corta). O bot recebe `−aplicado` (também `≥ 0`): soma zero do ponto de vista do usuário (perder 15 com fama 5 tira só 5 do usuário e dá só 5 ao bot). Se o bot bate no piso 0 numa vitória do usuário, o usuário ainda ganha o `Δ` inteiro (o piso do bot não limita o usuário).
+- Estatísticas: o usuário soma o jogo (`addResult(stats, userScore, oppScore)`) e o bot soma o espelho (`addResult(stats, oppScore, userScore)`).
 
 Exemplos (`oppOver − userOver`): 0 → +15/0/−15; +5 → +19/+4/−11; −5 → +11/−4/−19; +10 → +23/+6/−7; +20 → +27/+6/−3.
 
 **Geração dos bots** (`generateBots(seed)`, `mulberry32(seed)` de `src/utils/core/random.ts`):
-para `i = 0..99`: `fame = max(10, round(1800 · (1 − i/100)^1.6) + randInt(−20, 20))`; `over = clamp(round(48 + 40 · fame/1800) + randInt(−4, 4), 40, 92)`; nome = combinação única de `FRIENDLY_BOT_NAME_PARTS` (prefixo + lugar), embaralhada pelo mesmo seed. Referências: top ≈ 1800, 10º ≈ 1550, 50º ≈ 610, 100º ≈ 10. Usuário começa em 0 (posição 101).
+para `i = 0..99`: `fame = max(10, round(1800 · (1 − i/100)^1.6) + randInt(−20, 20))`; `over = clamp(round(48 + 40 · fame/1800) + randInt(−4, 4), overFloor 40, overCeil 92)`; `stats` zeradas; nome = combinação única de `FRIENDLY_BOT_NAME_PARTS` (prefixo + lugar), embaralhada pelo mesmo seed. Referências: top ≈ 1800, 10º ≈ 1550, 50º ≈ 610, 100º ≈ 10. Usuário começa em 0 (posição 101) com `stats` zeradas. As estatísticas começam zeradas para todos: a tabela "começa a temporada" junto com o usuário e os bots acumulam jogos pela evolução simulada.
 
-**Nomes**: `FRIENDLY_BOT_NAME_PARTS = { prefixes: [10 itens], places: [≥ 20 itens] }` com lugares inventados, ex.: prefixos `Atlético`, `Esporte Clube`, `União`, `Grêmio Esportivo`, `Sociedade Esportiva`, `Associação`, `Racing`, `Sport Club`, `Real`, `Independente`; lugares `Pedra Funda`, `Vila Aurora`, `Lagoa Serena`, `Morro Azul`, `Campina Alta`, `Barra do Vento`, `Ribeira Dourada`, `Serra Velada`, `Porto Esmeralda`, `Vale Sereno`, `Alto do Ipê`, `Mata Funda`, `Cachoeira Mansa`, `Areia Branca do Sul`, `Bosque Real`, `Ilha Verde`, `Pontal da Brisa`, `Colina Rubra`, `Várzea Grande do Leste`, `Recanto do Sabiá`. A tarefa confere contra `docs/catalogo-nomes-ficticios.md` e `TEAM_ID_BY_NAME` (sem repetir nome de clube da liga nem de clube real). Escudo: `getTeamIdentity(name)` (cai no `fallbackIdentity`, determinístico pelo nome).
+**Nomes**: `FRIENDLY_BOT_NAME_PARTS = { prefixes: [10 itens], places: [≥ 20 itens] }` com lugares inventados, ex.: prefixos `Atlético`, `Esporte Clube`, `União`, `Grêmio Esportivo`, `Sociedade Esportiva`, `Associação`, `Racing`, `Sport Club`, `Real`, `Independente`; lugares `Pedra Funda`, `Vila Aurora`, `Lagoa Serena`, `Morro Azul`, `Campina Alta`, `Barra do Vento`, `Ribeira Dourada`, `Serra Velada`, `Porto Esmeralda`, `Vale Sereno`, `Alto do Ipê`, `Mata Funda`, `Cachoeira Mansa`, `Areia Branca do Sul`, `Bosque das Garças`, `Ilha Verde`, `Pontal da Brisa`, `Colina Rubra`, `Várzea Grande do Leste`, `Recanto do Sabiá` (o lugar `Bosque Real` virou `Bosque das Garças`: com o prefixo `Real` geraria "Real Bosque Real"). A tarefa confere contra `docs/catalogo-nomes-ficticios.md` e `TEAM_ID_BY_NAME` (sem repetir nome de clube da liga nem de clube real). Escudo: `getTeamIdentity(name)` (cai no `fallbackIdentity`, determinístico pelo nome).
 
 **Evolução dos bots** (`simulateBots`, chamada por `provider.refresh(now)` ao abrir `/friendlies`):
-`steps = min(72, floor((now − botsSimAt) / 1h))`; `botsSimAt += floor((now − botsSimAt)/1h) · 1h` (o excedente acima de 72 passos é descartado, o resto de tempo fica). Em cada passo, para cada bot:
-`alvo = (over − 48) / 40 · 1800`; `Δ = randInt(−6, 6) + randInt(−6, 6) + round((alvo − fame) · 0.03)`; `fame = max(0, fame + Δ)`.
-O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posições por hora, sem deriva infinita (puxão de volta ao alvo).
+`steps = min(72, floor((now − botsSimAt) / 1h))`; `botsSimAt += floor((now − botsSimAt)/1h) · 1h` (o excedente acima de 72 passos é descartado, o resto de tempo fica). Sem passo a dar (`steps ≤ 0`), devolve **o mesmo array** (sem cópia: a store não troca `bots` e nada reativo dispara à toa) e `simAt` só muda se o relógio voltou (`now < botsSimAt` → `now`). Em cada passo, para cada bot, **um jogo simulado**:
+- `alvo = max(fameMinStart, (over − 48) / 40 · 1800)` (piso: bot de OVER interno baixo não afunda até 0 e fica preso lá);
+- `Δ = randInt(−6, 6) + randInt(−6, 6) + round((alvo − fame) · 0.03)`;
+- resultado coerente com a fama: `Δ > simDrawBand (1)` → vitória; `Δ < −1` → derrota; senão empate (variação de fama de −1 a +1, como o empate do Elo, que é pequeno). Com o ruído de ±6+±6, dá cerca de 22% de empates;
+- placar plausível (`simScore`): vitória `gf = randInt(1, simWinGoalsMax 4)`, `ga = randInt(0, gf − 1)`; derrota é o espelho; empate `g = randInt(0, simDrawGoalsMax 2)` para os dois;
+- `fame = max(0, fame + Δ)`; `stats = addResult(stats, gf, ga)`.
+O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posições por hora, sem deriva infinita (puxão de volta ao alvo), e cada bot soma 1 jogo por hora simulada (até 72 por abertura da tela).
 
 ## 7. UI/UX
 
@@ -233,16 +273,18 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 2. Cartão do usuário: fama, posição `#n de 101`, OVER do amistoso (energia 100), bônus de posição atual.
 3. Ação: botão "Desafiar" (sempre ativo). Desabilitado com motivo apenas se houver amistoso ao vivo ("Acompanhar amistoso" leva para `/match`) ou `friendlyEligibleCount < 11` ("São precisos 11 atletas sem lesão e sem suspensão"). Se já houver opções sorteadas, "Desafiar" não sorteia: mostra as opções salvas.
 4. `OpponentRoulette` + 3 `OpponentCard` + botão "Re-sortear" com "Sorteios restantes: N" ao lado (N = `drawsLeft`; 2 logo depois do 1º sorteio). Com N = 0 o botão fica desabilitado e o aviso vira "Sem sorteios restantes: escolha um dos 3 adversários".
-5. `FriendlyRanking` (top 10 + linha do usuário destacada; se o usuário está no top 10, só a tabela).
+5. `FriendlyRanking`: tabela de classificação no mesmo formato da tabela da liga (`LeagueView.vue`), com **Fama no lugar de P**: colunas `# · Clube · Fama · J · V · E · D · GP · GC · SG` (SG com sinal, verde se ≥ 0 e vermelho se < 0, como na liga). Top 10 + linha do usuário destacada embaixo, separada por uma linha "…", quando ele está fora do top 10; se está no top 10, só a tabela (linha dele destacada no lugar). Legenda do critério no cabeçalho: "Fama • V • SG • GP". Em telas estreitas a tabela rola na horizontal dentro do cartão (`overflow-x-auto`, `min-w-[460px]`) com a coluna Clube fixa (`sticky left-0`), igual à liga; a página não rola na horizontal.
 6. `FriendlyHistory` (últimos 20: rival, placar, fama ±, prêmio).
 
 **Roleta**:
 - O resultado é calculado e salvo na store **antes** da animação (a animação é só visual; recarregar no meio mostra as opções já sorteadas).
-- 3 slots lado a lado (≥ 640 px) ou empilhados (mobile). Cada slot rola nomes e OVERs aleatórios dos bots (troca a cada 60 ms, desacelerando), e para em sequência: 900 ms, 1300 ms, 1700 ms. Ao parar, o slot vira o `OpponentCard` com um "pop" (`animate-pop` existente) e brilho dourado.
+- 3 slots lado a lado (≥ 640 px) ou empilhados (mobile). Cada slot rola nomes de bots e OVERs aleatórios em torno da estimativa da opção (troca a cada 60 ms, desacelerando), e para em sequência: 900 ms, 1300 ms, 1700 ms. Ao parar, o slot vira o `OpponentCard` com um "pop" (`animate-pop` existente) e brilho dourado.
 - `prefers-reduced-motion: reduce` → revela as 3 na hora.
 - Durante a animação, "Re-sortear" e "Jogar" ficam desabilitados. Re-sortear repete a animação e consome 1 dos 3 sorteios.
 
-**OpponentCard**: escudo, nome, posição `#n`, fama, OVER do dia com selo de diferença (`+3` em vermelho se mais forte, `−2` em verde se mais fraco), "Prêmio: R$ 18.000" (ou "R$ 0 — limite diário de vitórias pagas atingido"), "Fama: +19 / +4 / −11" (V/E/D), botão "Jogar (1 ficha)". Sem ficha: botão desabilitado com "Sem fichas — próxima em mm:ss".
+**OpponentCard**: escudo, nome, posição `#n`, fama, **"OVER estimado"** (rótulo explícito, com `~` antes do número) com selo de diferença (`+3` em vermelho se mais forte, `−2` em verde se mais fraco), "Prêmio: R$ 18.000" (ou "R$ 0 — limite diário de vitórias pagas atingido"), "Fama: +19 / +4 / −11" (V/E/D), nota curta "Estimativa com a escalação atual; os valores são fixados no apito inicial." e botão "Jogar (1 ficha)". Todos os números vêm de `friendlies.quote(opção, OVER atual, agora)` e mudam se o usuário mexer na escalação. Sem ficha: botão desabilitado com "Sem fichas — próxima em mm:ss".
+
+**PreMatch do amistoso**: OVER do rival (cabeçalho/barra de força), "Prêmio da Vitória" e "Fama em Jogo" mostram a cotação recalculada com o OVER atual (`quote`), com a legenda "Estimativa: fixado no apito inicial"; trocar titulares em "Ajustar Tática" atualiza os três na hora.
 
 **Fluxo**: "Jogar" → `friendlies.select(botId)` → `prepareMatch('friendly')` → PreMatch (tática, escalação, estimativa) → "Iniciar" gasta a ficha e zera os sorteios → MatchView → PostMatchSummary (bloco do amistoso) → "Voltar aos Amistosos" → `/friendlies` com novas opções vazias (precisa desafiar de novo, com 3 sorteios). Voltar do PreMatch sem iniciar mantém as 3 opções e o contador; pode escolher outra das 3.
 
@@ -278,6 +320,11 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 | Relógio do sistema voltado | `tokenTickAt`/`botsSimAt` limitados a `now`; nenhum ganho negativo. |
 | Fim de temporada (`applyEndOfSeason`) | Não afeta amistosos (fama, fichas e bots continuam). |
 | Limite diário | Virada de `dayStart` zera `paidWins.count`; opções sorteadas antes da virada recalculam o prêmio no `beginMatch`. |
+| Sortear com reservas fracos e jogar com o time forte | Não rende rival fraco: a opção guarda só o `offset`; `beginMatch` recalcula `oppOver` com o OVER do apito, e prêmio e fama saem desse `oppOver`. O cartão e o PreMatch avisam que os valores são estimativa. |
+| Empate de fama no ranking | Desempate pela regra da liga: vitórias → saldo → gols pró; empate total favorece o usuário; entre bots, nome e depois `id`. |
+| Derrota com fama baixa | Usuário com fama 5 perdendo 15 vai a 0; o bot ganha só 5 (o aplicado). |
+| Bot de OVER interno baixo | Alvo da simulação nunca abaixo de `fameMinStart` (10): não afunda a 0 e fica lá. |
+| Save com `NaN`/`undefined` em fichas ou estatísticas | `fromSave` e as funções de fichas saneiam com `Number.isFinite`; estatísticas inválidas viram 0. |
 
 ## 9. Estratégia de testes
 
@@ -289,6 +336,8 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
   3. Lesão no amistoso aparece no Elenco e tira o atleta da liga; amistoso não desconta lesões antigas.
   4. Cartões não geram suspensão; estatísticas de temporada e `matchHistory` não mudam.
   5. Fama: vitória/empate/derrota batem com a tabela de exemplos; fama não fica negativa.
+  5b. Farm de OVER: sortear com reservas (OVER baixo), voltar com titulares fortes → cartão e PreMatch mostram o OVER estimado subindo junto; o resultado usa o OVER recalculado no apito.
+  5c. Ranking: colunas Fama, J, V, E, D, GP, GC, SG; depois de um amistoso, J/V/E/D/GP/GC do usuário e do rival mudam; reabrir a tela horas depois aumenta o J dos bots.
   6. Recarregar no meio da partida retoma; apagar `super_xi_live_match_v1` e recarregar → toast de interrompido.
   7. Save antigo (sem `friendlies`) carrega com estado novo; nova carreira zera amistosos.
   8. Roleta com `prefers-reduced-motion` revela na hora; layout em 360 px sem rolagem horizontal.
@@ -305,6 +354,7 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 5. `feat(amistosos): geracao e simulacao dos bots` — `utils/friendlies/bots.ts` + nomes conferidos contra o catálogo.
 6. `feat(amistosos): provedor local de adversarios` — `utils/friendlies/localBotProvider.ts`.
 7. `feat(amistosos): store de amistosos com save` — `stores/friendlies.ts` (incl. `drawsUsed` e `draw()` com limite de 3, zerado em `beginMatch`) + `usePersistence` (save/load/clear) + `resolveOrphan` no `App.vue`.
+7b. Tarefa 6b do plano, correções da revisão do lote 1-7 (offset do rival, ranking como tabela com estatísticas, fama soma zero, piso do alvo, saneamento, contrato do `rng`, checagens), em 4 commits `fix(amistosos): ...` (ver plano).
 8. `feat(amistosos): recarga de fichas no ticker` — `useScouting` (fichas e energia sem congelar no amistoso).
 9. `feat(partida): competicao friendly no tipo e nas sessoes` — `MatchCompetition`, `sessions`, `COMPETITIONS_ORDER`, `COMP_SHORT`, `isSuspendedFor`/`ORDER`, `COMPETITION_NAMES`, `MatchSwitcher.NAMES`, `sectionMemory`.
 10. `feat(partida): forca do time sem cansaco` — opção `ignoreFatigue` em `calculateTeamStrength`, `squad.freshTeamStrength`, `friendlyEligibleCount`.
@@ -325,6 +375,10 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 - **Fama separada da reputação**: fama (PvP dos amistosos) e `club.reputation` (treinador/jogador; sobe na liga e com upgrades, alimenta header e ranking de treinadores) são independentes. Amistoso nunca mexe em `club.reputation`; nenhuma outra competição mexe na fama. A fama só aparece na tela de Amistosos (e no resumo pós-jogo do amistoso).
 - **Até 3 sorteios por desafio**: esgotados, é obrigatório escolher uma das 3 opções do último sorteio. A UI mostra "Sorteios restantes" e desabilita "Re-sortear" em 0.
 - **BottomNav com 4 itens principais + botão "+" central** que abre as demais opções (inclusive Amistosos).
+- **Revisão do lote 1-7 (2026-11-19)**:
+  - Brecha de farm fechada: a opção guarda o deslocamento do rival (`offset`), não o OVER absoluto; no apito `oppOver = clamp(round(OVER do apito + offset), 35, 99)` e prêmio e fama são recalculados; cartão e PreMatch mostram estimativa com o OVER do momento, marcada como tal.
+  - Ranking como tabela de classificação com a regra de ordenação da liga, fama no lugar dos pontos (fama → vitórias → saldo → gols pró); usuário e bots com estatísticas de amistoso; a evolução simulada dos bots gera jogos com resultado e placar coerentes com a variação de fama.
+  - Fama soma zero pelo delta aplicado ao usuário; piso `fameMinStart` no alvo da simulação dos bots; saneamento com `Number.isFinite` em fichas e `fromSave`; contrato `[0, 1)` do `Rng` com clamp; `FRIENDLIES` só leitura; `simulateBots` sem array novo quando não há passo; checagens determinísticas (bots com semente, bot de fama 2 montado à mão, usuário em 1º, janela crescente, desempate).
 
 ### Tomadas nesta spec (não vinham do dono)
 
@@ -338,3 +392,9 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 - Opções vêm de bots a até ±15 posições do usuário.
 - Partida perdida por save ao vivo corrompido não devolve a ficha nem conta resultado.
 - Sem test runner novo; sem migração numerada (campo aditivo no save v7).
+- (Revisão do lote 1-7) Estatísticas de todos começam zeradas, inclusive as dos 100 bots gerados e as de bots de saves antigos: não se inventa histórico; a tabela "começa a temporada" com o usuário.
+- (Revisão do lote 1-7) Um passo da simulação = um jogo por bot; empate quando a variação de fama fica em [−1, +1] (≈ 22% dos jogos); placares de 0 a 4 gols por lado.
+- (Revisão do lote 1-7) Empate total no ranking continua favorecendo o usuário, agora só depois dos quatro critérios da liga; entre bots o último desempate é nome (`pt-BR`) e depois `id`.
+- (Revisão do lote 1-7) `FriendliesSave.v` continua `1`: campos novos com padrão seguro; opções sorteadas no formato antigo são descartadas na carga (só saves de desenvolvimento).
+- (Revisão do lote 1-7) A opção não guarda mais prêmio nem fama em jogo (ficariam velhos): tudo sai de `quoteOption` com o OVER do momento. `draw()` deixa de receber `userOver` (o sorteio só depende da posição).
+- (Revisão do lote 1-7) `FRIENDLIES` fica só leitura por tipo (`DeepReadonly`), não por `as const`: `as const` transformaria os números em literais (`15`, `5`…) e quebraria contas como `let size = rankWindow; size += grow`. `FRIENDLY_BOT_NAME_PARTS` usa `as const`.
