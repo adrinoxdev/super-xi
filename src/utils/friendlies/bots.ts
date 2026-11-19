@@ -1,7 +1,7 @@
-import type { FriendlyBot, FriendlyRankingView } from '@/types/friendlies'
+import type { FriendlyBot, FriendlyRankingRow, FriendlyRankingView, FriendlyStanding, FriendlyStats } from '@/types/friendlies'
 import { FRIENDLIES, FRIENDLY_BOT_NAME_PARTS } from '@/config/friendlies'
 import { clamp, mulberry32, shuffle, type Rng } from '@/utils/core/random'
-import { rankedBots, userRank } from './ranking'
+import { emptyStats, goalDiff, rankedBots, userRank } from './ranking'
 
 export { userRank }
 
@@ -20,7 +20,7 @@ export function generateBots(seed: number): FriendlyBot[] {
   return Array.from({ length: b.count }, (_, i) => {
     const fame = Math.max(b.fameMinStart, Math.round(b.fameTop * (1 - i / b.count) ** b.fameCurve) + randIntWith(rng, -b.fameJitter, b.fameJitter))
     const over = clamp(Math.round(b.overMin + (b.overSpan * fame) / b.fameTop) + randIntWith(rng, -b.overJitter, b.overJitter), b.overFloor, b.overCeil)
-    return { id: `fb_${i + 1}`, name: names[i], over, fame }
+    return { id: `fb_${i + 1}`, name: names[i], over, fame, stats: emptyStats() }
   })
 }
 
@@ -44,10 +44,15 @@ export function simulateBots(bots: readonly FriendlyBot[], lastSimAt: number, no
   return { bots: next, simAt: lastSimAt + elapsed * b.simStepMs }
 }
 
-/** Top 10 do ranking (usuário incluído na posição dele) + a linha do usuário. */
-export function rankingView(bots: readonly FriendlyBot[], user: { name: string; fame: number }): FriendlyRankingView {
-  const uRank = userRank(user.fame, bots)
-  const rows = rankedBots(bots, user.fame).map((r) => ({ rank: r.rank, name: r.bot.name, fame: r.bot.fame, isUser: false }))
-  rows.splice(uRank - 1, 0, { rank: uRank, name: user.name, fame: user.fame, isUser: true })
-  return { top: rows.slice(0, FRIENDLIES.rankingTop), user: { rank: uRank, fame: user.fame } }
+function toRow(rank: number, id: string, name: string, fame: number, isUser: boolean, s: FriendlyStats): FriendlyRankingRow {
+  return { rank, id, name, fame, isUser, played: s.played, won: s.won, drawn: s.drawn, lost: s.lost, gf: s.gf, ga: s.ga, gd: goalDiff(s) }
+}
+
+/** Tabela de classificação: topo (usuário incluído na posição dele, se couber) + a linha do usuário. */
+export function rankingView(bots: readonly FriendlyBot[], user: FriendlyStanding & { name: string }): FriendlyRankingView {
+  const uRank = userRank(user, bots)
+  const userRow = toRow(uRank, 'user', user.name, user.fame, true, user.stats)
+  const rows = rankedBots(bots, user).map(({ bot, rank }) => toRow(rank, bot.id, bot.name, bot.fame, false, bot.stats))
+  rows.splice(uRank - 1, 0, userRow)
+  return { top: rows.slice(0, FRIENDLIES.rankingTop), user: userRow }
 }

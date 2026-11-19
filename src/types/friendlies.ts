@@ -1,9 +1,26 @@
+/** Estatísticas de amistoso (mesmas colunas da tabela da liga). `played` = won + drawn + lost. */
+export interface FriendlyStats {
+  played: number
+  won: number
+  drawn: number
+  lost: number
+  gf: number
+  ga: number
+}
+
+/** Quem entra no ranking: fama + estatísticas (FriendlyBot satisfaz por estrutura). */
+export interface FriendlyStanding {
+  fame: number
+  stats: FriendlyStats
+}
+
 /** Bot do ranking de amistosos. id 'fb_1'..'fb_100'. `over` é interno (só move o ranking), não é exibido. */
 export interface FriendlyBot {
   id: string
   name: string
   over: number
   fame: number
+  stats: FriendlyStats
 }
 
 /** Uma das 3 opções de um sorteio. `over` é o OVER do dia (exibido); `prize` já considera o limite diário. */
@@ -51,9 +68,26 @@ export interface FriendlySummary {
   paidCapReached: boolean
 }
 
+/** Linha da tabela de classificação dos amistosos. id = botId ou 'user'; gd = gf − ga. */
+export interface FriendlyRankingRow {
+  rank: number
+  id: string
+  name: string
+  fame: number
+  isUser: boolean
+  played: number
+  won: number
+  drawn: number
+  lost: number
+  gf: number
+  ga: number
+  gd: number
+}
+
+/** Top da tabela (usuário incluído na posição dele, se couber) + a linha do usuário. */
 export interface FriendlyRankingView {
-  top: Array<{ rank: number; name: string; fame: number; isUser: boolean }>
-  user: { rank: number; fame: number }
+  top: FriendlyRankingRow[]
+  user: FriendlyRankingRow
 }
 
 export type FriendlyOutcome = 'win' | 'draw' | 'loss'
@@ -61,7 +95,7 @@ export type FriendlyOutcome = 'win' | 'draw' | 'loss'
 /** Dados do usuário que o sorteio precisa. `paidWinsLeft` pode ser Infinity (limite diário desligado). */
 export interface FriendlyDrawContext {
   userOver: number
-  userFame: number
+  user: FriendlyStanding
   paidWinsLeft: number
 }
 
@@ -69,7 +103,7 @@ export interface FriendlyDrawContext {
 export interface FriendlyOpponentProvider {
   /** Avança o estado dos adversários até `now` (bots: simulação; futuro: busca remota). */
   refresh(now: number): void
-  ranking(userFame: number): FriendlyRankingView
+  ranking(user: FriendlyStanding): FriendlyRankingView
   drawOptions(ctx: FriendlyDrawContext, rng: () => number): FriendlyOption[]
   /** Aplica no adversário o efeito do resultado (bots: fama oposta). */
   reportResult(botId: string, userFameDelta: number): void
@@ -79,6 +113,8 @@ export interface FriendlyOpponentProvider {
 export interface FriendliesSave {
   v: 1
   fame: number
+  /** Campo novo (revisão do lote 1-7): ausente em save antigo → zerado. */
+  stats: FriendlyStats
   tokens: number
   tokenTickAt: number
   seed: number

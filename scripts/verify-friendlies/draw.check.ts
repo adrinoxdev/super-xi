@@ -2,6 +2,7 @@ import { createChecker } from './assert'
 import { drawOptions, friendlyPrize, opponentOver, rankBonus } from '@/utils/friendlies/draw'
 import { fameDelta } from '@/utils/friendlies/fame'
 import { mulberry32 } from '@/utils/core/random'
+import { emptyStats } from '@/utils/friendlies/ranking'
 import type { FriendlyBot } from '@/types/friendlies'
 
 export function run(): string[] {
@@ -29,8 +30,8 @@ export function run(): string[] {
   c.eq('OVER do rival com teto 99', opponentOver(98, 1, () => 0.99), 99)
   c.eq('OVER do rival com piso 35', opponentOver(20, 101, () => 0), 35)
 
-  const bots: FriendlyBot[] = Array.from({ length: 100 }, (_, i) => ({ id: `fb_${i + 1}`, name: `Bot ${i + 1}`, over: 60, fame: (100 - i) * 10 }))
-  const ctx = { userOver: 60, userFame: 0, paidWinsLeft: 0, bots }
+  const bots: FriendlyBot[] = Array.from({ length: 100 }, (_, i) => ({ id: `fb_${i + 1}`, name: `Bot ${i + 1}`, over: 60, fame: (100 - i) * 10, stats: emptyStats() }))
+  const ctx = { userOver: 60, user: { fame: 0, stats: emptyStats() }, paidWinsLeft: 0, bots }
   const opts = drawOptions(ctx, mulberry32(1))
   c.eq('3 opcoes', opts.length, 3)
   c.ok('bots distintos', new Set(opts.map((o) => o.botId)).size === 3)

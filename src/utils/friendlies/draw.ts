@@ -32,8 +32,8 @@ export function friendlyPrize(oppOver: number): number {
  */
 export function drawOptions(ctx: FriendlyDrawContext & { bots: readonly FriendlyBot[] }, rng: Rng): FriendlyOption[] {
   const { rankWindow, rankWindowGrow, options } = FRIENDLIES.draw
-  const uRank = userRank(ctx.userFame, ctx.bots)
-  const ranked = rankedBots(ctx.bots, ctx.userFame)
+  const uRank = userRank(ctx.user, ctx.bots)
+  const ranked = rankedBots(ctx.bots, ctx.user)
   let windowSize = rankWindow
   let pool = ranked.filter((r) => Math.abs(r.rank - uRank) <= windowSize)
   while (pool.length < options && pool.length < ranked.length) {

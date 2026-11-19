@@ -22,9 +22,9 @@ export function createLocalBotProvider(state: LocalBotState): FriendlyOpponentPr
       state.setBots(r.bots)
       state.setSimAt(r.simAt)
     },
-    ranking(userFame) {
+    ranking(user) {
       // O nome do usuário é trocado pelo nome do clube na tela (FriendlyRanking).
-      return rankingView(state.getBots(), { name: 'Você', fame: userFame })
+      return rankingView(state.getBots(), { name: 'Você', ...user })
     },
     drawOptions(ctx, rng) {
       return drawOptions({ ...ctx, bots: state.getBots() }, rng)

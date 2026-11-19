@@ -1,6 +1,15 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { FriendliesSave, FriendlyBot, FriendlyChallenge, FriendlyOption, FriendlyResult, FriendlySummary } from '@/types/friendlies'
+import type {
+  FriendliesSave,
+  FriendlyBot,
+  FriendlyChallenge,
+  FriendlyOption,
+  FriendlyResult,
+  FriendlyStanding,
+  FriendlyStats,
+  FriendlySummary
+} from '@/types/friendlies'
 import { FRIENDLIES } from '@/config/friendlies'
 import { dayStart } from '@/config/time'
 import { clamp } from '@/utils/core/random'
@@ -8,6 +17,7 @@ import { msToNextToken, regenTokens as regenTokenState, spendToken, type TokenSt
 import { applyFame, fameDelta, outcomeFromScore } from '@/utils/friendlies/fame'
 import { friendlyPrize } from '@/utils/friendlies/draw'
 import { generateBots, userRank } from '@/utils/friendlies/bots'
+import { addResult, emptyStats, sanitizeStats } from '@/utils/friendlies/ranking'
 import { createLocalBotProvider } from '@/utils/friendlies/localBotProvider'
 import { useClubStore } from '@/stores/club'
 
@@ -16,6 +26,7 @@ function freshState(now: number): FriendliesSave {
   return {
     v: 1,
     fame: FRIENDLIES.fame.start,
+    stats: emptyStats(),
     tokens: FRIENDLIES.tokens.initial,
     tokenTickAt: now,
     seed,
@@ -34,9 +45,12 @@ const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFin
 const isStr = (v: unknown): v is string => typeof v === 'string'
 const nums = (o: Record<string, unknown>, keys: string[]) => keys.every((k) => isNum(o[k]))
 
-function isBot(v: unknown): v is FriendlyBot {
+/** Bot do save: id/nome/OVER/fama válidos; OVER na faixa da geração, fama >= 0, estatísticas saneadas (save antigo sem `stats` → zeradas). */
+function toBot(v: unknown): FriendlyBot | null {
   const o = v as Record<string, unknown> | null
-  return !!o && isStr(o.id) && isStr(o.name) && nums(o, ['over', 'fame'])
+  if (!o || typeof o !== 'object' || !isStr(o.id) || !isStr(o.name) || !isNum(o.over) || !isNum(o.fame)) return null
+  const b = FRIENDLIES.bots
+  return { id: o.id, name: o.name, over: clamp(Math.round(o.over), b.overFloor, b.overCeil), fame: Math.max(0, Math.round(o.fame)), stats: sanitizeStats(o.stats) }
 }
 function isOption(v: unknown): v is FriendlyOption {
   const o = v as Record<string, unknown> | null
@@ -56,6 +70,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
   const init = freshState(Date.now())
 
   const fame = ref(init.fame)
+  const stats = ref<FriendlyStats>(init.stats)
   const tokens = ref(init.tokens)
   const tokenTickAt = ref(init.tokenTickAt)
   const seed = ref(init.seed)
@@ -77,8 +92,10 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     rng: Math.random
   })
 
-  const rank = computed(() => userRank(fame.value, bots.value))
-  const ranking = computed(() => provider.ranking(fame.value))
+  // Posição pela tabela de classificação (fama → vitórias → saldo → gols pró), como a liga.
+  const standing = computed<FriendlyStanding>(() => ({ fame: fame.value, stats: stats.value }))
+  const rank = computed(() => userRank(standing.value, bots.value))
+  const ranking = computed(() => provider.ranking(standing.value))
   const drawsLeft = computed(() => Math.max(0, FRIENDLIES.draw.maxDraws - drawsUsed.value))
   const selectedOption = computed(() => options.value?.find((o) => o.botId === selectedBotId.value) ?? null)
   // club.clubNow é atualizado a cada 1 s pelo ticker (useScouting): o contador da tela anda sozinho.
@@ -110,7 +127,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
   function draw(userOver: number, now: number): boolean {
     if (active.value) return false
     if (drawsUsed.value >= FRIENDLIES.draw.maxDraws) return false
-    options.value = provider.drawOptions({ userOver, userFame: fame.value, paidWinsLeft: paidWinsLeft(now) }, Math.random)
+    options.value = provider.drawOptions({ userOver, user: standing.value, paidWinsLeft: paidWinsLeft(now) }, Math.random)
     drawsUsed.value += 1
     selectedBotId.value = null
     return true
@@ -162,6 +179,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     const delta = fameDelta(a.userOver, a.oppOver, outcome)
     const before = fame.value
     fame.value = applyFame(before, delta)
+    stats.value = addResult(stats.value, userScore, oppScore)
     let prize = 0
     if (outcome === 'win' && a.prize > 0) {
       prize = a.prize
@@ -195,6 +213,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
 
   function apply(s: FriendliesSave) {
     fame.value = s.fame
+    stats.value = s.stats
     tokens.value = s.tokens
     tokenTickAt.value = s.tokenTickAt
     seed.value = s.seed
@@ -212,6 +231,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     return {
       v: 1,
       fame: fame.value,
+      stats: stats.value,
       tokens: tokens.value,
       tokenTickAt: tokenTickAt.value,
       seed: seed.value,
@@ -235,8 +255,9 @@ export const useFriendliesStore = defineStore('friendlies', () => {
       return
     }
     const seedV = isNum(d.seed) ? d.seed : now
-    const botsV =
-      Array.isArray(d.bots) && d.bots.length === FRIENDLIES.bots.count && d.bots.every(isBot) ? (d.bots as FriendlyBot[]) : generateBots(seedV)
+    // Bot inválido ou quantidade errada: regenera os bots (fama e estatísticas do usuário ficam).
+    const botList = Array.isArray(d.bots) ? d.bots.map(toBot) : []
+    const botsV = botList.length === FRIENDLIES.bots.count && botList.every((b): b is FriendlyBot => b !== null) ? botList : generateBots(seedV)
     const optionsV = Array.isArray(d.options) && d.options.length && d.options.every(isOption) ? (d.options as FriendlyOption[]) : null
     // Sem opções não há desafio em curso: o contador volta a 0 (o usuário não fica travado sem nada para escolher).
     const drawsV = optionsV && isNum(d.drawsUsed) ? clamp(Math.round(d.drawsUsed), 0, FRIENDLIES.draw.maxDraws) : 0
@@ -244,6 +265,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     apply({
       v: 1,
       fame: isNum(d.fame) ? Math.max(0, Math.round(d.fame)) : 0,
+      stats: sanitizeStats(d.stats),
       tokens: isNum(d.tokens) ? clamp(Math.floor(d.tokens), 0, FRIENDLIES.tokens.max) : FRIENDLIES.tokens.initial,
       tokenTickAt: isNum(d.tokenTickAt) ? Math.min(d.tokenTickAt, now) : now,
       seed: seedV,
@@ -265,6 +287,8 @@ export const useFriendliesStore = defineStore('friendlies', () => {
 
   return {
     fame,
+    stats,
+    standing,
     tokens,
     tokenTickAt,
     seed,

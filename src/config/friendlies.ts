@@ -1,5 +1,11 @@
 /** Amistosos: todos os números da modalidade (spec docs/superpowers/specs/2026-11-19-amistosos-design.md, seção 6). */
-export const FRIENDLIES = {
+/**
+ * Só leitura em profundidade, no tipo. Os números continuam `number`: com `as const` virariam literais (`15`, `5`…)
+ * e contas como `let size = rankWindow; size += grow` deixariam de compilar.
+ */
+type DeepReadonly<T> = { readonly [K in keyof T]: T[K] extends object ? DeepReadonly<T[K]> : T[K] }
+
+const config = {
   tokens: { max: 10, msPerToken: 6 * 60 * 1000, initial: 10 },
   bots: {
     count: 100,
@@ -15,7 +21,13 @@ export const FRIENDLIES = {
     simStepMs: 60 * 60 * 1000,
     simMaxSteps: 72,
     simNoise: 6,
-    simPull: 0.03
+    simPull: 0.03,
+    /** Passo simulado com |Δ de fama| até este valor conta como empate (≈ 22% dos jogos). */
+    simDrawBand: 1,
+    /** Gols do vencedor num passo simulado: 1..simWinGoalsMax; o perdedor faz menos. */
+    simWinGoalsMax: 4,
+    /** Gols de cada lado num empate simulado: 0..simDrawGoalsMax. */
+    simDrawGoalsMax: 2
   },
   draw: {
     spread: 5,
@@ -34,6 +46,8 @@ export const FRIENDLIES = {
   rankingTop: 10,
   recentMax: 20
 }
+
+export const FRIENDLIES: DeepReadonly<typeof config> = config
 
 /** Nomes dos bots: prefixo + lugar inventado (sem repetir clube da liga nem clube real). 10 x 20 = 200 combinações. */
 export const FRIENDLY_BOT_NAME_PARTS = {

@@ -2,6 +2,7 @@ import { createChecker } from './assert'
 import { allBotNames, generateBots, rankingView, simulateBots, userRank } from '@/utils/friendlies/bots'
 import { TEAM_ID_BY_NAME } from '@/utils/identity/teamIdentities'
 import { EXTRA_D_CLUBS } from '@/utils/league/extraClubs'
+import { emptyStats } from '@/utils/friendlies/ranking'
 import type { FriendlyBot } from '@/types/friendlies'
 
 const H = 60 * 60 * 1000
@@ -19,7 +20,7 @@ export function run(): string[] {
   c.ok('100o entre 10 e 21', bots[99].fame >= 10 && bots[99].fame <= 21, String(bots[99].fame))
   c.eq('mesma semente, mesmos bots', generateBots(42), bots)
   c.ok('semente diferente muda', JSON.stringify(generateBots(43)) !== JSON.stringify(bots))
-  c.eq('usuario com fama 0 em 101', userRank(0, bots), 101)
+  c.eq('usuario com fama 0 em 101', userRank({ fame: 0, stats: emptyStats() }, bots), 101)
 
   const taken = new Set([...Object.keys(TEAM_ID_BY_NAME), ...EXTRA_D_CLUBS.map((x) => x.name)].map((n) => n.toLowerCase()))
   c.ok('nenhum nome igual a clube existente', allBotNames().every((n) => !taken.has(n.toLowerCase())))
@@ -38,22 +39,17 @@ export function run(): string[] {
   c.ok('nao muta a entrada', bots[0].fame === generateBots(42)[0].fame)
 
   const small: FriendlyBot[] = [
-    { id: 'fb_1', name: 'A', over: 60, fame: 100 },
-    { id: 'fb_2', name: 'B', over: 60, fame: 50 },
-    { id: 'fb_3', name: 'C', over: 60, fame: 50 },
-    { id: 'fb_4', name: 'D', over: 60, fame: 10 }
+    { id: 'fb_1', name: 'A', over: 60, fame: 100, stats: emptyStats() },
+    { id: 'fb_2', name: 'B', over: 60, fame: 50, stats: emptyStats() },
+    { id: 'fb_3', name: 'C', over: 60, fame: 50, stats: emptyStats() },
+    { id: 'fb_4', name: 'D', over: 60, fame: 10, stats: emptyStats() }
   ]
-  c.eq('rankingView', rankingView(small, { name: 'Voce', fame: 50 }), {
-    top: [
-      { rank: 1, name: 'A', fame: 100, isUser: false },
-      { rank: 2, name: 'Voce', fame: 50, isUser: true },
-      { rank: 3, name: 'B', fame: 50, isUser: false },
-      { rank: 4, name: 'C', fame: 50, isUser: false },
-      { rank: 5, name: 'D', fame: 10, isUser: false }
-    ],
-    user: { rank: 2, fame: 50 }
+  const row = (rank: number, id: string, name: string, fame: number, isUser = false) => ({ rank, id, name, fame, isUser, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0 })
+  c.eq('rankingView', rankingView(small, { name: 'Voce', fame: 50, stats: emptyStats() }), {
+    top: [row(1, 'fb_1', 'A', 100), row(2, 'user', 'Voce', 50, true), row(3, 'fb_2', 'B', 50), row(4, 'fb_3', 'C', 50), row(5, 'fb_4', 'D', 10)],
+    user: row(2, 'user', 'Voce', 50, true)
   })
-  c.eq('rankingView corta no top 10', rankingView(bots, { name: 'Voce', fame: 0 }).top.length, 10)
-  c.eq('rankingView usuario fora do top', rankingView(bots, { name: 'Voce', fame: 0 }).user, { rank: 101, fame: 0 })
+  c.eq('rankingView corta no top 10', rankingView(bots, { name: 'Voce', fame: 0, stats: emptyStats() }).top.length, 10)
+  c.eq('rankingView usuario fora do top', rankingView(bots, { name: 'Voce', fame: 0, stats: emptyStats() }).user.rank, 101)
   return c.fails
 }
