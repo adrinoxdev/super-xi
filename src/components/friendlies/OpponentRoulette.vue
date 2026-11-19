@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { FriendlyBot, FriendlyOption, FriendlyQuote } from '@/types/friendlies'
 import OpponentCard from './OpponentCard.vue'
 
@@ -81,6 +81,11 @@ function spin() {
 }
 
 watch(() => props.spinKey, spin)
+
+// A roleta só nasce depois do 1º sorteio (v-if), já com spinKey=1: anima ao montar. Recarregar (spinKey=0) não anima.
+onMounted(() => {
+  if (props.spinKey > 0) spin()
+})
 
 onBeforeUnmount(() => {
   clearTimers()
