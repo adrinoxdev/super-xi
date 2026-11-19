@@ -5,6 +5,7 @@ import type { FormationName } from '@/types/match'
 import { applyAging, generatePlayer, refreshPlayerEconomy, retireAgeFor } from '@/utils/player/generatePlayer'
 import { buildFormationSlots, calculateTeamStrength, getEffectiveOvr, pickBestLineup } from '@/utils/match/calculateTeamStrength'
 import { useClubStore } from '@/stores/club'
+import { isSuspendedFor } from '@/utils/player/suspension'
 import { FORMATIONS, MIN_SQUAD_SIZE, SQUAD_MAX_SIZE, STAMINA_REGEN_MS_PER_POINT } from '@/config'
 
 export interface SquadSave {
@@ -28,6 +29,12 @@ export const useSquadStore = defineStore('squad', () => {
   const overLimit = computed(() => players.value.length > SQUAD_MAX_SIZE)
 
   const teamStrength = computed(() => calculateTeamStrength(pitchSlots.value))
+  // OVER do amistoso: a mesma escalação com energia 100 (regra 5 da spec de amistosos).
+  const freshTeamStrength = computed(() => calculateTeamStrength(pitchSlots.value, undefined, { ignoreFatigue: true }))
+  // Atletas que podem jogar amistoso: sem lesão, sem suspensão em nenhuma competição e não emprestados.
+  const friendlyEligibleCount = computed(
+    () => players.value.filter((p) => !p.injury && !p.isLoanedOut && !isSuspendedFor(p, 'friendly')).length
+  )
 
   const totalWageBill = computed(() =>
     players.value.reduce((sum, p) => sum + (p.isLoanedOut ? 0 : p.wage), 0)
@@ -218,6 +225,8 @@ export const useSquadStore = defineStore('squad', () => {
     starterIds,
     pitchSlots,
     teamStrength,
+    freshTeamStrength,
+    friendlyEligibleCount,
     totalWageBill,
     activeWagePlayersCount,
     loanedOutCount,

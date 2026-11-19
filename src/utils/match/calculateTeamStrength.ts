@@ -28,10 +28,15 @@ export function positionPenalty(playerPos: PlayerPosition, slotRole: PlayerPosit
   return (a === 'DEF' && b === 'ATT') || (a === 'ATT' && b === 'DEF') ? -14 : -8
 }
 
-export function getEffectiveOvr(player: Player | null, slotRole: PlayerPosition): number {
+/** `ignoreFatigue`: amistoso, todos jogam como se tivessem energia 100. */
+export interface StrengthOpts {
+  ignoreFatigue?: boolean
+}
+
+export function getEffectiveOvr(player: Player | null, slotRole: PlayerPosition, opts?: StrengthOpts): number {
   if (!player) return 0
   const posPenalty = positionPenalty(player.position, slotRole)
-  const fatiguePenalty = (player.stamina ?? 100) < 60 ? -3 : 0
+  const fatiguePenalty = !opts?.ignoreFatigue && (player.stamina ?? 100) < 60 ? -3 : 0
   const injuryPenalty = player.injury ? -INJURY.playingInjuredPenalty : 0
   return clamp(player.overall + posPenalty + fatiguePenalty + injuryPenalty, 15, 99)
 }
@@ -46,7 +51,8 @@ const SECTOR_WEIGHTS: Record<'atk' | 'mid' | 'def', { atk: number; mid: number; 
 /** `unavailable`: atletas que não jogam esta partida (expulsos, suspensos): a vaga conta como vazia. */
 export function calculateTeamStrength(
   slots: Array<{ player: Player | null; role: PlayerPosition }>,
-  unavailable?: ReadonlySet<string>
+  unavailable?: ReadonlySet<string>,
+  opts?: StrengthOpts
 ): TeamStrengthBreakdown {
   const sum = { atk: 0, mid: 0, def: 0 }
   const wsum = { atk: 0, mid: 0, def: 0 }
@@ -54,7 +60,7 @@ export function calculateTeamStrength(
     const group = ['ST', 'LW', 'RW'].includes(slot.role) ? 'atk' : ['CAM', 'CM', 'CDM'].includes(slot.role) ? 'mid' : 'def'
     const w = SECTOR_WEIGHTS[group]
     const out = !!slot.player && !!unavailable?.has(slot.player.id)
-    const eff = slot.player && !out ? getEffectiveOvr(slot.player, slot.role) : 0 // vaga vazia (ou indisponível) conta como 0
+    const eff = slot.player && !out ? getEffectiveOvr(slot.player, slot.role, opts) : 0 // vaga vazia (ou indisponível) conta como 0
     for (const k of ['atk', 'mid', 'def'] as const) {
       sum[k] += eff * w[k]
       wsum[k] += w[k]
