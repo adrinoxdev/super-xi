@@ -94,12 +94,15 @@ function onRedraw() {
       </BaseCard>
     </div>
 
-    <BaseCard class="flex flex-col items-center text-center gap-4">
-      <TokenBar :tokens="friendlies.tokens" :max="FRIENDLIES.tokens.max" :next-in="tokenBarNext" />
-      <BaseButton class="w-full sm:w-auto sm:min-w-56 px-6 py-3 min-h-12 text-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed" :disabled="!isLive && !!challengeBlock" @click="onChallenge">
-        <Dices class="w-4 h-4" />
-        {{ isLive ? 'Acompanhar amistoso' : 'Desafiar' }}
-      </BaseButton>
+    <BaseCard class="space-y-3">
+      <!-- Fichas à esquerda (onde estavam); só o botão fica centralizado no cartão. -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
+        <TokenBar :tokens="friendlies.tokens" :max="FRIENDLIES.tokens.max" :next-in="tokenBarNext" />
+        <BaseButton class="w-full sm:w-auto sm:min-w-56 sm:justify-self-center px-6 py-3 min-h-12 text-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed" :disabled="!isLive && !!challengeBlock" @click="onChallenge">
+          <Dices class="w-4 h-4" />
+          {{ isLive ? 'Acompanhar amistoso' : 'Desafiar' }}
+        </BaseButton>
+      </div>
       <div class="space-y-1">
         <p v-if="!isLive && challengeBlock" class="text-xs text-dangerpro">{{ challengeBlock }}</p>
         <p v-else class="text-xs text-ink-muted">Sortear não gasta ficha. A ficha é gasta só quando a partida começa.</p>
