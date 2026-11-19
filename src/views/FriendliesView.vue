@@ -114,6 +114,15 @@ function onRedraw() {
       <div class="order-1 lg:order-2 lg:col-span-4 min-w-0 space-y-4">
         <div>
         <div v-if="friendlies.options" ref="optionsEl" class="space-y-3 scroll-mt-24">
+          <div class="flex flex-wrap items-center gap-3">
+            <BaseButton variant="secondary" class="px-4 py-2.5 min-h-12 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="redrawDisabled" @click="onRedraw">
+              <RefreshCw class="w-4 h-4" />
+              Re-sortear
+            </BaseButton>
+            <span class="text-xs" :class="friendlies.drawsLeft > 0 ? 'text-ink-muted' : 'text-amberpro font-bold'">
+              {{ friendlies.drawsLeft > 0 ? `Sorteios restantes: ${friendlies.drawsLeft}` : 'Sem sorteios restantes: escolha um dos 3 adversários' }}
+            </span>
+          </div>
           <OpponentRoulette
             :options="friendlies.options"
             :quotes="quotes"
@@ -125,15 +134,6 @@ function onRedraw() {
             @play="play"
             @spinning="spinning = $event"
           />
-          <div class="flex flex-wrap items-center gap-3">
-            <BaseButton variant="secondary" class="px-4 py-2.5 min-h-12 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="redrawDisabled" @click="onRedraw">
-              <RefreshCw class="w-4 h-4" />
-              Re-sortear
-            </BaseButton>
-            <span class="text-xs" :class="friendlies.drawsLeft > 0 ? 'text-ink-muted' : 'text-amberpro font-bold'">
-              {{ friendlies.drawsLeft > 0 ? `Sorteios restantes: ${friendlies.drawsLeft}` : 'Sem sorteios restantes: escolha um dos 3 adversários' }}
-            </span>
-          </div>
         </div>
         <BaseCard v-else class="flex flex-col items-center text-center gap-2 py-8">
           <Dices class="w-8 h-8 text-gold" />
