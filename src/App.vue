@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header.vue'
 import BottomNav from '@/components/layout/BottomNav.vue'
 import AppToast from '@/components/ui/AppToast.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import CelebrationModal from '@/components/ui/CelebrationModal.vue'
 import InstallPrompt from '@/components/ui/InstallPrompt.vue'
 import OfflineRewardModal from '@/components/club/OfflineRewardModal.vue'
 import PlayerCompare from '@/components/player/PlayerCompare.vue'
@@ -51,6 +52,14 @@ onMounted(() => {
     }
   } else initializeFreshCareer()
   startMissionTicker()
+  // Só depois do carregamento: um troféu novo na galeria (título ou subida) abre a celebração.
+  watch(
+    () => club.trophyGallery.length,
+    (now, before) => {
+      const t = club.trophyGallery[0]
+      if (t && now === before + 1) ui.celebrate(t.type, t.title, t.prize)
+    }
+  )
   document.addEventListener('visibilitychange', onVisibility)
   window.addEventListener('beforeunload', saveGame)
 })
@@ -75,6 +84,7 @@ onBeforeUnmount(() => {
     <PlayerDetails />
     <LoanMarketModal />
     <ConfirmDialog />
+    <CelebrationModal />
     <OfflineRewardModal />
     <InstallPrompt />
   </div>

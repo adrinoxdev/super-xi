@@ -11,7 +11,7 @@ const STATIC_SUBTITLES: Record<string, string> = {
   '/friendlies': 'Fichas e ranking',
   '/scouting': 'Olheiros e base',
   '/squad': 'Time e formação',
-  '/matches': 'Jogos realizados',
+  '/history': 'Partidas realizadas',
   '/club': 'Estrutura e finanças'
 }
 
@@ -25,7 +25,7 @@ export function usePageSubtitle() {
     const p = route.path
     if (p === '/league') return league.currentStageLabel.replace(/^Série \w+ — /, '')
     if (p === '/pre-match' || p === '/match') return COMPETITION_NAMES[match.activeMatchCompetition]
-    if (p.startsWith('/matches/')) return 'Detalhe do jogo'
+    if (p.startsWith('/history/')) return 'Detalhe do jogo'
     return STATIC_SUBTITLES[p] ?? ''
   })
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PlayCircle, Receipt, RotateCcw, Trophy, Wallet } from 'lucide-vue-next'
+import { PlayCircle, Receipt, RotateCcw, Trophy, Volume2, VolumeX, Wallet } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useClubStore } from '@/stores/club'
 import { useMatchStore } from '@/stores/match'
@@ -9,6 +9,7 @@ import { useNavigation } from '@/composables/useNavigation'
 import { useHeaderStats } from '@/composables/useHeaderStats'
 import { usePageSubtitle } from '@/composables/usePageSubtitle'
 import { useSeason } from '@/composables/useSeason'
+import { useSfx } from '@/composables/useSfx'
 import { formatCurrency } from '@/utils/format/formatCurrency'
 import ClubCrest from '@/components/ui/ClubCrest.vue'
 import { version as appVersion } from '../../../package.json'
@@ -23,6 +24,7 @@ const { currentPageTitle, isMatchRoute, goToMatchTab } = useNavigation()
 const { stats } = useHeaderStats()
 const { subtitle } = usePageSubtitle()
 const { resetCareer } = useSeason()
+const { muted, toggleMute } = useSfx()
 </script>
 
 <template>
@@ -75,6 +77,18 @@ const { resetCareer } = useSeason()
       >
         <PlayCircle class="w-3.5 h-3.5 shrink-0" />
         <span class="whitespace-nowrap">Voltar à partida</span>
+      </button>
+
+      <button
+        type="button"
+        @click="toggleMute"
+        :title="muted ? 'Ligar efeitos sonoros' : 'Desligar efeitos sonoros'"
+        :aria-label="muted ? 'Ligar efeitos sonoros' : 'Desligar efeitos sonoros'"
+        :aria-pressed="!muted"
+        class="p-2.5 md:p-2 rounded-xl border border-borderline text-ink-muted hover:text-ink hover:border-gold transition-colors"
+      >
+        <VolumeX v-if="muted" class="w-4 h-4" />
+        <Volume2 v-else class="w-4 h-4 text-gold" />
       </button>
 
       <button

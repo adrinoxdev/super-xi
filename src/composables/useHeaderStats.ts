@@ -32,7 +32,7 @@ export function useHeaderStats() {
   const serieLabel = computed(() => `Série ${league.serieMeta.code} · T${club.season}`)
 
   const stats = computed<HeaderStat[]>(() => {
-    if (route.path.startsWith('/matches')) {
+    if (route.path.startsWith('/history')) {
       const h = match.matchHistory
       const wins = h.filter((m) => outcomeOf(m) === 'win').length
       const draws = h.filter((m) => outcomeOf(m) === 'draw').length

@@ -32,6 +32,13 @@ export const useUiStore = defineStore('ui', () => {
   })
   const playerModal = ref<{ open: boolean; playerId: string | null }>({ open: false, playerId: null })
   const loanMarketModalOpen = ref(false)
+  /** Celebração de título ou subida de divisão (confetes + aplausos). */
+  const celebration = ref<{ open: boolean; kind: 'title' | 'promotion'; title: string; prize: number }>({
+    open: false,
+    kind: 'title',
+    title: '',
+    prize: 0,
+  })
   const backupCodeText = ref('')
 
   const confirmDialog = ref({
@@ -89,6 +96,12 @@ export const useUiStore = defineStore('ui', () => {
   function closePlayer() {
     playerModal.value.open = false
   }
+  function celebrate(kind: 'title' | 'promotion', title: string, prize: number) {
+    celebration.value = { open: true, kind, title, prize }
+  }
+  function closeCelebration() {
+    celebration.value.open = false
+  }
   function openLoanMarket() {
     loanMarketModalOpen.value = true
   }
@@ -98,7 +111,7 @@ export const useUiStore = defineStore('ui', () => {
 
   return {
     toast, compSubTab, hiddenPodiumSeason, selectedPitchSlotIndex, selectedRosterPlayerId, squadPositionFilter, compareModal, playerModal,
-    loanMarketModalOpen, backupCodeText, confirmDialog,
+    loanMarketModalOpen, backupCodeText, confirmDialog, celebration, celebrate, closeCelebration,
     askConfirm, resolveConfirm, showToast, openCompare, closeCompare, openPlayer, closePlayer, openLoanMarket, closeLoanMarket,
   }
 })

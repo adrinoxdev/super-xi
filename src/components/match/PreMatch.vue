@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Play, Shield } from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
+import TacticSheet from '@/components/match/TacticSheet.vue'
 import MentalitySelector from '@/components/ui/MentalitySelector.vue'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
 import MatchBackButton from '@/components/match/MatchBackButton.vue'
@@ -24,7 +24,7 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import ListRow from '@/components/ui/ListRow.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
-const router = useRouter()
+const tacticOpen = ref(false)
 const club = useClubStore()
 const match = useMatchStore()
 const { selectedMentality, mentalityInfo } = storeToRefs(match)
@@ -111,7 +111,7 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
         <MatchBackButton class="px-4 py-3 min-h-11 rounded-xl border border-borderline hover:bg-subtle text-ink-muted hover:text-ink text-sm font-bold transition-colors flex items-center justify-center gap-2" />
         <button
           type="button"
-          @click="router.push('/squad')"
+          @click="tacticOpen = true"
           class="px-4 py-3 min-h-11 rounded-xl bg-subtle hover:bg-borderline text-ink text-sm font-bold transition-colors flex items-center justify-center gap-2"
         >
           <Shield class="w-4 h-4 text-emeraldpro" />
@@ -227,5 +227,6 @@ const drawPct = computed(() => Math.max(0, 100 - winPct.value - lossPct.value))
         *Estimativa pela diferença de OVER, mentalidade e mando. Zebras podem acontecer.
       </p>
     </ListRow>
+    <TacticSheet v-if="tacticOpen" @close="tacticOpen = false" />
   </BaseCard>
 </template>

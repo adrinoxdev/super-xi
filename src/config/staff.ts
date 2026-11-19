@@ -33,7 +33,7 @@ export function staffContractCost(baseCost: number, division: number): number {
 // cost = valor base de cada contrato de 7 dias na série D (multiplicado por STAFF_SERIES_COST_MULT nas séries acima).
 export const STAFF_CATALOG: Array<{ key: StaffKey; title: string; cost: number; description: string }> = [
   { key: 'assistantCoach', title: 'Auxiliar Técnico', cost: 90000, description: '+30% na evolução técnica individual após as partidas.' },
-  { key: 'fitnessCoach', title: 'Preparador Físico', cost: 80000, description: '-45% de desgaste físico nos 90 min e recuperação muito mais rápida.' },
+  { key: 'fitnessCoach', title: 'Preparador Físico', cost: 80000, description: '-45% de desgaste físico nos 90 min e recuperação de energia muito mais rápida entre as partidas.' },
   { key: 'chiefScout', title: 'Olheiro-Chefe', cost: 120000, description: '+15% de chance de Joias Raras e promessas bem melhores na Base.' },
   { key: 'financeDirector', title: 'Diretor Financeiro', cost: 110000, description: '+10% na receita de bilheteria e patrocínio em cada partida.' },
   { key: 'marketAnalyst', title: 'Analista de Mercado', cost: 85000, description: 'Relatórios de scouting 10 pontos mais precisos e +10% no valor de venda de atletas.' },

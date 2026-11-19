@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { MailWarning, Clock3, Shield, Play, Trophy, Radar, CalendarClock } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import QuickStatusPanel from '@/components/club/QuickStatusPanel.vue'
 import FinanceSummary from '@/components/club/FinanceSummary.vue'
 import TeamPowerBar from '@/components/ui/TeamPowerBar.vue'
 import TeamCrest from '@/components/ui/TeamCrest.vue'
@@ -102,6 +103,8 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
         </p>
       </div>
     </div>
+
+    <QuickStatusPanel />
 
     <FinanceSummary />
 
