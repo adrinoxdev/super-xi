@@ -6,7 +6,7 @@
 type DeepReadonly<T> = { readonly [K in keyof T]: T[K] extends object ? DeepReadonly<T[K]> : T[K] }
 
 const config = {
-  tokens: { max: 10, msPerToken: 6 * 60 * 1000, initial: 10 },
+  tokens: { max: 10, msPerToken: 10 * 60 * 1000, initial: 10 },
   bots: {
     count: 100,
     fameTop: 1800,

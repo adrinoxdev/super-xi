@@ -36,7 +36,7 @@ export function useScouting() {
       // como se tivessem energia 100 e o jogo não consome nem recupera energia).
       if (match.liveCompetitions.some((c) => c !== 'friendly')) club.staminaTickAt = nowTick.value
       else squad.regenStamina(nowTick.value)
-      // Fichas de amistoso: +1 a cada 6 min de tempo real; o primeiro tick depois de abrir aplica o tempo offline.
+      // Fichas de amistoso: +1 a cada 10 min de tempo real; o primeiro tick depois de abrir aplica o tempo offline.
       friendlies.regenTokens(nowTick.value)
       if (nowTick.value - lastActiveTouch >= 30000 && document.visibilityState === 'visible') {
         lastActiveTouch = nowTick.value
