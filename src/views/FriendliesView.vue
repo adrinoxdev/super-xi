@@ -5,7 +5,7 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import SectionTitle from '@/components/ui/SectionTitle.vue'
 import TokenBar from '@/components/friendlies/TokenBar.vue'
-import OpponentCard from '@/components/friendlies/OpponentCard.vue'
+import OpponentRoulette from '@/components/friendlies/OpponentRoulette.vue'
 import FriendlyRanking from '@/components/friendlies/FriendlyRanking.vue'
 import FriendlyHistory from '@/components/friendlies/FriendlyHistory.vue'
 import { useFriendliesStore } from '@/stores/friendlies'
@@ -93,18 +93,17 @@ function onRedraw() {
     </BaseCard>
 
     <div v-if="friendlies.options" ref="optionsEl" class="space-y-3 scroll-mt-24">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <OpponentCard
-          v-for="opt in friendlies.options"
-          :key="opt.botId"
-          :option="opt"
-          :quote="quotes[opt.botId]"
-          :user-over="userOver"
-          :disabled="playDisabled"
-          :block-label="playBlock"
-          @play="play"
-        />
-      </div>
+      <OpponentRoulette
+        :options="friendlies.options"
+        :quotes="quotes"
+        :bots="friendlies.bots"
+        :spin-key="spinKey"
+        :user-over="userOver"
+        :disabled="playDisabled"
+        :block-label="playBlock"
+        @play="play"
+        @spinning="spinning = $event"
+      />
       <div class="flex flex-wrap items-center gap-3">
         <BaseButton variant="secondary" class="px-4 py-2.5 min-h-12 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="redrawDisabled" @click="onRedraw">
           <RefreshCw class="w-4 h-4" />
