@@ -64,11 +64,23 @@ function audio(): { c: AudioContext; out: GainNode } | null {
   }
 }
 
+/** Ruído rosa (mais grave que o branco: soa como multidão, não como chiado). */
 function noise(c: AudioContext): AudioBuffer {
   if (!noiseBuf) {
-    noiseBuf = c.createBuffer(1, c.sampleRate * 2, c.sampleRate)
+    noiseBuf = c.createBuffer(1, c.sampleRate * 3, c.sampleRate)
     const d = noiseBuf.getChannelData(0)
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0
+    for (let i = 0; i < d.length; i++) {
+      const w = Math.random() * 2 - 1
+      b0 = 0.99886 * b0 + w * 0.0555179
+      b1 = 0.99332 * b1 + w * 0.0750759
+      b2 = 0.969 * b2 + w * 0.153852
+      b3 = 0.8665 * b3 + w * 0.3104856
+      b4 = 0.55 * b4 + w * 0.5329522
+      b5 = -0.7616 * b5 - w * 0.016898
+      d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11
+      b6 = w * 0.115926
+    }
   }
   return noiseBuf
 }
@@ -157,32 +169,46 @@ export function playWhistle(kind: WhistleKind) {
 
 // ---------- Torcida ----------
 
-/** Rugido da torcida: ruído filtrado com swell e leve tremolo. `power` 0..1. */
+/** Curva de ganho irregular (muitas vozes se somando, sem pulsar de forma regular). */
+function randomCurve(n: number, depth: number): Float32Array {
+  const v = new Float32Array(n)
+  for (let i = 0; i < n; i++) v[i] = 1 - depth * Math.random()
+  return v
+}
+
+/**
+ * Rugido da torcida: ruído rosa em 3 faixas (corpo, voz, brilho) com ataque rápido, queda longa e oscilação irregular.
+ * `power` 0..1.
+ */
 function crowdRoar(c: AudioContext, out: GainNode, at: number, dur: number, power: number, centre = 1100) {
-  const src = noiseSource(c, at, dur + 0.2)
-  const bp = c.createBiquadFilter()
-  bp.type = 'bandpass'
-  bp.frequency.setValueAtTime(centre * 0.7, at)
-  bp.frequency.linearRampToValueAtTime(centre * 1.25, at + dur * 0.35)
-  bp.frequency.linearRampToValueAtTime(centre * 0.8, at + dur)
-  bp.Q.value = 0.7
-  const lfo = c.createOscillator()
-  lfo.frequency.value = 5.5
-  const lfoAmt = c.createGain()
-  lfoAmt.gain.value = 0.12 * power
-  const g = c.createGain()
-  const peak = 0.55 * power
-  g.gain.setValueAtTime(0.0001, at)
-  g.gain.exponentialRampToValueAtTime(peak, at + Math.min(0.5, dur * 0.2))
-  g.gain.setValueAtTime(peak, at + dur * 0.6)
-  g.gain.exponentialRampToValueAtTime(0.0001, at + dur)
-  lfo.connect(lfoAmt)
-  lfoAmt.connect(g.gain)
-  src.connect(bp)
-  bp.connect(g)
-  g.connect(out)
-  lfo.start(at)
-  lfo.stop(at + dur + 0.2)
+  const layers: Array<{ f: number; q: number; vol: number }> = [
+    { f: centre * 0.35, q: 0.6, vol: 1 },
+    { f: centre, q: 0.8, vol: 0.9 },
+    { f: centre * 2.4, q: 0.7, vol: 0.35 }
+  ]
+  const env = c.createGain()
+  const peak = 0.9 * power
+  const rise = Math.min(0.25, dur * 0.12)
+  env.gain.setValueAtTime(0.0001, at)
+  env.gain.exponentialRampToValueAtTime(peak, at + rise)
+  env.gain.setTargetAtTime(peak * 0.55, at + rise, dur * 0.18)
+  env.gain.setTargetAtTime(0.0001, at + dur * 0.7, dur * 0.12)
+  env.connect(out)
+  for (const l of layers) {
+    const src = noiseSource(c, at, dur + 0.5)
+    const bp = c.createBiquadFilter()
+    bp.type = 'bandpass'
+    bp.frequency.value = l.f
+    bp.Q.value = l.q
+    const am = c.createGain()
+    am.gain.setValueCurveAtTime(randomCurve(Math.max(4, Math.round(dur * 9)), 0.35), at, dur)
+    const g = c.createGain()
+    g.gain.value = l.vol * 2.2
+    src.connect(bp)
+    bp.connect(am)
+    am.connect(g)
+    g.connect(env)
+  }
 }
 
 /** Vogal coletiva ("aaah", "uuh"): vários serrotes desafinados passando por filtros de formante. */
@@ -196,10 +222,12 @@ function crowdVowel(
   formants: [number, number],
   vol: number
 ) {
+  // Filtros de formante (Q alto) deixam passar pouco sinal: ganho de compensação.
+  const loud = vol * 9
   const g = c.createGain()
   g.gain.setValueAtTime(0.0001, at)
-  g.gain.exponentialRampToValueAtTime(vol, at + 0.12)
-  g.gain.setValueAtTime(vol, at + dur * 0.5)
+  g.gain.exponentialRampToValueAtTime(loud, at + 0.12)
+  g.gain.setValueAtTime(loud, at + dur * 0.5)
   g.gain.exponentialRampToValueAtTime(0.0001, at + dur)
   for (const fm of formants) {
     const f = c.createBiquadFilter()
@@ -246,10 +274,7 @@ export function playCheer(big = false) {
   const a = audio()
   if (!a) return
   const t = a.c.currentTime + 0.02
-  crowdRoar(a.c, a.out, t, big ? 4.2 : 3, big ? 1 : 0.8, 1200)
-  crowdRoar(a.c, a.out, t + 0.1, big ? 3.6 : 2.4, 0.5, 2200)
-  // "Ê!" agudo no começo do grito.
-  crowdVowel(a.c, a.out, t, 0.9, 330, 420, [800, 2300], 0.12)
+  crowdRoar(a.c, a.out, t, big ? 4.5 : 3.2, big ? 1 : 0.8, 1000)
 }
 
 /** Lamento da arquibancada: "Aaah!" descendente (derrota, gol sofrido, chance perdida). */
