@@ -46,6 +46,10 @@ export function useFriendlies() {
     const now = Date.now()
     friendlies.regenTokens(now)
     friendlies.refresh(now)
+    // Sem amistoso ao vivo nem adversário escolhido, a competição exibida não deve ficar 'friendly' (escalação ignoraria cansaço e suspensões da liga).
+    if (!isLive.value && match.activeMatchCompetition === 'friendly' && !friendlies.selectedOption) {
+      match.activeMatchCompetition = 'league'
+    }
     saveGame()
   }
 
