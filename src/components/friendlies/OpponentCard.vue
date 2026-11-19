@@ -5,6 +5,7 @@ import TeamCrest from '@/components/ui/TeamCrest.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { formatCurrency } from '@/utils/format/formatCurrency'
 import { signedFame } from '@/utils/friendlies/fame'
+import { useFriendliesStore } from '@/stores/friendlies'
 
 const props = defineProps<{
   option: FriendlyOption
@@ -17,6 +18,10 @@ const props = defineProps<{
   blockLabel: string | null
 }>()
 const emit = defineEmits<{ play: [botId: string] }>()
+const friendlies = useFriendliesStore()
+
+// Ranking e fama ATUAIS do bot (o sorteio grava os do momento); sem o bot na lista, cai nos gravados.
+const now = computed(() => friendlies.botNow(props.option.botId) ?? { rank: props.option.rank, fame: props.option.fame })
 
 // Selo de diferença: rival mais forte em vermelho (+3), mais fraco em verde (−2).
 const diff = computed(() => props.quote.oppOver - Math.round(props.userOver))
@@ -29,7 +34,7 @@ const diffLabel = computed(() => (diff.value > 0 ? `+${diff.value}` : `−${Math
       <TeamCrest :name="option.name" size="md" />
       <div class="min-w-0">
         <p class="font-extrabold text-ink truncate" :title="option.name">{{ option.name }}</p>
-        <p class="text-[11px] text-ink-muted">Ranking #{{ option.rank }} • Fama {{ option.fame }}</p>
+        <p class="text-[11px] text-ink-muted">Ranking #{{ now.rank }} • Fama {{ now.fame }}</p>
       </div>
     </div>
     <div class="flex items-baseline gap-2">

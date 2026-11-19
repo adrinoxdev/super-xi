@@ -19,7 +19,7 @@ import { msToNextToken, regenTokens as regenTokenState, spendToken, type TokenSt
 import { applyFame, fameDelta, outcomeFromScore } from '@/utils/friendlies/fame'
 import { quoteOption } from '@/utils/friendlies/draw'
 import { generateBots, userRank } from '@/utils/friendlies/bots'
-import { addResult, emptyStats, sanitizeStats } from '@/utils/friendlies/ranking'
+import { addResult, emptyStats, rankedBots, sanitizeStats } from '@/utils/friendlies/ranking'
 import { createLocalBotProvider } from '@/utils/friendlies/localBotProvider'
 import { useClubStore } from '@/stores/club'
 
@@ -110,6 +110,12 @@ export const useFriendliesStore = defineStore('friendlies', () => {
   // Posição pela tabela de classificação (fama → vitórias → saldo → gols pró), como a liga.
   const standing = computed<FriendlyStanding>(() => ({ fame: fame.value, stats: stats.value }))
   const rank = computed(() => userRank(standing.value, bots.value))
+
+  /** Posição e fama ATUAIS de um bot (null se não achar): o sorteio grava os valores do momento. */
+  function botNow(botId: string): { rank: number; fame: number } | null {
+    const row = rankedBots(bots.value, standing.value).find((r) => r.bot.id === botId)
+    return row ? { rank: row.rank, fame: row.bot.fame } : null
+  }
   const ranking = computed(() => provider.ranking(standing.value))
   const drawsLeft = computed(() => Math.max(0, FRIENDLIES.draw.maxDraws - drawsUsed.value))
   const selectedOption = computed(() => options.value?.find((o) => o.botId === selectedBotId.value) ?? null)
@@ -355,6 +361,7 @@ export const useFriendliesStore = defineStore('friendlies', () => {
     paidWins,
     recent,
     rank,
+    botNow,
     ranking,
     drawsLeft,
     selectedOption,

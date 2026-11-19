@@ -198,7 +198,7 @@ export function useMatchSimulation() {
   function rawLabelFor(comp: MatchCompetition): string {
     if (comp === 'friendly') {
       const opt = friendlies.selectedOption
-      return opt ? 'Amistoso • Ranking #' + opt.rank : 'Amistoso'
+      return opt ? 'Amistoso • Ranking #' + (friendlies.botNow(opt.botId)?.rank ?? opt.rank) : 'Amistoso'
     }
     if (comp === 'supercup') return 'Supercopa Soberana • Final Única'
     if (comp === 'recopa') return 'Recopa Condor • Final Única'
