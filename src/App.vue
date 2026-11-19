@@ -15,12 +15,18 @@ import { useClubStore } from '@/stores/club'
 import { useSeason } from '@/composables/useSeason'
 import { useScouting } from '@/composables/useScouting'
 import { useMatchSimulation } from '@/composables/useMatchSimulation'
+import { useMatchStore } from '@/stores/match'
+import { useUiStore } from '@/stores/ui'
+import { useFriendliesStore } from '@/stores/friendlies'
 
 const club = useClubStore()
 const { loadGame, saveGame, applyOfflineReward } = usePersistence()
 const { initializeFreshCareer } = useSeason()
 const { startMissionTicker } = useScouting()
 const { restoreLiveMatches } = useMatchSimulation()
+const match = useMatchStore()
+const ui = useUiStore()
+const friendlies = useFriendliesStore()
 
 function onVisibility() {
   if (document.visibilityState === 'hidden') saveGame()
@@ -29,8 +35,14 @@ function onVisibility() {
 
 onMounted(() => {
   // Partida que estava ao vivo antes de recarregar volta do mesmo minuto (só com save principal carregado).
-  if (loadGame()) restoreLiveMatches()
-  else initializeFreshCareer()
+  if (loadGame()) {
+    restoreLiveMatches()
+    // Amistoso gravado como em andamento que não voltou (save ao vivo ausente ou corrompido): não conta e a ficha não volta.
+    if (friendlies.resolveOrphan(match.isCompetitionLive('friendly'))) {
+      ui.showToast('O amistoso anterior foi interrompido e não contou.', 'warning')
+      saveGame()
+    }
+  } else initializeFreshCareer()
   startMissionTicker()
   document.addEventListener('visibilitychange', onVisibility)
   window.addEventListener('beforeunload', saveGame)

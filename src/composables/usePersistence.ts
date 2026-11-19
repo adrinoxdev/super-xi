@@ -1,5 +1,6 @@
 import { useClubStore } from '@/stores/club'
 import { useCompetitionsStore } from '@/stores/competitions'
+import { useFriendliesStore } from '@/stores/friendlies'
 import { useLeagueStore } from '@/stores/league'
 import { useMarketStore } from '@/stores/market'
 import { useMatchStore } from '@/stores/match'
@@ -36,6 +37,7 @@ export function usePersistence() {
   const league = useLeagueStore()
   const market = useMarketStore()
   const competitions = useCompetitionsStore()
+  const friendlies = useFriendliesStore()
   const match = useMatchStore()
   const ui = useUiStore()
   const { computeOfflineReward } = useEconomy()
@@ -65,7 +67,9 @@ export function usePersistence() {
           incomingOffers: market.toSave().incomingOffers,
           youthAcademyProspects: sc.youthAcademyProspects,
           staffContracts: club.staffContracts,
-          ...competitions.toSave()
+          ...competitions.toSave(),
+          // Campo aditivo (sem trocar STORAGE_KEY nem migração numerada): saves antigos ganham estado novo no load.
+          friendlies: friendlies.toSave()
         })
       )
     } catch {
@@ -106,6 +110,7 @@ export function usePersistence() {
           recopaState: p.recopaState
         })
         competitions.ensureBrackets()
+        friendlies.fromSave(p.friendlies)
         const v2Done = migrateBalanceV2({
           saved: p,
           division: club.division,
@@ -183,6 +188,7 @@ export function usePersistence() {
     club.resetClub()
     scouting.reset()
     match.resetMatchState()
+    friendlies.reset()
   }
 
   function applyOfflineReward(): void {
