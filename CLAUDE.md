@@ -34,7 +34,7 @@ O merge **não altera a versão do jogo** (ver abaixo). Merge da `develop` para 
 
 ## Versão
 
-A versão mora em `package.json` (`version`) e aparece no rodapé da sidebar. Hoje é `1.0.0`: ainda não houve versão oficial, então a numeração recomeçou do zero em `1.0.0` (antes era `4.0.x`).
+A versão mora em `package.json` (`version`) e aparece no rodapé da sidebar. Hoje é `1.1.0` (lançada na `master` em `release: 1.1.0`; a numeração recomeçou em `1.0.0`, antes era `4.0.x`).
 
 - **A versão do jogo nunca muda por conta própria. Sempre perguntar ao dono do produto antes de alterá-la** (número do fim, do meio ou do começo).
 - Merge de `feature/*`, `fix/*`, `docs/*` ou `chore/*` **não** sobe a versão automaticamente. A versão fica onde está até o dono pedir.
