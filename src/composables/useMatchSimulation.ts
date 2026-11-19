@@ -18,6 +18,8 @@ import { calculateTeamStrength, getEffectiveOvr } from '@/utils/match/calculateT
 import { evolutionFactor, FORMATIONS, INJURY, MATCH_SIM, POSITION_KEY_FOCUS, PROGRESSION, progressionAgeFactor, STAFF_BONUS } from '@/config'
 import { refreshPlayerEconomy } from '@/utils/player/generatePlayer'
 import { checkMilestones } from '@/utils/club/progression'
+import { playFullTimeSfx, playMatchEventSfx } from '@/utils/audio/matchSfx'
+import { playCheer, playGroan, playWhistle } from '@/utils/audio/sfx'
 import {
   brawlCalmLine,
   brawlLine,
@@ -463,6 +465,7 @@ export function useMatchSimulation() {
       ]
     }
     match.resetStats(comp)
+    playWhistle('start')
     match.showSubDrawer = false
     // O relógio só roda se a tela da partida realmente abriu.
     const abortStart = () => {
@@ -538,6 +541,14 @@ export function useMatchSimulation() {
         type: 'penalty',
         description: shootoutKickLine(side === 'user' ? club.name : oppName, taker, scored, st.user, st.opp, club.name, oppName)
       })
+      if (comp === match.activeMatchCompetition) {
+        const good = side === 'user' ? scored : !scored
+        if (st.done) {
+          if (st.winner === 'user') playCheer(true)
+          else playGroan(true)
+        } else if (good) playCheer()
+        else playGroan(false)
+      }
       if (st.done) {
         shoot.done = true
         s.events.unshift({
@@ -780,8 +791,10 @@ export function useMatchSimulation() {
     const diff = ratings.user - ratings.opp
     const userName = club.name
     const oppName = opponentFor(comp).name
+    const audible = comp === match.activeMatchCompetition
     const say = (type: MatchEventType, description: string) => {
       state.events.unshift({ minute, type, description })
+      if (audible) playMatchEventSfx(type)
     }
     // Opinião do comentarista sobre o lance que acabou de ser narrado.
     const opine = (description: string) => say('comment', description)
@@ -1102,10 +1115,15 @@ export function useMatchSimulation() {
     const phase = { possession: Math.round(stats.userPossession), userShots: stats.userShots, oppShots: stats.oppShots }
     if (minute === 46) {
       say('whistle', halfTimeLine(userName, oppName, state.userScore, state.opponentScore))
+      if (audible) {
+        playWhistle('half')
+        setTimeout(() => playWhistle('start'), 3000)
+      }
       opine(halfTimeReaction(userName, oppName, state.userScore, state.opponentScore, phase))
     }
     if (minute >= 90 + (state.addedTime ?? 0)) {
       say('whistle', fullTimeLine(userName, oppName, state.userScore, state.opponentScore))
+      if (audible) playFullTimeSfx(state.userScore, state.opponentScore)
       opine(fullTimeReaction(userName, oppName, state.userScore, state.opponentScore, phase))
     }
   }
@@ -1135,6 +1153,7 @@ export function useMatchSimulation() {
         description: `Lesão no ${club.name}! ${p.name} cai no gramado e precisa ser atendido. Fora por ${matches} ${matches === 1 ? 'jogo' : 'jogos'} se sair agora.`
       })
       ui.showToast(`${p.name} se lesionou! Faça a substituição.`, 'danger')
+      if (comp === match.activeMatchCompetition) playMatchEventSfx('injury')
       saveGame()
       state.isRunning = false
       clearMatchTimer(comp)
