@@ -6,20 +6,20 @@ Branch: `feature/amistosos` (sai da `develop`). Não alterar `package.json` / ve
 
 Nova modalidade "Amistosos": o usuário gasta fichas para desafiar adversários simulados (bots), joga a partida no fluxo normal (PreMatch → Match, tática e substituições ao vivo) e ganha ou perde **fama**, que define sua posição num ranking de 101 clubes (100 bots + usuário). Dinheiro é secundário e baixo.
 
-Dentro do escopo: fichas com recarga por tempo real, sorteio com roleta (3 opções), partida tipo `friendly`, fama estilo Elo, ranking com evolução simulada dos bots, persistência no save atual, tela `/friendlies` e item de navegação.
+Dentro do escopo: fichas com recarga por tempo real, sorteio com roleta (3 opções, até 3 sorteios por desafio), partida tipo `friendly`, fama estilo Elo, ranking com evolução simulada dos bots, persistência no save atual, tela `/friendlies`, item de navegação e BottomNav reorganizada (4 itens principais + menu "+").
 
 Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica preparada, ver 4.3), mudança de versão, test runner novo, estatísticas de temporada para amistosos.
 
 ## 2. Regras
 
 1. **Fichas**: máximo 10; +1 a cada 6 min de tempo real, inclusive com o jogo fechado. Começa com 10. Cada amistoso gasta 1 ficha **no apito inicial** (`startLiveMatch`), não no sorteio.
-2. **Sorteio**: botão "Desafiar" abre a roleta, que revela 3 opções. "Re-sortear" é livre e ilimitado enquanto a partida não começou. Sortear não exige ficha; jogar exige.
+2. **Sorteio**: botão "Desafiar" abre a roleta, que revela 3 opções (1º sorteio). "Re-sortear" gera 3 opções novas. **Limite: até 3 sorteios por desafio** (o do "Desafiar" conta como o 1º; sobram 2 re-sorteios). Ao esgotar os 3, é obrigatório escolher uma das 3 opções do último sorteio. O contador (`drawsUsed`) fica no save e **só zera quando a partida é iniciada** (`beginMatch`, no apito inicial); sair da tela, ir ao PreMatch e voltar, recarregar a página ou fechar o jogo **não** zera (impede farm de re-sorteio saindo e voltando). Enquanto houver opções sorteadas, "Desafiar" reabre as mesmas opções em vez de sortear de novo. Sortear não exige ficha; jogar exige.
 3. **Adversário**: OVER do dia = OVER do usuário (com energia 100) + bônus de posição + variação uniforme em [−5, +5]. Cada opção mostra nome, escudo, OVER do dia, fama, posição no ranking, dinheiro em jogo e fama em jogo (ganho na vitória / perda na derrota).
 4. **Escalação**: a escalação real (`squad.starterIds`/`formation`). Não pode ter titular lesionado nem suspenso em **qualquer** competição. Precisa de 11 atletas elegíveis (não lesionados, não suspensos em nenhuma competição, não emprestados).
 5. **Energia**: no amistoso todos jogam como se tivessem energia 100 (sem penalidade de cansaço no OVER nem na chance de lesão). Nenhuma energia é consumida ou recuperada pelo jogo; a recuperação natural por tempo real **não** congela durante um amistoso ao vivo.
 6. **Lesões**: lesão sofrida no amistoso vale normalmente nas outras competições. O amistoso não desconta jogos de lesões existentes (senão vira cura por farm). Lesionado que fica em campo até o fim agrava a lesão como hoje.
 7. **Cartões**: valem dentro da partida (expulso deixa o time com um a menos). Não geram suspensão, não somam amarelos acumulados e não descontam suspensões existentes.
-8. **Fora da temporada**: amistoso não mexe em liga, copas, calendário, estatísticas de temporada/carreira (gols, assistências, jogos, cartões), Hall da Fama, evolução de atletas, marcos de progressão, reputação do clube (`club.reputation`), salários, bilheteria, patrocínio nem propostas de transferência. Não entra no histórico `match.matchHistory` (limite de 150 seria engolido pelos amistosos); o histórico próprio guarda os últimos 20.
+8. **Fora da temporada**: amistoso não mexe em liga, copas, calendário, estatísticas de temporada/carreira (gols, assistências, jogos, cartões), Hall da Fama, evolução de atletas, marcos de progressão, reputação do clube (`club.reputation`, ver regra 12), salários, bilheteria, patrocínio nem propostas de transferência. Não entra no histórico `match.matchHistory` (limite de 150 seria engolido pelos amistosos); o histórico próprio guarda os últimos 20.
 9. **Resultado**: sem prorrogação nem pênaltis.
    - Vitória: prêmio em dinheiro (8k a 25k, escala com o OVER do rival) + fama.
    - Empate: R$ 0; fama ± pequena (pode ser 0).
@@ -27,6 +27,10 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
    - **Limite diário de vitórias pagas**: as 5 primeiras vitórias do dia (meia-noite local) pagam; depois disso a vitória rende só fama. Parâmetro `paidWinsPerDay` (0 = sem limite).
 10. **Ranking**: top 10 + linha do usuário (se fora do top 10). Os bots mudam de fama sozinhos, simulados quando a tela abre (sem timer em segundo plano).
 11. **Uma partida de amistoso por vez** (uma sessão `friendly`). Pode rodar em paralelo com partidas de outras competições, como as competições já fazem hoje.
+12. **Fama e reputação são separadas (decisão do dono)**: dois números independentes.
+    - **Fama** (`friendlies.fame`): exclusiva do PvP dos amistosos. Só o resultado de amistoso a altera; nenhuma outra competição (liga, copas) nem upgrade mexe na fama.
+    - **Reputação** (`club.reputation`): do treinador/jogador. Sobe nas partidas de liga e com upgrades, alimenta o header e o ranking de treinadores. **Amistoso nunca altera `club.reputation`**.
+    - A fama aparece só na tela de Amistosos (header de `/friendlies`, cartão do usuário, ranking) e no resumo pós-jogo do amistoso. O header das demais telas continua como hoje, com a reputação.
 
 ## 3. Como o código atual funciona (pontos de apoio)
 
@@ -40,7 +44,7 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 - **Suspensão**: `isSuspendedFor(p, comp)` e `COMP_SHORT` em `src/utils/player/suspension.ts`.
 - **Energia por tempo real**: `squad.regenStamina(now)` com `club.staminaTickAt` e `STAMINA_REGEN_MS_PER_POINT` (`src/config/squad.ts`), chamada pelo ticker de 1 s em `useScouting().startMissionTicker` (iniciado em `src/App.vue`), que congela a energia se `match.liveCompetitions.length`.
 - **Save**: `usePersistence().saveGame/loadGame` (`src/composables/usePersistence.ts`), chave `STORAGE_KEY = 'super_xi_full_save_v7'`; partida ao vivo à parte em `LIVE_MATCH_KEY` (`saveLiveMatch`/`restoreLiveMatches`). Migrações em `src/migrations/*`.
-- **Navegação**: `useNavigation().navItems` (Sidebar e BottomNav), `navIdForCompetition`/`rememberSection` em `src/utils/navigation/sectionMemory.ts`, guarda de rota em `src/router/index.ts`.
+- **Navegação**: `useNavigation().navItems` (Sidebar e BottomNav), `navIdForCompetition`/`rememberSection` em `src/utils/navigation/sectionMemory.ts`, guarda de rota em `src/router/index.ts`. Hoje são 7 itens (Início, Liga, Competições, Scouting, Elenco & Tática, Partidas, Clube) e `src/components/layout/BottomNav.vue` mostra todos numa grade `grid-cols-7`.
 
 ## 4. Arquitetura
 
@@ -63,6 +67,7 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 | `src/components/friendlies/OpponentCard.vue` | Cartão de uma opção, botão "Jogar". |
 | `src/components/friendlies/FriendlyRanking.vue` | Top 10 + linha do usuário. |
 | `src/components/friendlies/FriendlyHistory.vue` | Últimos 20 resultados. |
+| `src/components/layout/BottomNavMore.vue` | Painel do botão "+" da BottomNav com os itens secundários (seção 7, Navegação). |
 
 ### 4.2 Arquivos alterados (integração)
 
@@ -80,10 +85,11 @@ Fora do escopo: jogadores reais/multiplayer (só a interface do provedor fica pr
 | `src/components/match/SubstitutionDrawer.vue` | Para `friendly`, `benchCandidates` também exclui lesionados. |
 | `src/utils/match/matchResult.ts` | `COMPETITION_NAMES.friendly = 'Amistoso'` (exigido pelo tipo). |
 | `src/utils/navigation/sectionMemory.ts` | `MatchNavId` ganha `'friendlies'`; `navIdForCompetition('friendly') = 'friendlies'`; `MAIN_PATHS['/friendlies'] = 'friendlies'`. |
-| `src/composables/useNavigation.ts` | Item `{ id: 'friendlies', label: 'Amistosos', shortLabel: 'Amist.', icon: Swords, path: '/friendlies', badge: tokens > 0 ? tokens : null }` entre "Competições" e "Scouting". |
+| `src/composables/useNavigation.ts` | Item `{ id: 'friendlies', label: 'Amistosos', shortLabel: 'Amist.', icon: Swords, path: '/friendlies', badge: tokens > 0 ? tokens : null }` entre "Competições" e "Scouting". `NavItem` ganha `primary: boolean` (true em `dashboard`, `league`, `competitions`, `squad`; false nos demais) e o composable exporta `primaryNavItems` e `moreNavItems` (filtros de `navItems`). A Sidebar continua usando `navItems` inteiro. |
+| `src/components/layout/BottomNav.vue` | Grade de 5 colunas: 2 principais, botão "+" central, 2 principais (seção 7, Navegação). O "+" abre `BottomNavMore`. |
 | `src/router/index.ts` | `{ path: '/friendlies', name: 'friendlies', component: () => import('../views/FriendliesView.vue') }`. |
 | `src/composables/usePageSubtitle.ts` | `'/friendlies': 'Fichas e ranking'`. |
-| `src/composables/useHeaderStats.ts` | Caso `'/friendlies'`: Fichas, Fama, Posição. |
+| `src/composables/useHeaderStats.ts` | Caso `'/friendlies'`: Fichas, Fama, Posição (só nessa rota; as demais não mudam e seguem com `club.reputation`). |
 | `src/composables/useScouting.ts` | No ticker: `friendlies.regenTokens(now)` a cada segundo; a energia só congela se houver partida ao vivo **de outra competição** (`match.liveCompetitions.some(c => c !== 'friendly')`). |
 | `src/composables/usePersistence.ts` | `saveGame` grava `friendlies: friendlies.toSave()`; `loadGame` chama `friendlies.fromSave(p.friendlies)`; `clearSave` chama `friendlies.reset()`. |
 | `src/App.vue` | Depois de `restoreLiveMatches()`: `friendlies.resolveOrphan(match.isCompetitionLive('friendly'))` (seção 8). |
@@ -112,14 +118,14 @@ A store só fala com essa interface (`localBotProvider`, que opera sobre `bots` 
 - `lineupBlockers('friendly')`: titulares lesionados ou `isSuspendedFor(p,'friendly')`, ou menos de 11 titulares, **independente** de haver reserva (bloqueia sempre).
 - `fixLineupFor('friendly')`: inalterado (já troca lesionados e suspensos via `replaceInjuredStarters(isSuspendedFor)`).
 - `prepareMatch('friendly')`: se não houver opção selecionada, toast "Sorteie um adversário." e `router.push('/friendlies')`.
-- `startLiveMatch()`: para `friendly`, depois de `lineupBlockers` e antes do `snapshot`, chama `friendlies.beginMatch(userOver)` (gasta a ficha, grava `active`, limpa `options`/`selectedBotId`). Se devolver `false` (sem ficha), toast "Sem fichas. Próxima em mm:ss." e retorna. `saveGame()` logo depois.
+- `startLiveMatch()`: para `friendly`, depois de `lineupBlockers` e antes do `snapshot`, chama `friendlies.beginMatch(userOver)` (gasta a ficha, grava `active`, limpa `options`/`selectedBotId` e zera `drawsUsed`). Se devolver `false` (sem ficha), toast "Sem fichas. Próxima em mm:ss." e retorna. `saveGame()` logo depois.
 - `simulateMatchTick`: os 4 `club.recordGoal`/`recordAssist` passam por um helper `credit(comp, fn)` que não faz nada em `friendly`; os logs `matchGoalLogs/matchAssistLogs` ficam vazios no amistoso.
 - `rollLiveInjury`: em `friendly`, `tired = 0` e `matchesLeft = matches` (sem o `+1`, porque o amistoso não desconta jogo).
 - `needsShootout('friendly')`: `false`.
 - `concludeMatch('friendly')`: ramo próprio no início, que retorna cedo:
   1. limpa logs e `matchCards[comp]` (sem `applyDiscipline`);
   2. `applyFriendlyInjuries()`: titular lesionado em campo agrava (`INJURY.aggravateMatches`, teto `aggravateCap`); os demais não mudam; depois `squad.replaceInjuredStarters()`;
-  3. `const summary = friendlies.settle(uGoals, oGoals, now)` (fama, prêmio, `club.earn(prize)`, bot, histórico próprio, limpa `active`);
+  3. `const summary = friendlies.settle(uGoals, oGoals, now)` (fama, prêmio, `club.earn(prize)`, bot, histórico próprio, limpa `active`; **não** toca em `club.reputation`);
   4. `session.lastMatchSummary = summary`; `saveGame(); saveLiveMatch()`.
   Não chama `settleMatch`, `applyPostMatchProgression`, marcos, `addMatchRecord` nem `generateIncomingTransferOffer`.
 - `finishMatchAndReturn`: destino `'/friendlies'` quando `comp === 'friendly'`.
@@ -147,6 +153,7 @@ export interface FriendliesSave {
   bots: FriendlyBot[]
   botsSimAt: number
   options: FriendlyOption[] | null
+  drawsUsed: number                           // 0..3 sorteios feitos no desafio atual; zera só em beginMatch
   selectedBotId: string | null
   active: FriendlyChallenge | null
   paidWins: { day: number; count: number }   // day = dayStart(ts) de src/config/time.ts
@@ -159,7 +166,7 @@ export interface FriendliesSave {
 ### Persistência e migração
 
 - Campo novo `friendlies` no JSON do `STORAGE_KEY`. **Sem trocar a chave nem criar migração numerada**: o campo é aditivo.
-- `fromSave(raw)`: ausente ou `v !== 1` → estado novo (`fame 0`, `tokens 10`, `tokenTickAt = now`, `seed = Date.now()`, `bots = generateBots(seed)`, `botsSimAt = now`, resto vazio). Presente: valida campo a campo — `bots` com tamanho diferente de 100 é regenerado mantendo `fame` do usuário; `tokens` limitado a `[0, 10]`; `tokenTickAt` e `botsSimAt` limitados a `≤ now` (mesmo cuidado de `staminaTickAt` em `club.fromSave`); `fame ≥ 0`; `recent` cortado em 20.
+- `fromSave(raw)`: ausente ou `v !== 1` → estado novo (`fame 0`, `tokens 10`, `tokenTickAt = now`, `seed = Date.now()`, `bots = generateBots(seed)`, `botsSimAt = now`, resto vazio). Presente: valida campo a campo — `bots` com tamanho diferente de 100 é regenerado mantendo `fame` do usuário; `tokens` limitado a `[0, 10]`; `drawsUsed` limitado a `[0, maxDraws]` e forçado a 0 se `options` for `null` (sem opções não há desafio em curso, e o usuário não fica travado sem nada para escolher); `tokenTickAt` e `botsSimAt` limitados a `≤ now` (mesmo cuidado de `staminaTickAt` em `club.fromSave`); `fame ≥ 0`; `recent` cortado em 20.
 - `reset()` (nova carreira, `clearSave`) volta ao estado novo.
 - Importar código de carreira passa por `loadGame`, então herda as regras acima. Saves antigos exportados sem o campo ganham estado novo.
 - Partida ao vivo: a sessão `friendly` vai em `LIVE_MATCH_KEY` pelo mecanismo existente.
@@ -173,7 +180,7 @@ export const FRIENDLIES = {
           overMin: 48, overSpan: 40, overJitter: 4,
           simStepMs: 60 * 60 * 1000, simMaxSteps: 72, simNoise: 6, simPull: 0.03 },
   draw: { spread: 5, rankBonusMax: 6, rankBonusTop: 10, rankBonusFrom: 50, overMin: 35, overMax: 99,
-          rankWindow: 15, options: 3 },
+          rankWindow: 15, options: 3, maxDraws: 3 },
   prize: { base: 8000, refOver: 50, perOver: 500, min: 8000, max: 25000, step: 500, paidWinsPerDay: 5 },
   fame: { k: 30, scale: 20, minWin: 4, minLoss: 3, drawCap: 6, start: 0 },
   recentMax: 20
@@ -193,6 +200,8 @@ export const FRIENDLIES = {
 (rank 11 → 5.9; 30 → 3.1; 50 → 0.1; 51+ → 0).
 
 **OVER do adversário**: `oppOver = clamp(round(userOver + rankBonus(rank) + U(−5, +5)), 35, 99)`, com `U` uniforme contínuo vindo do `rng`. Cada uma das 3 opções sorteia o seu.
+
+**Limite de sorteios** (`draw(now)` na store): se `drawsUsed ≥ maxDraws` → recusa e devolve `false`; senão sorteia, grava `options`, `drawsUsed += 1`, limpa `selectedBotId` e salva. `drawsLeft = maxDraws − drawsUsed`. Só `beginMatch` zera `drawsUsed`.
 
 **Escolha dos bots das opções**: 3 bots distintos sorteados entre os de posição a até ±15 da posição do usuário (janela cresce de 5 em 5 se houver menos de 3). O cartão mostra a fama e a posição do bot; o OVER mostrado é o OVER do dia (`oppOver`), não o `over` interno do bot.
 
@@ -222,8 +231,8 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 **FriendliesView** (`/friendlies`), de cima para baixo:
 1. `TokenBar`: 10 fichas (cheias/vazias), "Próxima ficha em mm:ss" (some com 10/10). Contador lê `club.clubNow` (já atualizado a cada 1 s).
 2. Cartão do usuário: fama, posição `#n de 101`, OVER do amistoso (energia 100), bônus de posição atual.
-3. Ação: botão "Desafiar" (sempre ativo). Desabilitado com motivo apenas se houver amistoso ao vivo ("Acompanhar amistoso" leva para `/match`) ou `friendlyEligibleCount < 11` ("São precisos 11 atletas sem lesão e sem suspensão").
-4. `OpponentRoulette` + 3 `OpponentCard` + botão "Re-sortear".
+3. Ação: botão "Desafiar" (sempre ativo). Desabilitado com motivo apenas se houver amistoso ao vivo ("Acompanhar amistoso" leva para `/match`) ou `friendlyEligibleCount < 11` ("São precisos 11 atletas sem lesão e sem suspensão"). Se já houver opções sorteadas, "Desafiar" não sorteia: mostra as opções salvas.
+4. `OpponentRoulette` + 3 `OpponentCard` + botão "Re-sortear" com "Sorteios restantes: N" ao lado (N = `drawsLeft`; 2 logo depois do 1º sorteio). Com N = 0 o botão fica desabilitado e o aviso vira "Sem sorteios restantes: escolha um dos 3 adversários".
 5. `FriendlyRanking` (top 10 + linha do usuário destacada; se o usuário está no top 10, só a tabela).
 6. `FriendlyHistory` (últimos 20: rival, placar, fama ±, prêmio).
 
@@ -231,13 +240,21 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 - O resultado é calculado e salvo na store **antes** da animação (a animação é só visual; recarregar no meio mostra as opções já sorteadas).
 - 3 slots lado a lado (≥ 640 px) ou empilhados (mobile). Cada slot rola nomes e OVERs aleatórios dos bots (troca a cada 60 ms, desacelerando), e para em sequência: 900 ms, 1300 ms, 1700 ms. Ao parar, o slot vira o `OpponentCard` com um "pop" (`animate-pop` existente) e brilho dourado.
 - `prefers-reduced-motion: reduce` → revela as 3 na hora.
-- Durante a animação, "Re-sortear" e "Jogar" ficam desabilitados. Re-sortear repete a animação.
+- Durante a animação, "Re-sortear" e "Jogar" ficam desabilitados. Re-sortear repete a animação e consome 1 dos 3 sorteios.
 
 **OpponentCard**: escudo, nome, posição `#n`, fama, OVER do dia com selo de diferença (`+3` em vermelho se mais forte, `−2` em verde se mais fraco), "Prêmio: R$ 18.000" (ou "R$ 0 — limite diário de vitórias pagas atingido"), "Fama: +19 / +4 / −11" (V/E/D), botão "Jogar (1 ficha)". Sem ficha: botão desabilitado com "Sem fichas — próxima em mm:ss".
 
-**Fluxo**: "Jogar" → `friendlies.select(botId)` → `prepareMatch('friendly')` → PreMatch (tática, escalação, estimativa) → "Iniciar" gasta a ficha → MatchView → PostMatchSummary (bloco do amistoso) → "Voltar aos Amistosos" → `/friendlies` com novas opções vazias (precisa desafiar de novo).
+**Fluxo**: "Jogar" → `friendlies.select(botId)` → `prepareMatch('friendly')` → PreMatch (tática, escalação, estimativa) → "Iniciar" gasta a ficha e zera os sorteios → MatchView → PostMatchSummary (bloco do amistoso) → "Voltar aos Amistosos" → `/friendlies` com novas opções vazias (precisa desafiar de novo, com 3 sorteios). Voltar do PreMatch sem iniciar mantém as 3 opções e o contador; pode escolher outra das 3.
 
-**Navegação**: item "Amistosos" (ícone `Swords` do `lucide-vue-next`) na Sidebar e BottomNav, badge com o número de fichas. Se a BottomNav não couber em 360 px com 8 itens, o item sai só da BottomNav (flag `mobile: false` no item) e o Dashboard ganha um atalho "Amistosos" — decidido na tarefa de navegação, conferindo em 360 px.
+**Navegação**: item "Amistosos" (ícone `Swords` do `lucide-vue-next`) na Sidebar e no menu "+" da BottomNav, badge com o número de fichas.
+
+**BottomNav (decisão do dono: 4 itens + "+")**. Ordem: **Início · Liga · [+] · Copas · Elenco**.
+- Principais (`primary: true`): `dashboard` (Início), `league` (Liga), `competitions` (Copas), `squad` (Elenco). São as telas de uso diário: Liga e Copas têm partida (indicador "ao vivo" e retorno ao pré-jogo via `sectionMemory`), Elenco é a escalação de todo jogo (badge de propostas), Início é a home.
+- No "+" (`primary: false`): Amistosos, Scouting, Partidas, Clube, na ordem de `navItems`.
+- O "+" (ícone `Plus`, rótulo "Mais") abre `BottomNavMore`: painel que sobe da base, acima da BottomNav, com os itens secundários (ícone, rótulo completo, badge, ponto "ao vivo"). Fecha ao escolher item, ao tocar fora, com `Esc` e ao trocar de rota.
+- Acessibilidade: "+" com `aria-label="Mais opções"`, `aria-expanded` e `aria-controls`; painel com `role="dialog"` e `aria-label="Mais opções de navegação"`; foco vai ao primeiro item ao abrir e volta ao "+" ao fechar; alvos de toque com pelo menos 48 px.
+- Estado do "+": dourado (`text-gold`) se o item ativo estiver no menu; ponto "ao vivo" se algum item do menu tiver partida ao vivo (ex.: amistoso rodando); badge "!" se algum item do menu tiver badge, exceto as fichas de amistoso (senão o "+" ficaria sempre marcado).
+- Cabe em 360 px: 5 colunas (`grid-cols-5`, cerca de 72 px cada), sem rolagem horizontal; o painel ocupa a largura com 16 px de margem.
 
 ## 8. Erros e casos de borda
 
@@ -249,7 +266,10 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 | Recarregar a página no PreMatch | `options`/`selectedBotId` estão no save: o PreMatch reabre com o mesmo rival. Nada foi gasto. |
 | Recarregar no meio da partida | `restoreLiveMatches` retoma a sessão `friendly` (como as outras); `active` está no save. Resultado normal no fim. |
 | Partida perdida (live save corrompido ou ausente, mas `active` presente) | `resolveOrphan(false)` no boot: limpa `active`, ficha não volta, fama e dinheiro não mudam; toast "O amistoso anterior foi interrompido e não contou." |
-| Sair da tela durante o amistoso | Partida segue (timer por competição, como hoje); badge "ao vivo" no item Amistosos. |
+| Sair da tela durante o amistoso | Partida segue (timer por competição, como hoje); ponto "ao vivo" no item Amistosos (Sidebar e menu "+") e no botão "+" da BottomNav. |
+| 3 sorteios usados | "Re-sortear" desabilitado com "Sorteios restantes: 0"; só resta "Jogar" numa das 3 opções. `draw()` recusa como rede de segurança. |
+| Sair e voltar, ou recarregar, para ganhar sorteios | Não funciona: `drawsUsed` está no save e só zera em `beginMatch`. |
+| Partida órfã (`resolveOrphan(false)`) | `drawsUsed` já foi zerado no `beginMatch`; o próximo desafio tem 3 sorteios. |
 | Tentar novo sorteio com amistoso ao vivo | Bloqueado: botão vira "Acompanhar amistoso". |
 | Empate | Fama `±` até 6 (pode ser 0), R$ 0. |
 | Fama mínima | `max(0, …)` para usuário e bots; derrota com fama 0 fica em 0. |
@@ -272,6 +292,9 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
   6. Recarregar no meio da partida retoma; apagar `super_xi_live_match_v1` e recarregar → toast de interrompido.
   7. Save antigo (sem `friendlies`) carrega com estado novo; nova carreira zera amistosos.
   8. Roleta com `prefers-reduced-motion` revela na hora; layout em 360 px sem rolagem horizontal.
+  9. Sorteios: Desafiar + 2 re-sorteios → botão desabilitado com "Sorteios restantes: 0"; sair, recarregar e voltar → continua 0 com as mesmas opções; iniciar a partida → próximo desafio volta a 3.
+  10. Reputação: `club.reputation` igual antes e depois de vitória/derrota no amistoso; partida de liga não muda a fama.
+  11. BottomNav em 360 px: 4 itens + "+", sem rolagem; "+" abre e fecha (toque fora, `Esc`, escolher item), foco volta ao "+"; ponto "ao vivo" no "+" com amistoso rodando.
 
 ## 10. Tarefas (uma tarefa = um commit, na ordem)
 
@@ -281,7 +304,7 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 4. `feat(amistosos): sorteio, bonus de posicao e premio` — `utils/friendlies/draw.ts`.
 5. `feat(amistosos): geracao e simulacao dos bots` — `utils/friendlies/bots.ts` + nomes conferidos contra o catálogo.
 6. `feat(amistosos): provedor local de adversarios` — `utils/friendlies/localBotProvider.ts`.
-7. `feat(amistosos): store de amistosos com save` — `stores/friendlies.ts` + `usePersistence` (save/load/clear) + `resolveOrphan` no `App.vue`.
+7. `feat(amistosos): store de amistosos com save` — `stores/friendlies.ts` (incl. `drawsUsed` e `draw()` com limite de 3, zerado em `beginMatch`) + `usePersistence` (save/load/clear) + `resolveOrphan` no `App.vue`.
 8. `feat(amistosos): recarga de fichas no ticker` — `useScouting` (fichas e energia sem congelar no amistoso).
 9. `feat(partida): competicao friendly no tipo e nas sessoes` — `MatchCompetition`, `sessions`, `COMPETITIONS_ORDER`, `COMP_SHORT`, `isSuspendedFor`/`ORDER`, `COMPETITION_NAMES`, `MatchSwitcher.NAMES`, `sectionMemory`.
 10. `feat(partida): forca do time sem cansaco` — opção `ignoreFatigue` em `calculateTeamStrength`, `squad.freshTeamStrength`, `friendlyEligibleCount`.
@@ -289,15 +312,25 @@ O `over` interno dos bots não muda. Resultado: ranking se mexe algumas posiçõ
 12. `feat(partida): regras ao vivo do amistoso` — `credit()` nos gols/assistências, `rollLiveInjury`, `needsShootout`, `SubstitutionDrawer`.
 13. `feat(partida): encerramento do amistoso` — ramo de `concludeMatch`, `applyFriendlyInjuries`, `friendlies.settle`, `finishMatchAndReturn`.
 14. `feat(partida): pre-jogo e resumo do amistoso` — `PreMatch.vue` e `PostMatchSummary.vue`.
-15. `feat(amistosos): tela, fichas, ranking e historico` — `FriendliesView`, `TokenBar`, `FriendlyRanking`, `FriendlyHistory`, `OpponentCard`, rota.
+15. `feat(amistosos): tela, fichas, ranking e historico` — `FriendliesView` (incl. "Sorteios restantes" e re-sortear desabilitado em 0), `TokenBar`, `FriendlyRanking`, `FriendlyHistory`, `OpponentCard`, rota.
 16. `feat(amistosos): roleta animada` — `OpponentRoulette` (incl. reduced motion).
-17. `feat(amistosos): navegacao, subtitulo e cabecalho` — `useNavigation`, `usePageSubtitle`, `useHeaderStats` (+ decisão da BottomNav em 360 px).
-18. `chore(amistosos): verificacao manual e ajustes` — roteiro da seção 9, só correções.
+17. `feat(amistosos): navegacao, subtitulo e cabecalho` — item Amistosos em `useNavigation`, `usePageSubtitle`, `useHeaderStats` (fama só em `/friendlies`).
+18. `feat(layout): bottomnav com 4 itens e menu +` — `primary`/`primaryNavItems`/`moreNavItems` em `useNavigation`, `BottomNav.vue` em 5 colunas, `BottomNavMore.vue` acessível (`aria-expanded`, `role="dialog"`, `Esc`, foco), conferida em 360 px.
+19. `chore(amistosos): verificacao manual e ajustes` — roteiro da seção 9, só correções.
 
-## 11. Decisões tomadas nesta spec (não vinham do dono)
+## 11. Decisões
 
-- Fama dos amistosos é separada de `club.reputation`; amistoso não mexe na reputação.
-- Ficha é gasta no apito inicial; sorteio é livre e não exige ficha.
+### Confirmadas pelo dono do produto
+
+- **Fama separada da reputação**: fama (PvP dos amistosos) e `club.reputation` (treinador/jogador; sobe na liga e com upgrades, alimenta header e ranking de treinadores) são independentes. Amistoso nunca mexe em `club.reputation`; nenhuma outra competição mexe na fama. A fama só aparece na tela de Amistosos (e no resumo pós-jogo do amistoso).
+- **Até 3 sorteios por desafio**: esgotados, é obrigatório escolher uma das 3 opções do último sorteio. A UI mostra "Sorteios restantes" e desabilita "Re-sortear" em 0.
+- **BottomNav com 4 itens principais + botão "+" central** que abre as demais opções (inclusive Amistosos).
+
+### Tomadas nesta spec (não vinham do dono)
+
+- O contador de sorteios zera só ao iniciar a partida (`beginMatch`), não ao sair da tela, e fica no save (anti-farm de re-sorteio).
+- Itens principais da BottomNav: Início, Liga, Copas, Elenco; no "+": Amistosos, Scouting, Partidas, Clube.
+- Ficha é gasta no apito inicial; sortear não exige ficha.
 - Limite de 5 vitórias pagas por dia (parametrizável, 0 desliga) para conter farm: com 10 fichas/hora, 25k por vitória superaria a renda líquida de um jogo da Série D.
 - Amistoso não desconta lesões nem suspensões existentes e não credita estatísticas, evolução ou marcos (anti-farm).
 - Amistoso não entra em `matchHistory`; histórico próprio de 20.
