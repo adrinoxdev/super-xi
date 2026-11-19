@@ -24,7 +24,8 @@ const slotRole = computed(() => {
 })
 function effectiveLabel(p: Player): string {
   if (!slotRole.value) return `OVER ${p.overall}`
-  const eff = getEffectiveOvr(p, slotRole.value)
+  // Amistoso: todos jogam com energia 100; o rótulo não desconta cansaço.
+  const eff = getEffectiveOvr(p, slotRole.value, { ignoreFatigue: match.activeMatchCompetition === 'friendly' })
   return eff === p.overall ? `OVER ${p.overall}` : `OVER ${p.overall} → ${eff} na vaga`
 }
 // Expulso não sai: a vaga fica vazia e o time joga com um a menos.

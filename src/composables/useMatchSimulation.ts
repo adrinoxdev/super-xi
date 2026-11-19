@@ -276,6 +276,15 @@ export function useMatchSimulation() {
     return comp === 'friendly' && squad.currentStartersList.length < 11
   }
 
+  /**
+   * Amistoso não começa com partida de outra competição ao vivo (rodando ou pausada na gaveta): a escalação é uma só e
+   * o lesionado em campo agravaria nas duas. Devolve o motivo (toast, botão e aviso) ou null.
+   */
+  function friendlyLiveBlock(): string | null {
+    const other = match.liveCompetitions.find((c) => c !== 'friendly')
+    return other ? `Há uma partida da ${COMP_SHORT[other]} ao vivo. Termine-a antes de jogar um amistoso.` : null
+  }
+
   // Suspenso na competição sai da escalação: o melhor reserva disponível assume a vaga. Devolve as trocas feitas.
   function fixLineupFor(comp: MatchCompetition) {
     const swaps = squad.replaceInjuredStarters((p) => isSuspendedFor(p, comp))
@@ -335,6 +344,14 @@ export function useMatchSimulation() {
       router.push('/friendlies')
       return
     }
+    if (comp === 'friendly') {
+      const liveBlock = friendlyLiveBlock()
+      if (liveBlock) {
+        ui.showToast(liveBlock, 'warning')
+        router.push('/friendlies')
+        return
+      }
+    }
     clearMatchTimer(comp)
     discardInProgressGoals(comp)
     match.activeMatchCompetition = comp
@@ -370,6 +387,14 @@ export function useMatchSimulation() {
       ui.showToast('Competição já encerrada.', 'warning')
       router.push(comp === 'league' ? '/league' : '/competitions')
       return
+    }
+    // Amistoso não começa com outra partida ao vivo (escalação compartilhada): recusa antes de mexer na escalação e de gastar ficha.
+    if (comp === 'friendly') {
+      const liveBlock = friendlyLiveBlock()
+      if (liveBlock) {
+        ui.showToast(liveBlock, 'warning')
+        return
+      }
     }
     // Suspenso na competição não entra: o melhor reserva disponível assume a vaga.
     fixLineupFor(comp)
@@ -628,6 +653,8 @@ export function useMatchSimulation() {
     const state = match.matchState
     if (state.isFinished) return
     const unavailable = (p: Player) => isSentOff(comp, p.id) || isSuspendedFor(p, comp)
+    // Amistoso: todos com energia 100 (mesma conta de userBaseRating), senão o cansaço distorce a escolha e a comparação.
+    const opts = { ignoreFatigue: comp === 'friendly' }
     const starters = squad.currentStartersList
     const out = starters.filter(unavailable)
     const pool = starters.filter((p) => !unavailable(p))
@@ -658,13 +685,13 @@ export function useMatchSimulation() {
           if (empty.includes(i)) continue
           const cand = pool
             .filter((p) => !used.has(p.id))
-            .sort((a, b) => getEffectiveOvr(b, layout[i].role) - getEffectiveOvr(a, layout[i].role))[0]
+            .sort((a, b) => getEffectiveOvr(b, layout[i].role, opts) - getEffectiveOvr(a, layout[i].role, opts))[0]
           if (cand) {
             picked[i] = cand
             used.add(cand.id)
           }
         }
-        const rating = calculateTeamStrength(layout.map((slot, i) => ({ role: slot.role, player: picked[i] }))).rating
+        const rating = calculateTeamStrength(layout.map((slot, i) => ({ role: slot.role, player: picked[i] })), undefined, opts).rating
         if (!best || rating > best.rating + 1e-9) {
           const spare = out.map((p) => p.id)
           best = { f, rating, ids: picked.map((p) => p?.id ?? spare.shift() ?? '') }
@@ -689,22 +716,27 @@ export function useMatchSimulation() {
     saveLiveMatch()
   }
 
-  // Sugere a melhor troca: maior ganho de OVER efetivo na vaga (posição, cansaço e lesão contam). Só preenche a
-  // seleção; quem confirma é o usuário. Sem substituições restantes, só lesionados podem sair.
+  // Sugere a melhor troca: maior ganho de OVER efetivo na vaga (posição, cansaço e lesão contam; no amistoso, sem
+  // cansaço). Só preenche a seleção; quem confirma é o usuário. Sem substituições restantes, só lesionados podem sair.
   function recommendSubstitution() {
+    const comp = match.activeMatchCompetition
+    // Amistoso: todos com energia 100, então nem a penalidade de cansaço nem o desempate por energia valem.
+    const fresh = comp === 'friendly'
+    const opts = { ignoreFatigue: fresh }
     const subsLeft = match.matchState.subsUsed < 5
-    const bench = squad.availableBenchList.filter((p) => !p.injury && !isSuspendedFor(p, match.activeMatchCompetition))
+    const bench = squad.availableBenchList.filter((p) => !p.injury && !isSuspendedFor(p, comp))
     let best: { outId: string; inId: string; gain: number } | null = null
     squad.currentStartersList.forEach((starter) => {
-      if (isSentOff(match.activeMatchCompetition, starter.id)) return
+      if (isSentOff(comp, starter.id)) return
       if (!subsLeft && !starter.injury) return
       const slot = squad.starterIds.indexOf(starter.id)
       const role = (FORMATIONS[squad.formation] || FORMATIONS['4-3-3'])[slot]?.role
       if (!role) return
-      const current = getEffectiveOvr(starter, role)
+      const current = getEffectiveOvr(starter, role, opts)
       for (const cand of bench) {
-        // Energia desempata: a diferença de stamina vale até ~1 ponto de OVER.
-        const gain = getEffectiveOvr(cand, role) - current + ((cand.stamina ?? 100) - (starter.stamina ?? 100)) * 0.01
+        // Energia desempata: a diferença de stamina vale até ~1 ponto de OVER (fora do amistoso).
+        const energy = fresh ? 0 : ((cand.stamina ?? 100) - (starter.stamina ?? 100)) * 0.01
+        const gain = getEffectiveOvr(cand, role, opts) - current + energy
         if (!best || gain > best.gain) best = { outId: starter.id, inId: cand.id, gain }
       }
     })
@@ -1433,6 +1465,7 @@ export function useMatchSimulation() {
     activeMatchIsHome,
     lineupBlockers,
     lineupShort,
+    friendlyLiveBlock,
     activeMatchOpponent,
     activeMatchCompetitionLabel,
     effectiveUserPower,
