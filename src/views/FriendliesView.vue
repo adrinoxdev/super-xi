@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { Dices, RefreshCw } from 'lucide-vue-next'
-import StatTile from '@/components/ui/StatTile.vue'
+import { Dices, Gauge, Medal, RefreshCw, Star, TrendingUp } from 'lucide-vue-next'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import SectionTitle from '@/components/ui/SectionTitle.vue'
@@ -56,31 +55,51 @@ function onRedraw() {
 
 <template>
   <section class="space-y-4 animate-pop">
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div class="min-w-0 flex flex-col gap-1">
-        <StatTile label="Fama" :value="friendlies.fame" class="flex-1" />
-      </div>
-      <div class="min-w-0 flex flex-col gap-1">
-        <StatTile label="Posição" :value="`#${friendlies.rank} de ${total}`" value-class="text-ink" class="flex-1" />
-      </div>
-      <div class="min-w-0 flex flex-col gap-1">
-        <StatTile label="OVER do amistoso" :value="Math.round(userOver)" value-class="text-ink" class="flex-1" />
-        <span class="text-[11px] text-ink-muted text-center">energia 100 • melhor escalação</span>
-      </div>
-      <div class="min-w-0 flex flex-col gap-1">
-        <StatTile label="Bônus de posição" :value="bonusLabel" value-class="text-ink" class="flex-1" />
-        <span class="text-[11px] text-ink-muted text-center">no OVER dos rivais</span>
-      </div>
+    <!-- Mesmo padrão dos cartões de FinanceSummary (tela Início): rótulo + ícone, valor grande, descrição dentro do cartão. -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <BaseCard padding="p-4 sm:p-5" class="min-w-0">
+        <div class="flex items-center justify-between text-xs font-semibold text-ink-muted uppercase tracking-wider">
+          <span class="truncate">Fama</span>
+          <Star class="w-4 h-4 text-gold shrink-0" />
+        </div>
+        <div class="mt-2 font-score font-extrabold text-2xl sm:text-3xl break-words text-gold">{{ friendlies.fame }}</div>
+        <p class="mt-1 text-xs text-ink-muted">Pontos do ranking de amistosos.</p>
+      </BaseCard>
+
+      <BaseCard padding="p-4 sm:p-5" class="min-w-0">
+        <div class="flex items-center justify-between text-xs font-semibold text-ink-muted uppercase tracking-wider">
+          <span class="truncate">Posição</span>
+          <Medal class="w-4 h-4 text-ink-muted shrink-0" />
+        </div>
+        <div class="mt-2 font-score font-extrabold text-2xl sm:text-3xl break-words text-ink">#{{ friendlies.rank }}</div>
+        <p class="mt-1 text-xs text-ink-muted">de {{ total }} times no ranking.</p>
+      </BaseCard>
+
+      <BaseCard padding="p-4 sm:p-5" class="min-w-0">
+        <div class="flex items-center justify-between text-xs font-semibold text-ink-muted uppercase tracking-wider">
+          <span class="truncate">OVER do Amistoso</span>
+          <Gauge class="w-4 h-4 text-emeraldpro shrink-0" />
+        </div>
+        <div class="mt-2 font-score font-extrabold text-2xl sm:text-3xl break-words text-ink">{{ Math.round(userOver) }}</div>
+        <p class="mt-1 text-xs text-ink-muted">Energia 100 e melhor escalação.</p>
+      </BaseCard>
+
+      <BaseCard padding="p-4 sm:p-5" class="min-w-0">
+        <div class="flex items-center justify-between text-xs font-semibold text-ink-muted uppercase tracking-wider">
+          <span class="truncate">Bônus de Posição</span>
+          <TrendingUp class="w-4 h-4 text-emeraldpro shrink-0" />
+        </div>
+        <div class="mt-2 font-score font-extrabold text-2xl sm:text-3xl break-words text-emeraldpro">{{ bonusLabel }}</div>
+        <p class="mt-1 text-xs text-ink-muted">Somado ao OVER dos rivais.</p>
+      </BaseCard>
     </div>
 
-    <BaseCard class="space-y-3">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <TokenBar :tokens="friendlies.tokens" :max="FRIENDLIES.tokens.max" :next-in="tokenBarNext" />
-        <BaseButton class="w-full sm:w-auto px-6 py-3 min-h-12 text-sm flex items-center justify-center gap-2 shrink-0 disabled:cursor-not-allowed" :disabled="!isLive && !!challengeBlock" @click="onChallenge">
-          <Dices class="w-4 h-4" />
-          {{ isLive ? 'Acompanhar amistoso' : 'Desafiar' }}
-        </BaseButton>
-      </div>
+    <BaseCard class="flex flex-col items-center text-center gap-4">
+      <TokenBar :tokens="friendlies.tokens" :max="FRIENDLIES.tokens.max" :next-in="tokenBarNext" />
+      <BaseButton class="w-full sm:w-auto sm:min-w-56 px-6 py-3 min-h-12 text-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed" :disabled="!isLive && !!challengeBlock" @click="onChallenge">
+        <Dices class="w-4 h-4" />
+        {{ isLive ? 'Acompanhar amistoso' : 'Desafiar' }}
+      </BaseButton>
       <div class="space-y-1">
         <p v-if="!isLive && challengeBlock" class="text-xs text-dangerpro">{{ challengeBlock }}</p>
         <p v-else class="text-xs text-ink-muted">Sortear não gasta ficha. A ficha é gasta só quando a partida começa.</p>

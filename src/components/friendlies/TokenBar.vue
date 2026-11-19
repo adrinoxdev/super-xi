@@ -10,7 +10,7 @@ defineProps<{ tokens: number; max: number; nextIn: string | null }>()
       <span class="text-[11px] font-bold uppercase">Fichas</span>
       <strong class="font-score text-lg text-ink ml-2">{{ tokens }}/{{ max }}</strong>
     </p>
-    <div class="flex flex-wrap gap-1 mt-1" role="img" :aria-label="`${tokens} de ${max} fichas`">
+    <div class="flex flex-wrap justify-center gap-1 mt-1" role="img" :aria-label="`${tokens} de ${max} fichas`">
       <span
         v-for="i in max"
         :key="i"
