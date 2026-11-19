@@ -1,3 +1,5 @@
+import type { FriendlySummary } from './friendlies'
+
 export type TacticalMentality =
   | 'very_defensive'
   | 'defensive'
@@ -9,7 +11,7 @@ export type FormationName =
   | '4-3-3' | '4-2-3-1' | '4-4-2' | '4-1-4-1' | '3-4-3'
   | '4-2-2-2' | '4-1-2-1-2' | '3-5-2' | '5-3-2'
 
-export type MatchCompetition = 'league' | 'cup' | 'continental' | 'supercup' | 'recopa'
+export type MatchCompetition = 'league' | 'cup' | 'continental' | 'supercup' | 'recopa' | 'friendly'
 
 export type MatchEventType =
   | 'info' | 'goal' | 'opp_goal' | 'sub' | 'injury' | 'comment' | 'penalty'
@@ -84,6 +86,8 @@ export interface LastMatchSummary {
   evolutions?: Array<{ name: string; overall: number }>
   /** Títulos dos marcos de progressão atingidos nesta partida. */
   milestones?: string[]
+  /** Só em amistoso: prêmio, fama e posição (ticket, sponsor, wages, interest e maintenance ficam 0). */
+  friendly?: FriendlySummary
 }
 
 export interface MatchOpponent {
