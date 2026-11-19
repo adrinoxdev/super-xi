@@ -1276,7 +1276,46 @@ export function useMatchSimulation() {
     return gains
   }
 
+  // Amistoso: lesionado que ficou em campo agrava; ninguém cumpre jogo de lesão antiga (senão vira cura por farm).
+  function applyFriendlyInjuries() {
+    squad.players.forEach((p) => {
+      if (!p.injury || !squad.starterIds.includes(p.id)) return
+      p.injury.matchesLeft = Math.min(INJURY.aggravateCap, p.injury.matchesLeft + INJURY.aggravateMatches)
+      ui.showToast(`${p.name} agravou a lesão por jogar machucado: agora são ${p.injury.matchesLeft} jogos fora.`, 'danger')
+    })
+    squad.replaceInjuredStarters()
+  }
+
+  // Fim do amistoso: fora da temporada. Sem disciplina, economia da partida, desgaste, evolução, marcos, histórico de
+  // partidas nem propostas; club.reputation não muda (a fama é separada).
+  function concludeFriendly() {
+    const comp: MatchCompetition = 'friendly'
+    const session = match.sessions[comp]
+    matchGoalLogs[comp] = []
+    matchAssistLogs[comp] = []
+    delete matchCards[comp]
+    applyFriendlyInjuries()
+    const fs = friendlies.settle(session.matchState.userScore, session.matchState.opponentScore, Date.now())
+    const prize = fs?.prize ?? 0
+    session.lastMatchSummary = {
+      ticket: 0,
+      sponsor: 0,
+      winBonus: prize,
+      wages: 0,
+      net: prize,
+      interest: 0,
+      maintenance: 0,
+      ...(fs ? { friendly: fs } : {})
+    }
+    saveGame()
+    saveLiveMatch()
+  }
+
   function concludeMatch(comp: MatchCompetition = match.activeMatchCompetition) {
+    if (comp === 'friendly') {
+      concludeFriendly()
+      return
+    }
     const session = match.sessions[comp]
     const uGoals = session.matchState.userScore
     const oGoals = session.matchState.opponentScore
@@ -1348,11 +1387,12 @@ export function useMatchSimulation() {
     match.matchState.isFinished = false
     match.matchState.isRunning = false
     match.showSubDrawer = false
-    router.push(comp === 'league' ? '/league' : '/competitions')
+    router.push(comp === 'league' ? '/league' : comp === 'friendly' ? '/friendlies' : '/competitions')
     // Se outra partida segue aberta, ela vira o alvo do item "Partidas"; senão, competição encerrada volta para a liga.
+    // Amistoso encerrado também volta para a liga: o próximo exige novo sorteio, não há pré-jogo a reabrir.
     const other = match.openCompetitions.find((c) => c !== comp)
     if (other) match.activeMatchCompetition = other
-    else if (!competitions.isCompetitionPlayable(comp)) match.activeMatchCompetition = 'league'
+    else if (comp === 'friendly' || !competitions.isCompetitionPlayable(comp)) match.activeMatchCompetition = 'league'
   }
 
   return {
