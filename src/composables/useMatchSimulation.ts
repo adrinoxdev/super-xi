@@ -1272,7 +1272,7 @@ export function useMatchSimulation() {
     match.matchState.isRunning = false
     match.showSubDrawer = false
     router.push(comp === 'league' ? '/league' : '/competitions')
-    // Se outra partida segue aberta, ela vira o alvo do item "Partidas"; senão, competição encerrada volta para a liga.
+    // Se outra partida segue aberta, ela vira o alvo do item "Histórico"; senão, competição encerrada volta para a liga.
     const other = match.openCompetitions.find((c) => c !== comp)
     if (other) match.activeMatchCompetition = other
     else if (!competitions.isCompetitionPlayable(comp)) match.activeMatchCompetition = 'league'
