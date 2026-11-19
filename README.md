@@ -63,8 +63,8 @@ super-xi/
 │   │   ├── SquadView.vue
 │   │   ├── LeagueView.vue
 │   │   ├── CompetitionsView.vue
-│   │   ├── MatchesView.vue      # Histórico de partidas (somente leitura)
-│   │   ├── MatchRecordView.vue  # Detalhe de uma partida concluída
+│   │   ├── HistoryView.vue      # Histórico de partidas (somente leitura)
+│   │   ├── HistoryDetailView.vue # Detalhe de uma partida concluída
 │   │   ├── MatchView.vue        # Subpágina da partida ao vivo (sem aba própria)
 │   │   ├── PreMatchView.vue
 │   │   └── ClubView.vue

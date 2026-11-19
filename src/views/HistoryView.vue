@@ -38,7 +38,7 @@ function dateLabel(ts: number): string {
       <div class="flex flex-wrap items-center justify-between gap-3">
         <SectionTitle>
           <template #icon><History class="w-4 h-4 text-emeraldpro shrink-0" /></template>
-          Partidas realizadas
+          Histórico
         </SectionTitle>
         <div v-if="match.matchHistory.length" class="flex flex-wrap gap-1.5">
           <button
@@ -67,7 +67,7 @@ function dateLabel(ts: number): string {
           v-for="m in rows"
           :key="m.id"
           type="button"
-          @click="router.push('/historico/' + m.id)"
+          @click="router.push('/history/' + m.id)"
           class="w-full text-left rounded-xl border border-borderline bg-surface hover:bg-subtle transition-colors px-3 sm:px-4 py-3 flex items-center gap-3"
         >
           <span
