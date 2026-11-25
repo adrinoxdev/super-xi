@@ -4,6 +4,7 @@ import { useCompetitionsStore } from '@/stores/competitions'
 import { useUiStore } from '@/stores/ui'
 import CupPanel from '@/components/competitions/CupPanel.vue'
 import ContinentalPanel from '@/components/competitions/ContinentalPanel.vue'
+import MundialPanel from '@/components/competitions/MundialPanel.vue'
 import SupercupsPanel from '@/components/competitions/SupercupsPanel.vue'
 import PodiumArchiveCard from '@/components/bracket/PodiumArchiveCard.vue'
 import { useClubStore } from '@/stores/club'
@@ -17,7 +18,8 @@ const competitions = useCompetitionsStore()
 const tabs = [
   { id: 'cup', label: 'Taça Cacique' },
   { id: 'continental', label: 'Continental' },
-  { id: 'supercups', label: 'Supercopa & Recopa' }
+  { id: 'supercups', label: 'Supercopa & Recopa' },
+  { id: 'mundial', label: 'Continentes' }
 ]
 </script>
 
@@ -42,13 +44,17 @@ const tabs = [
           @click="compSubTab = t.id"
           :class="[
             'px-3 py-2.5 md:py-1.5 rounded-lg text-xs font-bold transition-all',
-            t.id === 'supercups' ? 'flex items-center gap-1' : '',
+            t.id === 'supercups' || t.id === 'mundial' ? 'flex items-center gap-1' : '',
             compSubTab === t.id ? 'bg-emeraldpro text-night shadow-sm' : 'text-ink-muted hover:text-ink'
           ]"
         >
           {{ t.label }}
           <span
             v-if="t.id === 'supercups' && competitions.hasPendingFinal"
+            class="w-2 h-2 rounded-full bg-amberpro"
+          ></span>
+          <span
+            v-if="t.id === 'mundial' && competitions.isCompetitionPlayable('mundial')"
             class="w-2 h-2 rounded-full bg-amberpro"
           ></span>
         </button>
@@ -58,5 +64,6 @@ const tabs = [
     <CupPanel v-if="compSubTab === 'cup'" />
     <ContinentalPanel v-if="compSubTab === 'continental'" />
     <SupercupsPanel v-if="compSubTab === 'supercups'" />
+    <MundialPanel v-if="compSubTab === 'mundial'" />
   </section>
 </template>
