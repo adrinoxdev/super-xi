@@ -77,5 +77,16 @@ await ok((html.match(/>\s*Grupo [A-H]\s*<\/button>/g) ?? []).length === 7, '3c 7
 await ok(html.includes('Chave de 16') || html.includes('Oitavas'), '3d chave de 16 (BracketView)')
 await ok(html.includes('Jogar') && html.includes('Prêmios:'), '3e botao de entrada e premios')
 
+// 4) Ano de edicao sem o usuario: so afirma "disputado sem voce" quando ha resumo da edicao (save antigo nao tem)
+{
+  const semResumo = await render(Panel, ({ club }) => { club.season = 8 })
+  await ok(!semResumo.includes('disputado sem você') && semResumo.includes('Daqui a'), '4a ano de edicao sem resumo (save antigo): contagem regressiva, sem afirmar edicao disputada')
+  const comResumo = await render(Panel, ({ club, competitions }) => {
+    club.season = 8
+    competitions.mundialState = { ...competitions.mundialState, last: { season: 8, edition: 2, hostName: 'Ilhas Hoshi', champion: 'A', runnerUp: 'B', third: 'C', fourth: 'D', userPlayed: false, groups: [] } }
+  })
+  await ok(comResumo.includes('disputado sem você'), '4b ano de edicao com resumo: mostra a edicao disputada sem o usuario')
+}
+
 await vs.close()
 console.log('OK t49-mundial-ui')
