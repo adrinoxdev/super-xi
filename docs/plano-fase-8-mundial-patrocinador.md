@@ -7,7 +7,7 @@ Só planejamento: nenhum arquivo de `src/`, nem o `package.json`, foi alterado. 
 - Nome "Copa dos Continentes".
 - Campo neutro para todos.
 - Opção C do ecossistema, condicionada a tudo estar ligado: seção 3, Mapa de ligações, e a tarefa T11.
-- **Corte do Ranking Austral: 16 (decidido).**
+- **Corte do Ranking Condor: 16 (decidido).**
 - **Campeão da Copa dos Continentes: 1,5 mi (decidido; tabela recomendada da seção 7.1).**
 - Faixas de OVER aprovadas.
 - Supercopa e Recopa com campeões de verdade: obrigatório (T10).
@@ -54,7 +54,7 @@ Europa 12, América do Sul 6, Ásia 4, África 4, América do Norte e Central 4,
 
 1. **Campeões da Condor de Ouro** das 4 temporadas do ciclo: vaga direta (até 4). Bicampeão ocupa uma vaga só, e a que sobra vai para o ranking.
 2. **Vaga da sede:** no seu país, o campeão da Série A da temporada anterior; se ele já estiver classificado, passa ao campeão da Taça Cacique e depois ao vice da A. Fora do seu país, um clube IA local.
-3. **Ranking Austral:** as vagas sul-americanas restantes (pelo menos 2) vão para os melhores do ciclo ainda não classificados. Pontos por temporada (vale a maior fase de cada competição; soma das 4):
+3. **Ranking Condor:** as vagas sul-americanas restantes (pelo menos 2) vão para os melhores do ciclo ainda não classificados. Pontos por temporada (vale a maior fase de cada competição; soma das 4):
 
 | Competição | Participação | Quartas | Semi | Vice | Campeão |
 |---|---|---|---|---|---|
@@ -112,14 +112,14 @@ Toda competição recebe de pelo menos uma e alimenta pelo menos uma; a única e
 | Série D | início de carreira; rebaixados da C | Série C (4 sobem); Supercopa (campeão); Taça Cacique (todos disputam) |
 | Série C | promovidos da D; rebaixados da B | Série B (4 sobem); Série D (4 caem); Supercopa (campeão) |
 | Série B | promovidos da C; rebaixados da A | Série A (4 sobem); Série C (4 caem); Supercopa (campeão) |
-| Série A | promovidos da B | Condor de Ouro (1º a 4º); Condor de Prata (5º e 6º); Supercopa (campeão); vaga da sede no Mundial (campeão, no ano em que o seu país é sede); Ranking Austral (1º a 6º); Série B (4 caem) |
-| Taça Cacique | os clubes da série do usuário e convidados (como hoje) | Condor de Prata (campeão, se não estiver na Ouro); Supercopa (campeão); suplente da vaga da sede; Ranking Austral (campeão e vice) |
-| Condor de Ouro | Série A (1º a 4º) | Recopa (campeão); Copa dos Continentes (campeões do ciclo); Ranking Austral (todas as fases) |
-| Condor de Prata | Série A (5º e 6º); campeão da Taça | Recopa (campeão); Ranking Austral (todas as fases) |
-| Supercopa | campeão da liga (qualquer série) x campeão da Taça (T10) | Ranking Austral (campeão: 1) |
-| Recopa | campeão da Ouro x campeão da Prata (T10) | Ranking Austral (campeão: 1) |
-| Ranking Austral (não é competição, é o elo) | Ouro, Prata, Série A, Taça, Supercopa, Recopa | Copa dos Continentes (vagas sul-americanas que sobram) |
-| Copa dos Continentes | campeões da Ouro do ciclo; Ranking Austral; vaga da sede; vagas estrangeiras da IA | galeria, pódio e marcos (topo) |
+| Série A | promovidos da B | Condor de Ouro (1º a 4º); Condor de Prata (5º e 6º); Supercopa (campeão); vaga da sede no Mundial (campeão, no ano em que o seu país é sede); Ranking Condor (1º a 6º); Série B (4 caem) |
+| Taça Cacique | os clubes da série do usuário e convidados (como hoje) | Condor de Prata (campeão, se não estiver na Ouro); Supercopa (campeão); suplente da vaga da sede; Ranking Condor (campeão e vice) |
+| Condor de Ouro | Série A (1º a 4º) | Recopa (campeão); Copa dos Continentes (campeões do ciclo); Ranking Condor (todas as fases) |
+| Condor de Prata | Série A (5º e 6º); campeão da Taça | Recopa (campeão); Ranking Condor (todas as fases) |
+| Supercopa | campeão da liga (qualquer série) x campeão da Taça (T10) | Ranking Condor (campeão: 1) |
+| Recopa | campeão da Ouro x campeão da Prata (T10) | Ranking Condor (campeão: 1) |
+| Ranking Condor (não é competição, é o elo) | Ouro, Prata, Série A, Taça, Supercopa, Recopa | Copa dos Continentes (vagas sul-americanas que sobram) |
+| Copa dos Continentes | campeões da Ouro do ciclo; Ranking Condor; vaga da sede; vagas estrangeiras da IA | galeria, pódio e marcos (topo) |
 
 **Regras de não duplicação (conferidas na T11):**
 - Ouro antes da Prata (já é assim no código): o campeão da Taça que está no top 4 da A vai para a Ouro, e a vaga da Prata não é repassada (como hoje).
@@ -206,9 +206,9 @@ mundial: { r16: 120000, qf: 180000, sf: 250000, thirdWin: 190000, thirdLoss: 600
 ## 6. Save e migração (idempotente)
 
 - `mundialState`: chave de topo aditiva (25 no total), com 8 a 12 KB só na temporada da edição e só com o usuário classificado. Padrão `emptyMundial()` em save antigo.
-- `ecoRecords` dentro de `club` (8 registros de cerca de 250 bytes). Save antigo sem o campo: reconstruir pelo `trophyGallery` (títulos por temporada) e pelo `podiumArchive` (campeões da Ouro, da Prata e da Taça). Fases que não são título ficam `null`. Roda só com o campo ausente, então uma segunda carga não muda nada. Precisa reconhecer os textos antigos e os novos (seção 10.3).
+- `ecoRecords` dentro de `club` (8 registros de cerca de 250 bytes). Save antigo sem o campo: reconstruir pelo `trophyGallery` (títulos por temporada) e pelo `podiumArchive` (campeões da Ouro, da Prata e da Taça). Fases que não são título ficam `null`. Roda só com o campo ausente, então uma segunda carga não muda nada. Precisa reconhecer os textos antigos e os novos (seção 10.4).
 - `FinalState.rivalOrigin`: opcional; save antigo fica sem a etiqueta.
-- Aviso único: "Nova competição: Copa dos Continentes, a cada 4 temporadas. Próxima edição na temporada N. Seus títulos já contam para o Ranking Austral."
+- Aviso único: "Nova competição: Copa dos Continentes, a cada 4 temporadas. Próxima edição na temporada N. Seus títulos já contam para o Ranking Condor."
 - A asserção das 17 chaves vai numa `chore` (T1); os testes da Fase 8 conferem "as chaves de antes mais `mundialState`".
 
 ## 7. Prêmios e calibração (prêmio maior)
@@ -258,7 +258,7 @@ Conta da tabela recomendada para o elenco máximo: 120 × 0,95 + 180 × 0,81 + 2
 
 - Aba "Continentes" com selo de pendência.
 - **`MundialPanel.vue`:**
-  - Sem edição na temporada: contagem regressiva, sede e Ranking Austral (corte de 16).
+  - Sem edição na temporada: contagem regressiva, sede e Ranking Condor (corte de 16).
   - Edição sem o usuário: grupos e campeão como notícia.
   - Edição com o usuário: grupo dele, abas com os outros 7, botão de entrada, chave de 16 (`BracketView` padrão), pódio e prêmios.
 - **`MundialCycleCard.vue`:** "Rumo à Copa dos Continentes", com os pontos do ciclo por competição, a porta provável e "Faltam N pontos".
@@ -293,7 +293,7 @@ T15 depois da T14 (os textos tocam os mesmos componentes)
 - Arquivos: `docs/calibracao/t23-atletas.mjs` (imports e h6 com a lista real de chaves). Pronto: todas as asserções OK.
 
 **T2. Tipos e constantes**
-- Arquivos: `src/types/match.ts`, `bracket.ts`, `competitions.ts`, `club.ts` (`SeasonEcoRecord`, `ecoRecords?`, `FinalState.rivalOrigin?`), `src/config/competitions.ts` (seção 4.2, `ECOSYSTEM_LINKS` da seção 3, confederações, sedes e etiquetas do Mundial já com os nomes finais da seção 10.2; os nomes das competições existentes só mudam na T15), `stores/match.ts`, `MatchSwitcher.vue`, `suspension.ts` (só as entradas). Pronto: build.
+- Arquivos: `src/types/match.ts`, `bracket.ts`, `competitions.ts`, `club.ts` (`SeasonEcoRecord`, `ecoRecords?`, `FinalState.rivalOrigin?`), `src/config/competitions.ts` (seção 4.2, `ECOSYSTEM_LINKS` da seção 3, confederações, sedes e etiquetas do Mundial já com os nomes finais da seção 10.3; os nomes das competições existentes só mudam na T15), `stores/match.ts`, `MatchSwitcher.vue`, `suspension.ts` (só as entradas). Pronto: build.
 
 **T3. Módulo genérico de grupos e jogo neutro**
 - Arquivos: `src/utils/groups/groupStage.ts` (novo), `modules/competitions/groups.ts` (reexporta), `src/utils/bracket/bracket.ts`.
@@ -303,7 +303,7 @@ T15 depois da T14 (os textos tocam os mesmos componentes)
   3. Jogo neutro: 40% ± 2 para cada lado entre OVER iguais.
   4. Desempates de `sortGroup`.
 
-**T4. Histórico do ciclo e Ranking Austral**
+**T4. Histórico do ciclo e Ranking Condor**
 - Arquivos: `src/utils/competitions/rankingCondor.ts` (novo), `src/stores/club.ts`.
 - Teste `t41-ranking.mjs`: cada célula da tabela; soma só o ciclo; ordem das portas; corte 16 (16 entra, 15 fica fora); `ecoRecords` limitado a 8; save idempotente.
 
@@ -373,76 +373,81 @@ T15 depois da T14 (os textos tocam os mesmos componentes)
 **T14. Revisão do Opus da branch** (Opus, esforço medium)
 - Diff, build, t40 a t49, `--check`. Foco: regressão do continental e das chaves; ordem da virada; não duplicação; reconstrução idempotente; `LIVE_MATCH_KEY` com `mundial`; finais com rival real.
 
-**T15. Aplicar o universo "Astros" e checar contra nomes reais** (`feature/universo-nomes`)
-- Arquivos: `src/utils/league/leagueScheduler.ts` (os 8 clubes da seção 10.2; `SERIE_META.name` **não muda**), `src/utils/identity/teamIdentities.ts` (nome novo e **alias do antigo para o mesmo id**), textos de competição nos stores, componentes e `leagueKnockout.ts` (Taça Cacique → Taça Meteoro, Copa Condor de Ouro/Prata → Copa Austral de Ouro/Prata, Supercopa Soberana → Supercopa Zênite, Recopa Condor → Recopa Equinócio; só strings), `src/config/competitions.ts` (`NAME_MIGRATION_MAP`), `src/composables/usePersistence.ts` (migração da seção 10.3), `src/utils/competitions/rankingCondor.ts` (reconstrução reconhecendo os dois textos).
-- Fazer, antes de editar: busca na web por cada nome novo (8 clubes, 4 competições renomeadas, 5 confederações, 3 sedes, clubes das sedes e `MUNDIAL_RIVALS`) contra clubes e torneios reais conhecidos. Relatório com o resultado; se algum colidir, propor um substituto do mesmo tema e **parar para o dono decidir** (não trocar sozinho).
-- Teste `t50-nomes.mjs`: save antigo com os 8 clubes antigos em `leagueTeams`, troféus "Campeão da Taça Cacique" e "Campeão da Copa Condor de Ouro" e pódio da Taça; na carga, os clubes passam a ter os nomes novos com o mesmo escudo, a galeria e os pódios mostram os textos novos, `matchHistory` fica intacto, a reconstrução do ciclo conta os títulos antigos, e uma segunda carga não muda nada (JSON idêntico); nenhum texto da interface contém "Cacique", "Soberana" ou "Condor" (busca em `src/`, exceto o mapa de migração e os aliases); as séries continuam "Série A" a "Série D".
+**T15. Aplicar os nomes da seção 10 e checar contra nomes reais** (`feature/universo-nomes`; só depois de o dono fechar a Taça e o conjunto continental)
+- Arquivos:
+  - `src/utils/league/leagueScheduler.ts`: os 8 clubes da seção 10.3; `SERIE_META.name` **não muda**.
+  - `src/utils/identity/teamIdentities.ts`: nome novo e **alias do antigo para o mesmo id**.
+  - Textos de competição nos stores, componentes e `leagueKnockout.ts`, só strings: Taça Cacique → Taça Ipê, Supercopa Soberana → Supercopa Zênite, Recopa Condor → Recopa dos Condores. A Condor de Ouro/Prata não muda no conjunto recomendado (com o B ou o C, trocar também).
+  - `src/config/competitions.ts` (`NAME_MIGRATION_MAP`), `src/composables/usePersistence.ts` (migração da seção 10.4) e `src/utils/competitions/rankingCondor.ts` (reconstrução reconhecendo os textos antigos e os novos).
+- Fazer, antes de editar: busca na web por cada nome novo da lista da seção 10.3 contra clubes e torneios reais conhecidos. Relatório com o resultado; se algum colidir, propor um substituto da mesma lógica e **parar para o dono decidir** (não trocar sozinho).
+- Teste `t50-nomes.mjs`:
+  1. Save antigo com os 8 clubes antigos em `leagueTeams`, os troféus "Campeão da Taça Cacique", "Campeão da Supercopa Soberana", "Campeão da Recopa Condor" e "Campeão da Copa Condor de Ouro", e o pódio da Taça com o rótulo "Taça Cacique".
+  2. Na carga, os clubes passam a ter os nomes novos com o mesmo escudo.
+  3. A galeria mostra "Campeão da Taça Ipê", "Campeão da Supercopa Zênite" e "Campeão da Recopa dos Condores"; "Campeão da Copa Condor de Ouro" continua igual (conjunto A); o pódio mostra "Taça Ipê".
+  4. `matchHistory` intacto.
+  5. A reconstrução do ciclo conta os títulos antigos e os novos.
+  6. Uma segunda carga não muda nada (JSON idêntico).
+  7. Nenhum texto de interface em `src/` contém "Cacique", "Soberana" ou o exato "Recopa Condor" (fora o mapa de migração e os aliases).
+  8. As séries continuam "Série A" a "Série D".
+  9. Com o conjunto B ou C, a lista de proibidos do item 7 ganha "Condor de Ouro" e "Condor de Prata".
 - Não fazer: mudar ids internos nem os nomes das séries.
 
 **Integração (sessão principal):** `chore/calib-imports`, `chore/t23-chaves`, `feature/copa-dos-continentes` e, depois, `feature/universo-nomes`, com `--no-ff`; build e `--check` depois de cada merge. A versão sobe para 1.3.0 só no pedido de lançamento.
 
-## 10. Universo de nomes: "Astros" (decidido pelo dono, com ajustes)
+## 10. Universo de nomes: "Astros" com ajustes (decidido em parte pelo dono)
 
-Base: o universo "Astros", que conversa com a Liga Aurora. **As séries mantêm os nomes atuais (Série A, B, C e D), sem sufixo nem estrela.** Ids internos intactos (`cup`, `continental`, `libertadores`, `sulamericana`, ids de clube). Critérios para os nomes novos: curtos, sonoros, fáceis de ler num selo de 390 px, sem marca, entidade ou clube real, e sem colisão entre si (competições, confederações e clubes).
+Base: o universo "Astros", que conversa com a Liga Aurora. **As séries mantêm os nomes atuais (Série A, B, C e D), sem sufixo nem estrela.** Ids internos intactos (`cup`, `continental`, `libertadores`, `sulamericana`, ids de clube). Critérios: nomes curtos, sonoros, fáceis de ler num selo de 390 px, sem marca, entidade ou clube real, e sem colisão entre si (competições, confederações e clubes).
 
-### 10.1 Colisões resolvidas
+Já decidido: **Supercopa Zênite**; confederações **Liga Boreal** (Europa), **Liga Eclipse** (Ásia), **Liga Cometa** (África), **Liga Polar** (América do Norte e Central) e **Liga Fênix** (Oceania); sedes; os 8 clubes; **Copa dos Continentes**. Em aberto: a Taça (10.1) e o conjunto continental (10.2).
 
-"Eclipse" e "Cometa" passaram a ser confederações (Ásia e África), então a Supercopa Eclipse e a Taça Cometa precisam de nomes novos.
+### 10.1 Taça (copa nacional): sem tema astronômico
 
-**Taça (copa nacional de todas as séries, a das zebras):**
+Três lógicas diferentes:
 
-| Opção | Prós | Contras |
+| Opção | Lógica | Prós | Contras |
+|---|---|---|---|
+| **Taça Ipê** (recomendada) | símbolo nacional: a árvore que floresce em todo o país, com flor dourada (o troféu pode ser um ipê de ouro) | 2 sílabas, a mais curta e sonora; identidade brasileira forte; o ipê-amarelo floresce no fim do inverno, que combina com a "aurora" da liga (recomeço) sem ser astronômico; nenhuma colisão | não diz sozinha que é a copa de todas as séries (o subtítulo do painel explica) |
+| Taça das Séries | conceito: a única copa que junta clubes das quatro séries | autoexplicativa, didática para quem chega | soa descritiva, menos marca; "Séries" repete o nome das ligas |
+| Taça do Povo | conceito: a copa das zebras, onde o pequeno enfrenta o grande | carisma e narrativa ("zebra na Taça do Povo") | genérica, com mais chance de colidir com torneios amadores reais (a T15 checa) |
+
+### 10.2 Conjunto continental (elite, segundo nível, Recopa entre os dois, ranking)
+
+| Conjunto | Elite / Segundo nível | Recopa | Ranking | Prós | Contras |
+|---|---|---|---|---|---|
+| **A. Condor (o atual)** (recomendado) | Copa Condor de Ouro / Copa Condor de Prata | Recopa dos Condores | Ranking Condor | o jogador já conhece (zero estranhamento); o condor é o símbolo da América do Sul e não colide com nada; quase nenhuma migração (continental intacto; só a Recopa ganha "dos"); liga com o resto pelo voo: o condor é a ave que voa mais alto (Zênite) e faz par com a outra ave do mapa (Fênix) | quebra o tema de céu e fenômenos das outras confederações: é o único bicho entre Boreal, Eclipse, Cometa e Polar |
+| B. Sol e Lua | Copa Sol / Copa Lua (ouro = sol, prata = lua, a dupla clássica) | Recopa Crepúsculo (a hora em que sol e lua dividem o céu) | Ranking Solar | o mais coerente com o tema astronômico; curtíssimos e sonoros; a hierarquia sol > lua é intuitiva | colide com os clubes aprovados Lua Nova EC, Vale do Sol, Serra do Luar e com o Sol Nascente EC ("Lua Nova campeão da Copa Lua"); exige migrar todos os textos do continental |
+| C. Horizonte | Copa Horizonte de Ouro / de Prata | Recopa do Horizonte | Ranking Horizonte | celeste e geográfico ao mesmo tempo (onde o céu encontra a terra); casa com a Aurora (o sol nasce no horizonte) | inverte a hierarquia: a Supercopa Zênite (nacional) soaria acima da continental (o horizonte fica abaixo do zênite); 4 sílabas; migração completa dos textos do continental |
+
+**Recomendação: conjunto A (Condor).** É o único sem colisão nem inversão de sentido, mantém o que o jogador já reconhece e reduz a migração ao mínimo. A quebra de tema vira identidade: as outras confederações levam nomes de céu, e a América do Sul, a "casa" do jogador, leva o emblema próprio do jogo, a ave que alcança o Zênite. A confederação passa a se chamar **Confederação Condor**.
+
+### 10.3 Tabela final (atual → novo), com as recomendações aplicadas
+
+| Atual | Novo | Situação |
 |---|---|---|
-| **Taça Meteoro** (recomendada) | risca o céu do país de ponta a ponta, como a copa que cruza todas as séries; passa ideia de zebra rápida; sem colisão | 4 sílabas |
-| Taça Órbita | 3 sílabas; "todos giram na mesma órbita" | conceito mais frio, menos emoção |
-| Taça Galáxia | sonoro | perto demais de "Via Láctea FC" (clube novo) |
+| Liga Aurora — Série A/B/C/D | **Liga Aurora — Série A/B/C/D** (sem mudança) | decidido |
+| Taça Cacique | **Taça Ipê** | recomendado (10.1) |
+| Copa Condor de Ouro / de Prata | **Copa Condor de Ouro / de Prata** (sem mudança) | recomendado (10.2) |
+| Supercopa Soberana | **Supercopa Zênite** | decidido |
+| Recopa Condor | **Recopa dos Condores** | recomendado (10.2) |
+| Ranking (novo) | **Ranking Condor** | recomendado (10.2) |
+| América do Sul (sem nome) | **Confederação Condor** | recomendado (10.2) |
+| Copa dos Continentes | **Copa dos Continentes** | decidido |
+| Europa / Ásia / África / América do Norte e Central / Oceania | **Liga Boreal / Liga Eclipse / Liga Cometa / Liga Polar / Liga Fênix** | decidido |
+| Sedes: Sakura, Al-Rimal, Atlas | **Ilhas Hoshi, Emirado de Najm, Reino de Nyota** | decidido |
+| Tupinambá EC (`d_18`) | **Lua Nova EC** | decidido |
+| Noroeste do Vale (`b_10`) | **Vale do Sol** | decidido |
+| Operário Araucário (`b_14`) | **Pinhal Celeste** | decidido |
+| Oeste Catarinense (`b_16`) | **Poente FC** | decidido |
+| Farroupilha AC (`a_8`) | **Meridiano AC** | decidido |
+| Ferrovia Paulista (`c_8`) | **Via Láctea FC** | decidido |
+| São Bento do Vale (`c_9`) | **Serra do Luar** | decidido |
+| Esperança de Lagarto (`c_11`) | **Estrela do Agreste** | decidido |
 
-**Supercopa (campeão da liga x campeão da Taça, abre a temporada):**
+Textos de troféu (com as recomendações): "Campeão da Taça Ipê", "Campeão da Copa Condor de Ouro" e "...de Prata" (iguais aos de hoje), "Campeão da Supercopa Zênite", "Campeão da Recopa dos Condores", "Campeão da Copa dos Continentes". Etiquetas dos rivais do Mundial: "Campeão da Liga Boreal" e assim por diante. Se o dono escolher o conjunto B ou C, o `NAME_MIGRATION_MAP` (10.4) ganha também as linhas do continental, e a T15 troca os textos da Condor.
 
-| Opção | Prós | Contras |
-|---|---|---|
-| **Supercopa Zênite** (recomendada) | o ponto mais alto do céu: o encontro dos dois campeões nacionais; 3 sílabas; sem colisão (as séries não usam mais o nome) | nenhum relevante |
-| Supercopa Conjunção | o termo exato para dois astros que se encontram | longa (4 sílabas e "-ção") |
-| Supercopa Solstício | marca de abertura de ciclo | junto da Recopa Equinócio, dois nomes em "-ício" confundem |
+**Checagem contra clubes reais (T15):** todos os nomes novos (os 8 clubes, a Taça escolhida, Supercopa Zênite, Recopa dos Condores, as 5 confederações, as 3 sedes, os clubes das sedes e `MUNDIAL_RIVALS`) passam por uma busca contra clubes e torneios reais conhecidos. Se algum colidir, a T15 propõe um substituto da mesma lógica e para para o dono decidir.
 
-**Coerência das demais:**
-- **Austral de Ouro / Austral de Prata** (no lugar de Condor de Ouro/Prata): coerente, porque "austral" é o céu do sul e faz par com a Liga Boreal (o céu do norte, Europa). Não colide com nada. A confederação sul-americana passa a ser a **Confederação Austral**, e o ranking do ciclo, **Ranking Austral** (o plano já usa esse nome).
-- **Recopa Equinócio** (Ouro x Prata, dia e noite do mesmo tamanho): coerente e sem colisão, já que a Supercopa não será Solstício.
-- **Observação sem colisão de nome:** Liga Polar (América do Norte e Central) e Liga Boreal (Europa) remetem os dois ao norte. Não se confundem na tela porque aparecem sempre com o nome da região na etiqueta ("Campeão da Liga Polar • América do Norte").
-- **Clubes que já existem:** "Sol Nascente EC" (`a_3`) e o novo "Vale do Sol" compartilham "Sol", mas são nomes distintos e de séries diferentes; aceitável.
-
-### 10.2 Tabela final (atual → novo)
-
-| Atual | Novo | Justificativa |
-|---|---|---|
-| Liga Aurora — Série A/B/C/D | **Liga Aurora — Série A/B/C/D** (sem mudança) | decisão do dono |
-| Taça Cacique | **Taça Meteoro** | seção 10.1; também deixa de usar um título de liderança indígena como nome de taça |
-| Copa Condor de Ouro | **Copa Austral de Ouro** (curto: Austral de Ouro) | o céu do sul, par da Liga Boreal |
-| Copa Condor de Prata | **Copa Austral de Prata** (curto: Austral de Prata) | idem |
-| Supercopa Soberana | **Supercopa Zênite** | seção 10.1; também deixa de confundir com o Soberano FC |
-| Recopa Condor | **Recopa Equinócio** | Ouro x Prata: dia e noite iguais |
-| Copa dos Continentes | **Copa dos Continentes** | aprovado |
-| América do Sul (sem nome) | **Confederação Austral** | organiza as Austrais |
-| Europa | **Liga Boreal** | aurora boreal, eco da Liga Aurora |
-| Ásia | **Liga Eclipse** | decisão do dono |
-| África | **Liga Cometa** | decisão do dono |
-| América do Norte e Central | **Liga Polar** | a Estrela Polar |
-| Oceania | **Liga Fênix** | constelação do céu do sul |
-| Sedes: Sakura, Al-Rimal, Atlas | **Ilhas Hoshi, Emirado de Najm, Reino de Nyota** | "estrela" na língua de cada região |
-| Tupinambá EC (`d_18`) | **Lua Nova EC** | há clubes reais com o nome Tupinambá/Tupynambás |
-| Noroeste do Vale (`b_10`) | **Vale do Sol** | lembra o Noroeste (Bauru) |
-| Operário Araucário (`b_14`) | **Pinhal Celeste** | junta Operário e Araucária, dois clubes reais do Paraná |
-| Oeste Catarinense (`b_16`) | **Poente FC** | poente = oeste; lembra o Oeste FC |
-| Farroupilha AC (`a_8`) | **Meridiano AC** | lembra o Farroupilha (Pelotas) |
-| Ferrovia Paulista (`c_8`) | **Via Láctea FC** | lembra a Ferroviária |
-| São Bento do Vale (`c_9`) | **Serra do Luar** | lembra o São Bento |
-| Esperança de Lagarto (`c_11`) | **Estrela do Agreste** | lembra o Lagarto (SE) |
-
-Textos de troféu: "Campeão da Taça Meteoro", "Campeão da Copa Austral de Ouro", "Campeão da Copa Austral de Prata", "Campeão da Supercopa Zênite", "Campeão da Recopa Equinócio", "Campeão da Copa dos Continentes". Etiquetas de rival do Mundial: "Campeão da Liga Boreal" e assim por diante.
-
-**Checagem contra clubes reais (T15):** todos os nomes novos de clube (os 8 acima, os de `MUNDIAL_RIVALS` e os clubes das sedes) e de competição são conferidos numa busca contra clubes e torneios reais conhecidos. Se algum colidir, a T15 propõe um substituto do mesmo tema (por exemplo, Lua Nova EC → Lua Crescente EC) e reporta, sem decidir sozinha.
-
-### 10.3 Migração (decidida: todos os nomes entram, textos antigos migram)
+### 10.4 Migração (decidida: todos os nomes entram, textos antigos migram)
 
 - **Ids internos intactos:** nenhuma migração de estrutura.
 - **Rótulos calculados na hora** (`rawLabelFor`, painéis, `SERIE_META.name`): mudam sozinhos.
@@ -465,17 +470,17 @@ Textos de troféu: "Campeão da Taça Meteoro", "Campeão da Copa Austral de Our
 6. **Mudança de comportamento da Supercopa e da Recopa (T10):** só muda o rival e a etiqueta, não a vaga nem o prêmio. O OVER do rival real pode ser diferente do sorteado de hoje (por exemplo, campeão da Taça da Série D mais fraco), o que muda pouco a chance de título nas finais. O t47 confere os prêmios iguais.
 7. **Duração da temporada da edição:** até 7 jogos a mais, opcionais; W.O. na virada.
 8. **Reconstrução de save antigo** perde as fases que não foram título. Aceito, com aviso.
-9. **Renomeação** (T15): escudo perdido se faltar o alias; texto antigo esquecido em algum componente. Mitigação: alias, busca por "Cacique", "Soberana" e "Condor" no t50, e checagem prévia contra nomes reais.
+9. **Renomeação** (T15): escudo perdido se faltar o alias; texto antigo esquecido em algum componente. Mitigação: alias, busca pelos textos antigos (Cacique, Soberana, Recopa Condor) no t50, e checagem prévia contra nomes reais.
 10. **Ruído da calibração** de ±10 a 20 mil por série.
 11. **`npm run dev` com agentes editando** apaga a partida em andamento.
 
 ## 12. Perguntas ao dono
 
-Decididas: corte do Ranking Austral em 16; campeão da Copa dos Continentes a 1,5 mi; universo "Astros" com as séries de hoje, os 8 clubes novos e a migração dos textos.
+Decididas: corte do Ranking Condor em 16; campeão da Copa dos Continentes a 1,5 mi; Supercopa Zênite; confederações, sedes e os 8 clubes do universo "Astros"; séries com os nomes de hoje; migração dos textos (sem o `matchHistory`).
 
 Ainda abertas:
-1. **Nome da Taça** (copa nacional): Taça Meteoro (recomendada), Taça Órbita ou Taça Galáxia?
-2. **Nome da Supercopa:** Supercopa Zênite (recomendada), Supercopa Conjunção ou Supercopa Solstício?
+1. **Taça:** Taça Ipê (recomendada), Taça das Séries ou Taça do Povo?
+2. **Conjunto continental:** A Condor, que é o atual (Condor de Ouro/Prata, Recopa dos Condores, Ranking Condor; recomendado), B Sol e Lua (Copa Sol/Lua, Recopa Crepúsculo, Ranking Solar) ou C Horizonte (Horizonte de Ouro/Prata, Recopa do Horizonte, Ranking Horizonte)?
 
 ## 13. Backlog (fora do escopo da Fase 8): Patrocinador Master
 
