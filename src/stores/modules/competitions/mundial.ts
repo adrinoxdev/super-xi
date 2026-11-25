@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import type { Ref } from 'vue'
-import type { Bracket, BracketTeam, BracketTie, GroupTeam, MundialGroup, MundialState, Podium } from '@/types'
-import { MUNDIAL_EVERY, MUNDIAL_LABEL, PRIZES } from '@/config'
+import type { Bracket, BracketTeam, BracketTie, GroupTeam, MundialGroup, MundialLastEdition, MundialState, Podium } from '@/types'
+import { MUNDIAL_EVERY, MUNDIAL_HOSTS, MUNDIAL_LABEL, PRIZES } from '@/config'
 import {
   completeBracket,
   createBracket,
@@ -111,10 +111,58 @@ export function createMundial(ctx: { mundialState: Ref<MundialState>; club: Comp
     return b
   }
 
-  /** Abre a edição da temporada atual. Sem vaga do usuário, o estado fica vazio (nada a jogar). */
+  /** Nome do país-sede da edição (sede do usuário usa o nome configurado). */
+  function hostNameOf(edition: number, hostId: string, teams: GroupTeam[]): string {
+    const h = MUNDIAL_HOSTS[(edition - 1 + MUNDIAL_HOSTS.length) % MUNDIAL_HOSTS.length]
+    return h?.name ?? teams.find((t) => t.id === hostId)?.name ?? ''
+  }
+
+  /** Resumo compacto: grupos finais (já ordenados) e pódio com o 4º. */
+  function summarizeEdition(
+    season: number, hostId: string, groups: MundialGroup[], b: Bracket, userPlayed: boolean
+  ): MundialLastEdition | null {
+    const pod = b.podium
+    if (!pod) return null
+    const edition = Math.round(season / MUNDIAL_EVERY)
+    const fourthId = b.thirdPlace?.loserId ?? null
+    return {
+      season, edition, hostId, userPlayed,
+      hostName: hostNameOf(edition, hostId, groups.flatMap((g) => g.teams)),
+      groups: groups.map((g) => ({
+        id: g.id,
+        rows: sortGroup(g.teams).map((t) => ({
+          id: t.id, name: t.isUser ? clubStore.name : t.name, power: t.power,
+          points: t.points, gf: t.gf, ga: t.ga, isUser: !!t.isUser
+        }))
+      })),
+      champion: pod.champion.name,
+      runnerUp: pod.runnerUp.name,
+      third: pod.third?.name ?? '',
+      fourth: fourthId ? (b.teams[fourthId]?.name ?? '') : ''
+    }
+  }
+
+  /** Edição sem o usuário: grupos e chave pelo OVER em campo neutro, guardando só o resumo. */
+  function simulateEditionWithoutUser(field: MundialField): MundialLastEdition | null {
+    const groups: MundialGroup[] = field.groups.map((g) => ({
+      id: g.id, teams: g.teams.map((t) => ({ ...t })), results: []
+    }))
+    for (let r = 1; r <= GROUP_ROUNDS; r++) {
+      for (const g of groups) g.results.push(...simulateGroupRound(g.teams, r, rng, { neutral: true }))
+    }
+    const b = buildBracket(field)
+    const sorted = {} as Record<GroupLetter, string[]>
+    for (const g of groups) sorted[g.id as GroupLetter] = sortGroup(g.teams).map((t) => t.id)
+    seedMundialRoundOf16(sorted).forEach(([h, a], i) => fillTieTeams(b.rounds[0].ties[i], h, a))
+    completeBracket(b, rng)
+    return summarizeEdition(clubStore.season, field.hostId, groups, b, false)
+  }
+
+  /** Abre a edição da temporada atual. Sem vaga do usuário, simula o torneio e guarda só o resumo. */
   function openMundialEdition(field: MundialField) {
+    const prevLast = mundialState.value.last ?? null
     if (!field.userEntry || !field.teams.some((t) => t.isUser)) {
-      mundialState.value = emptyMundial()
+      mundialState.value = { ...emptyMundial(), last: simulateEditionWithoutUser(field) ?? prevLast }
       return
     }
     const season = clubStore.season
@@ -132,12 +180,13 @@ export function createMundial(ctx: { mundialState: Ref<MundialState>; club: Comp
       groupRound: 1,
       userGroupId: groups.find((g) => g.teams.some((t) => t.isUser))?.id ?? 'A',
       groups,
-      bracket: buildBracket(field)
+      bracket: buildBracket(field),
+      last: prevLast
     }
   }
 
   function resetMundial() {
-    mundialState.value = emptyMundial()
+    mundialState.value = { ...emptyMundial(), last: mundialState.value.last ?? null }
   }
 
   /** Joga a rodada nos 8 grupos. userScore = [gols do usuário, do adversário]; null = W.O. 0 x 3. */
@@ -173,8 +222,8 @@ export function createMundial(ctx: { mundialState: Ref<MundialState>; club: Comp
       if (a === 'user') fillTieTeams(tie, a, h)
       else fillTieTeams(tie, h, a)
     })
-    b.teams.user.name = clubStore.name
-    propagate(b, { userHosts: true })
+    if (b.teams.user) b.teams.user.name = clubStore.name
+    propagate(b, { userHosts: !!b.teams.user })
   }
 
   /** Fim da temporada: o que estiver pendente vira W.O. do usuário e o torneio é simulado até o pódio. */
@@ -193,6 +242,8 @@ export function createMundial(ctx: { mundialState: Ref<MundialState>; club: Comp
     if (!m.champion) m.eliminated = true
     m.stage = 'DONE'
     m.finalPosition = m.finalPosition ?? userFinalPosition(m.bracket)
+    const sum = summarizeEdition(m.season, m.hostId, m.groups, m.bracket, true)
+    if (sum) m.last = sum
     return m.bracket.podium
   }
 

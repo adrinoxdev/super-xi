@@ -56,7 +56,7 @@ export function cycleInfo(records: SeasonEcoRecord[], season: number): CycleInfo
   return {
     target,
     remaining: target - season,
-    hostName: host.user ? 'Seu país' : host.name,
+    hostName: host.name,
     hostIsUser: !!host.user,
     total,
     cutoff,

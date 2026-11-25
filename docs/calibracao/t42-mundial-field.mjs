@@ -42,7 +42,7 @@ await ok(true, '1 300 sementes: 32 distintos, 12/6/4/4/4/1/1, 8 grupos de 4')
 
 // 2) portas e casos da sede
 let f = build(HOME, base({ ouro: 'champion' }))
-await ok(f.userEntry === 'ouro' && f.teams.some((t) => t.isUser && t.tag === 'Campeão da Condor de Ouro'), "2 porta 'ouro'")
+await ok(f.userEntry === 'ouro' && f.teams.some((t) => t.isUser && t.tag === 'Campeão da Copa Condor de Ouro'), "2 porta 'ouro'")
 f = build(HOME, base({ serieAChampion: ch('Serra Dourada FC', 75) }))
 await ok(f.hostSource === 'serieA' && f.hostId === 'd_1' && f.userEntry === null, '2 sede ao campeão da A (IA)')
 f = build(HOME, base({ division: 1, leagueRank: 1, leagueTitle: true }))
@@ -74,7 +74,7 @@ const pod = (season, name, isUser = false, label = 'Copa Condor de Ouro') => ({
 f = build(HOME, [rec(15, { ouroChampion: ch('Atlético Valle Verde', 74) }), rec(14), rec(13), rec(12)], {
   podiumArchive: [pod(14, 'Ciudad Costanera FC'), pod(13, 'Club Pehuén Andino'), pod(12, 'Sociedad Altiplano Alto', false, 'Copa Condor de Prata')]
 })
-const nm = (n) => f.teams.some((t) => t.name === n && t.tag === 'Campeão da Condor de Ouro')
+const nm = (n) => f.teams.some((t) => t.name === n && t.tag === 'Campeão da Copa Condor de Ouro')
 await ok(nm('Atlético Valle Verde') && nm('Ciudad Costanera FC') && nm('Club Pehuén Andino'), '4 campeões do ecoRecords e do podiumArchive')
 await ok(!nm('Sociedad Altiplano Alto'), '4 pódio da Prata não conta como campeão da Ouro')
 f = build(HOME, [rec(15), rec(14), rec(13), rec(12)], { podiumArchive: [pod(15, 'Meu Clube', true)] })

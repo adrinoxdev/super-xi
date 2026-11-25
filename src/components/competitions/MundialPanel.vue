@@ -31,12 +31,11 @@ const info = computed(() => cycleInfo(club.ecoRecords, club.season))
 const editionNow = computed(() => club.season % MUNDIAL_EVERY === 0)
 const editionHost = computed(() => {
   const h = hostForSeason(club.season)
-  return h.user ? 'Seu país' : h.name
+  return h.name
 })
-const lastChampion = computed(() => {
-  const p = club.podiumArchive.find((x) => x.competition === 'mundial')
-  return p ? { name: p.champion.name, season: p.season } : null
-})
+const last = computed(() => m.value.last ?? null)
+const lastGroupId = ref('')
+const lastGroup = computed(() => last.value?.groups.find((g) => g.id === lastGroupId.value) ?? last.value?.groups[0])
 
 const canPlay = computed(() => m.value.qualified && !m.value.eliminated && !m.value.champion && m.value.stage !== 'DONE')
 const playLabel = computed(() => {
@@ -76,10 +75,7 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
           <div class="min-w-0 space-y-1">
             <h3 class="text-base sm:text-lg font-extrabold text-ink break-words">{{ MUNDIAL_LABEL }} • edição desta temporada</h3>
             <p class="text-xs text-ink-muted break-words">
-              Sede: <strong class="text-ink">{{ editionHost }}</strong>. Seu clube não está entre os 32 participantes: os 8 grupos e o campeão saem nas notícias da virada.
-            </p>
-            <p v-if="lastChampion" class="text-xs text-ink-muted break-words">
-              Último campeão registrado: <strong class="text-ink">{{ lastChampion.name }}</strong> (temporada {{ lastChampion.season }}).
+              Sede: <strong class="text-ink">{{ editionHost }}</strong>. Seu clube não está entre os 32 participantes: o torneio foi disputado sem você, e os grupos e o campeão aparecem abaixo.
             </p>
           </div>
         </div>
@@ -103,6 +99,45 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
             <div class="h-full bg-emeraldpro" :style="{ width: Math.min(100, (info.total / info.cutoff) * 100) + '%' }"></div>
           </div>
         </div>
+      </BaseCard>
+      <BaseCard v-if="last" class="space-y-3">
+        <h4 class="font-bold text-sm text-ink">Notícia: {{ MUNDIAL_LABEL }} da temporada {{ last.season }}</h4>
+        <p class="text-xs text-ink-muted break-words">
+          Sede: <strong class="text-ink">{{ last.hostName }}</strong>. Campeão: <strong class="text-ink">{{ last.champion }}</strong>.
+          Vice: {{ last.runnerUp }}<template v-if="last.third">. 3º: {{ last.third }}</template><template v-if="last.fourth">. 4º: {{ last.fourth }}</template>.
+        </p>
+        <div class="flex flex-wrap items-center gap-1.5 bg-subtle p-1 rounded-xl border border-borderline self-start max-w-full">
+          <button
+            v-for="g in last.groups"
+            :key="g.id"
+            type="button"
+            @click="lastGroupId = g.id"
+            :class="[
+              'px-3 py-2.5 md:py-1.5 rounded-lg text-xs font-bold transition-all',
+              lastGroup && lastGroup.id === g.id ? 'bg-emeraldpro text-night shadow-sm' : 'text-ink-muted hover:text-ink'
+            ]"
+          >
+            Grupo {{ g.id }}
+          </button>
+        </div>
+        <table v-if="lastGroup" class="w-full text-[11px] text-left">
+          <thead>
+            <tr class="border-b border-borderline uppercase text-ink-muted">
+              <th class="py-1 pr-1">#</th>
+              <th class="py-1">Clube</th>
+              <th class="py-1 px-1 text-center">P</th>
+              <th class="py-1 pl-1 text-center">SG</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-borderline">
+            <tr v-for="(row, idx) in lastGroup.rows" :key="row.id">
+              <td class="py-1.5 pr-1">{{ idx + 1 }}º</td>
+              <td class="py-1.5 text-ink max-w-0 w-full"><span class="block truncate" :title="row.name">{{ row.name }}</span></td>
+              <td class="py-1.5 px-1 text-center font-bold">{{ row.points }}</td>
+              <td class="py-1.5 pl-1 text-center">{{ row.gf - row.ga }}</td>
+            </tr>
+          </tbody>
+        </table>
       </BaseCard>
       <MundialCycleCard />
     </div>

@@ -23,7 +23,7 @@ const { useClubStore } = await load('/src/stores/club.ts')
 const { useCompetitionsStore } = await load('/src/stores/competitions.ts')
 const { useUiStore } = await load('/src/stores/ui.ts')
 const D = await load('/src/stores/modules/competitions/defaults.ts')
-const NOTICE = 'Nova competição: Copa dos Continentes, a cada 4 temporadas. Próxima edição na temporada 4. Seus títulos já contam para o Ranking Condor.'
+const NOTICE = 'Nova competição: Copa dos Continentes, a cada 4 temporadas. Próxima edição na temporada 8. Seus títulos já contam para o Ranking Condor.'
 
 function fresh() {
   setActivePinia(createPinia()); store.clear()
@@ -120,6 +120,19 @@ await ok(strip(store.get(STORAGE_KEY)) === strip(s2) && strip(s2) === strip(s1),
 const KEYS = ['club', 'squad', 'scouting', 'competitionStage', 'leagueTeams', 'leagueFixtures', 'transferHistory', 'trophyGallery', 'seasonGoals', 'seasonAssists', 'seasonApps', 'seasonYellows', 'seasonReds', 'careerStats', 'matchHistory', 'incomingOffers', 'youthAcademyProspects', 'staffContracts', 'supercupState', 'recopaState', 'cupState', 'continentalState', 'friendlies', 'prematchCompetition']
 const keys = Object.keys(JSON.parse(s1))
 await ok(KEYS.every((k) => keys.includes(k)) && keys.includes('mundialState') && keys.length === KEYS.length + 1, '4d chaves de antes (24) mais mundialState')
+
+// 5) edicao sem o usuario: resumo persiste, save idempotente; save antigo sem o campo carrega
+const J = fresh()
+J.club.season = 7; J.club.division = 4
+useSeason().startNewSeason(4, 0, 't', 'success')
+const lastJ = J.comp.mundialState.last
+await ok(J.club.season === 8 && !J.comp.mundialState.qualified && lastJ && lastJ.champion && lastJ.groups.length === 8, '5a edicao sem usuario guarda o resumo')
+const j1 = store.get(STORAGE_KEY)
+const K = fresh(); store.set(STORAGE_KEY, j1); K.P.loadGame(); K.P.saveGame()
+await ok(JSON.stringify(K.comp.mundialState.last) === JSON.stringify(lastJ) && strip(store.get(STORAGE_KEY)) === strip(j1), '5b save, load, save identico com o resumo')
+const oldSave = JSON.parse(j1); delete oldSave.mundialState.last
+const Lw = fresh(); store.set(STORAGE_KEY, JSON.stringify(oldSave)); Lw.P.loadGame()
+await ok(!Lw.comp.mundialState.last && Lw.comp.mundialState.groups.length === 0, '5c save antigo sem o campo carrega')
 
 await vs.close()
 console.log('OK t46-mundial-save')

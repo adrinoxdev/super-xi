@@ -135,7 +135,7 @@ m = c.st()
 await ok(podOk(m) && m.eliminated && c.club.total === 300000 && Object.values(m.bracket.rounds).flatMap((r) => r.ties).some((t) => t.walkover), '6b W.O. nas quartas: pódio, 300 mil, confronto por W.O.')
 // 6c) reset
 c.s.resetMundial()
-await ok(JSON.stringify(c.st()) === JSON.stringify(D.emptyMundial()), '6c reset volta ao vazio')
+await ok(JSON.stringify((({ last, ...r }) => r)(c.st())) === JSON.stringify(D.emptyMundial()), '6c reset volta ao vazio (o campo last, aditivo, e preservado)')
 
 // 7) save idempotente
 function saveCtx() {

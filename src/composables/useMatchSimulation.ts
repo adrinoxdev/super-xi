@@ -518,7 +518,7 @@ export function useMatchSimulation() {
 
   function startShootout(comp: MatchCompetition) {
     const state = match.sessions[comp].matchState
-    state.shootout = { kicks: [], first: isHomeFor(comp) ? 'user' : 'opp', done: false }
+    state.shootout = { kicks: [], first: comp === 'mundial' ? (Math.random() < 0.5 ? 'user' : 'opp') : isHomeFor(comp) ? 'user' : 'opp', done: false }
     state.events.unshift({
       minute: 90,
       type: 'penalty',

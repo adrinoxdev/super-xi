@@ -13,6 +13,7 @@ import { useEconomy } from './useEconomy'
 import { checkMilestones } from '@/utils/club/progression'
 import { resolvePrematchCompetition } from '@/utils/match/prematchMemory'
 import { CONTINENTAL_RIVALS, MUNDIAL_EVERY, MUNDIAL_LABEL } from '@/config/competitions'
+import { cycleTarget } from '@/utils/competitions/mundialCycle'
 import type { Podium, SeasonEcoRecord, TrophyRecord } from '@/types'
 
 // Definição única em constants.ts; reexportada por compatibilidade com quem importava daqui.
@@ -240,7 +241,7 @@ export function usePersistence() {
         }
         // Aviso único: só save antigo (sem ecoRecords) vê; o saveGame logo abaixo grava ecoRecords, que é a flag persistida.
         if (legacyNoEco) {
-          const next = Math.ceil(club.season / MUNDIAL_EVERY) * MUNDIAL_EVERY
+          const next = cycleTarget(club.season)
           ui.showToast(`Nova competição: ${MUNDIAL_LABEL}, a cada ${MUNDIAL_EVERY} temporadas. Próxima edição na temporada ${next}. Seus títulos já contam para o Ranking Condor.`, 'success')
           saveGame()
         }

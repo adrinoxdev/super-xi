@@ -85,6 +85,15 @@ function fresh() {
   season.startNewSeason(4, 0, 't', 'success')
   await ok(club.season === 8 && !comp.mundialState.qualified && comp.mundialState.bracket === null, '4 temporada 8 sem vaga do usuario: estado vazio')
   await ok(!club.podiumArchive.some((p) => p.competition === 'mundial'), '4 nenhum podio da Copa dos Continentes sem edicao')
+  const L = comp.mundialState.last
+  await ok(L && L.season === 8 && L.userPlayed === false && L.groups.length === 8 && L.groups.every((g) => g.rows.length === 4 && g.rows.every((r) => !r.isUser)), '5a sem vaga: edicao simulada, 8 grupos de 4 guardados')
+  const names = [L.champion, L.runnerUp, L.third, L.fourth]
+  await ok(names.every((n) => n) && new Set(names).size === 4 && L.hostName, '5b campeao, vice, 3o e 4o distintos e sede')
+  await ok(comp.mundialState.groups.length === 0 && comp.mundialState.bracket === null && JSON.stringify(L).length < 6000, '5c estado leve: sem grupos/chave completos, resumo compacto')
+  season.startNewSeason(4, 0, 't', 'success')
+  await ok(club.season === 9 && comp.mundialState.last?.season === 8, '5d virada seguinte mantem a ultima edicao (so uma)')
+  for (let i = 0; i < 3; i++) season.startNewSeason(4, 0, 't', 'success')
+  await ok(club.season === 12 && comp.mundialState.last?.season === 12 && comp.mundialState.last.edition === 3, '5e proxima edicao substitui a anterior')
 }
 
 await vs.close()

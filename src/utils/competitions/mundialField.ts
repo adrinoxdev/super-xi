@@ -73,7 +73,7 @@ export function buildMundialField(args: BuildMundialFieldArgs): MundialField {
   const ouroPodium = (s: number) => podiumArchive.find(
     (p) => p.season === s && p.competition === 'continental' && !/prata/i.test(p.competitionLabel)
   )
-  const ouroTag = 'Campeão da Condor de Ouro'
+  const ouroTag = 'Campeão da Copa Condor de Ouro'
   for (let s = season - MUNDIAL_EVERY; s < season; s++) {
     const rec = cycle.find((r) => r.season === s)
     const pod = ouroPodium(s)
