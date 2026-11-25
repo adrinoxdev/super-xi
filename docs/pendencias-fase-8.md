@@ -65,3 +65,42 @@ Tokens de subagentes (aprox.): T0 61 mil, diagnóstico Opus 114 mil, T1 53 mil, 
 ## Para integrar (quando você decidir)
 
 Ordem do plano: `chore/calib-imports`, `chore/t23-chaves` e `feature/copa-dos-continentes` já estão empilhadas (a feature contém as duas chores). Merge `--no-ff` na `develop`, `npm run build` e `--check` depois; não subir a versão até o pedido de lançamento (alvo 1.3.0). A T15 vai em `feature/universo-nomes` depois.
+
+---
+
+# Atualização 2 (depois das respostas do dono)
+
+## Feito
+
+- **P2 resolvida** (`367d808`): a b2 do t23 falhava porque o teste mudava o `potential` sem recalcular o valor; o jogo está correto. Corrigido o teste; 20 execuções seguidas OK. Ver `docs/calibracao/investigacao-t23-b2.md`.
+- **P4, P5, P7 e país da sede** (`765bbf4`): edição sem o usuário agora é simulada e a última edição (grupos finais, campeão, vice, 3º, 4º, sede) é guardada em `mundialState.last`; painel mostra "Notícia"; aviso de save antigo usa `cycleTarget`; novo `t44b-mundial-match-real.mjs` joga a edição inteira pelo fluxo real; nits N1 (quem bate primeiro nos pênaltis é sorteado) e N3 (etiqueta "Campeão da Copa Condor de Ouro"). Pulados: N2 (dono aceitou "Brasil"), N4 a N9.
+- **T15, nomes** (branch `feature/universo-nomes`, worktree `Super XI nomes`, sobre `feature/copa-dos-continentes`): `3f030e1` + correções `5a225ef` após revisão do Opus (`docs/calibracao/revisao-t15.md`). Checagem web sem colisão de nome completo (`docs/calibracao/checagem-nomes-t15.md`).
+- **Corte do ranking** medido (`74ab543`): ver P3 abaixo.
+
+## Pendências atualizadas
+
+**P3 (substitui a anterior). Ranking Condor está FROUXO, não apertado.** Medido com perfis presos à Série A (60 temporadas, 15 edições, corte 16): `forteA` (OVER 77) classifica 100% (pontos 22/41/55); `tipicoA` (OVER 71) 80% (pontos 1/19/42; sem a 1ª edição o mínimo é 15). Critério do Opus (forteA 70-85%, tipicoA ≤ ~10%) NÃO atingido. Baixar o corte (14, 11) só piora. Um corte perto de 30-33 deixaria o tipicoA ≈ 10% mas o forteA ≈ 87%. O caminho provável é rever a tabela de pontos (Taça, Supercopa, Ouro, `RANKING_CONTINENTAL`) e/ou o perfil, não só o corte. A leitura anterior (forte 35%) era artefato do perfil rotativo. Decisão do dono: (a) rever a tabela de pontos (proponho valores e meço de novo, 40+ edições); (b) subir o corte para ~30; (c) aceitar como está. Nada foi alterado em constantes.
+
+**P12. `--check` completo depois da mudança no `calib-carreira.mjs` NÃO foi confirmado.** O agente alterou 3 linhas (perfil `forteA`, só ele). O `--check` (≈ 30 min) foi iniciado e ainda rodava ao fim da sessão; log em `...\scratchpad\check.log` (a pasta temporária pode ser limpa). Reroda: `node docs/calibracao/calib-carreira.mjs 20 curva,tipicoRot:240,forteRot:80,fracoRot:80,maximoRot:120,tipico,tipicoD,forte,fraco,caroFraco,investidor --check`.
+
+**P13. Siglas dos 8 escudos renomeados** (achado I2 da revisão T15): continuam as do nome antigo (ex.: TUP, FAR em `teamIdentities.ts`). Manter ou trocar?
+
+**P14. Nits da revisão T15 não tratados:** `mundialState.last` e grupos não migram nomes (só saves de desenvolvimento); placares em pódios/histórico mantêm nomes antigos; entrada do usuário no pódio é migrada sem checar se é o usuário; partida ao vivo salva não passa pela migração; conversão de força do rival em save anterior à balance v2 só foi verificada lendo o código, não com save real.
+
+**P15. Nomes: riscos residuais.** A web não elimina a chance de um torneio municipal "Taça do Povo" ou clubes amadores "Vale do Sol"/"Serra do Luar" existirem sem indexação (dono já aceitou os prefixos comuns nos rivais).
+
+**P16. Alterações em testes por causa dos nomes:** `t40-baseline.json` foi regravado só com os nomes dos 8 clubes (o Opus confirmou: os 1600 valores numéricos são idênticos aos do commit anterior) e `t49-mundial-ui.mjs` só nos 3 nomes de competição.
+
+## Estado atual das branches (sem merge, sem push)
+
+| Branch | Worktree | Último commit |
+|---|---|---|
+| chore/calib-imports | Super XI exec (histórico) | cc7aa4a |
+| chore/t23-chaves | Super XI exec (histórico) | 83a8c87 |
+| feature/copa-dos-continentes | Super XI exec | 74ab543 |
+| feature/universo-nomes | Super XI nomes | 5a225ef (contém a feature acima) |
+| docs/plano-fase-8 | Super XI plano-fase-8 | este diário |
+
+Ordem de integração sugerida (`--no-ff`, `npm run build` e `--check` depois de cada): `feature/copa-dos-continentes` (já contém as duas `chore/`) e depois `feature/universo-nomes`. Versão-alvo 1.3.0 só no pedido de lançamento.
+
+Tokens de subagentes desde a T14: investigação P2 70 mil, correções P4/P5/P7 123 mil, medição do corte 88 mil, T15 129 mil, revisão Opus T15 146 mil, correções T15 66 mil. Total da sessão ≈ 2,2 mi.
