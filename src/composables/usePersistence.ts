@@ -51,6 +51,8 @@ export function migrateNames(args: {
   leagueTeams: Array<{ id: string; name: string }>
   brackets: Array<{ label: string; teams: Record<string, { id: string; name: string }> } | null | undefined>
   finals: Array<{ rivalName: string; rivalOrigin?: string } | null | undefined>
+  currentRival?: { name: string } | null
+  continentalGroups?: Array<Array<{ id: string; name: string }> | null | undefined>
 }): void {
   const byId = (o: { id: string; name: string }) => { const n = CLUB_RENAME_BY_ID[o.id]; if (n) o.name = n }
   for (const t of args.trophies) t.title = migrateName(t.title)
@@ -62,6 +64,8 @@ export function migrateNames(args: {
     for (const c of [r.ouroChampion, r.prataChampion, r.cupChampion, r.serieAChampion]) if (c) c.name = migrateName(c.name)
   }
   args.leagueTeams.forEach(byId)
+  if (args.currentRival) args.currentRival.name = migrateName(args.currentRival.name)
+  for (const g of args.continentalGroups || []) g?.forEach(byId)
   for (const b of args.brackets) {
     if (!b) continue
     b.label = migrateName(b.label)
@@ -245,7 +249,9 @@ export function usePersistence() {
           ecoRecords: club.ecoRecords,
           leagueTeams: league.leagueTeams,
           brackets: [competitions.cupState.bracket, competitions.continentalState.bracket, competitions.mundialState?.bracket],
-          finals: [competitions.supercupState, competitions.recopaState]
+          finals: [competitions.supercupState, competitions.recopaState],
+          currentRival: competitions.cupState.currentRival,
+          continentalGroups: [competitions.continentalState.teams, ...(competitions.continentalState.otherGroups || []).map((g) => g.teams)]
         })
         friendlies.fromSave(p.friendlies)
         const v2Done = migrateBalanceV2({

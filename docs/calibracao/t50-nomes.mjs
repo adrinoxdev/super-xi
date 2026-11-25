@@ -48,6 +48,16 @@ const old = JSON.parse(store.get(STORAGE_KEY))
 delete old.club.ecoRecords
 const ids = Object.keys(RENAMES)
 for (const id of ids) { const t = old.leagueTeams.find((x) => x.id === id); if (t) t.name = RENAMES[id][0] }
+// save realista: os 8 clubes na liga, chave da Taça vigente, finais pendentes, rival atual e Copa Condor com um dos 8
+const baseTeams = old.leagueTeams
+ids.forEach((id, i) => { const t = baseTeams[i]; t.id = id; t.name = RENAMES[id][0] })
+old.cupState = old.cupState || {}
+old.cupState.qualified = true
+old.cupState.bracket = { label: 'Taça Cacique', teams: Object.fromEntries(ids.map((id) => [id, { id, name: RENAMES[id][0], power: 50 }])) }
+old.cupState.currentRival = { name: 'Esperança de Lagarto', power: 55, serieCode: 'C' }
+old.supercupState = { ...(old.supercupState || {}), rivalName: 'Farroupilha AC', rivalOrigin: 'Taça Cacique', rivalPower: 60 }
+old.recopaState = { ...(old.recopaState || {}), rivalName: 'Ferrovia Paulista', rivalOrigin: 'Taça Cacique', rivalPower: 60 }
+old.continentalState = { ...(old.continentalState || {}), qualified: true, teams: [{ id: 'a_8', name: 'Farroupilha AC', power: 70, isUser: false, points: 0, played: 0, won: 0, gf: 0 }], bracket: JSON.parse(JSON.stringify(old.cupState.bracket)), otherGroups: [{ id: 'B', teams: [{ id: 'c_9', name: 'São Bento do Vale', power: 60, isUser: false, points: 0, played: 0, won: 0, gf: 0 }] }] }
 const present = ids.filter((id) => old.leagueTeams.some((x) => x.id === id))
 old.matchHistory = [{ season: 3, competition: 'cup', label: 'Taça Cacique', opponent: 'Farroupilha AC' }]
 const histBefore = JSON.stringify(old.matchHistory)
@@ -67,6 +77,11 @@ for (const id of ids) {
 }
 await ok(shield, '2b nome novo e alias do antigo: mesmo id e mesmo escudo (8 clubes)')
 
+await ok(ids.every((id) => o1.leagueTeams.find((x) => x.id === id)?.name === RENAMES[id][1]), '2c os 8 clubes migrados nas leagueTeams')
+await ok(o1.cupState.bracket.label === 'Taça do Povo' && ids.every((id) => o1.cupState.bracket.teams[id].name === RENAMES[id][1]), '2d chave da Taça migrada (label e 8 times)')
+await ok(o1.supercupState.rivalName === 'Meridiano AC' && o1.supercupState.rivalOrigin === 'Taça do Povo' && o1.recopaState.rivalName === 'Via Láctea FC' && o1.recopaState.rivalOrigin === 'Taça do Povo', '2e finais pendentes migradas')
+await ok(o1.cupState.currentRival?.name === 'Estrela do Agreste', '2f cupState.currentRival migrado')
+await ok(o1.continentalState.teams[0].name === 'Meridiano AC' && o1.continentalState.otherGroups[0].teams[0].name === 'Serra do Luar', '2g continentalState (teams e otherGroups) migrado')
 // 3) galeria e pódio
 const titles = o1.trophyGallery.map((t) => t.title)
 await ok(titles.includes('Campeão da Taça do Povo') && titles.includes('Campeão da Supercopa Zênite') && titles.includes('Campeão da Recopa dos Condores') && titles.includes('Campeão da Copa Condor de Ouro'), '3a galeria com os nomes novos e a Ouro igual')
@@ -98,7 +113,7 @@ for (const f of files) {
   let txt = readFileSync(f, 'utf8')
   txt = txt.replace(/\/\/ NAME_MIGRATION_MAP:start[\s\S]*?\/\/ NAME_MIGRATION_MAP:end/g, '')
   if (f.endsWith('teamIdentities.ts')) txt = txt.split('\n').filter((l) => !/alias do nome antigo/.test(l)).join('\n')
-  txt.split('\n').forEach((l, i) => { if (/Cacique|Soberana|Recopa Condor/.test(l)) bad.push(f.replace(root, '') + ':' + (i + 1) + ': ' + l.trim()) })
+  txt.split('\n').forEach((l, i) => { if (/Cacique|Soberana|Recopa Condor/i.test(l)) bad.push(f.replace(root, '') + ':' + (i + 1) + ': ' + l.trim()) })
 }
 if (bad.length) console.log(bad.join('\n'))
 await ok(bad.length === 0, '7 "Cacique", "Soberana" e "Recopa Condor" sumiram de src/ fora do NAME_MIGRATION_MAP e dos aliases')

@@ -148,7 +148,7 @@ export function createCup(ctx: { cupState: Ref<CupState>; club: CompetitionsClub
       finish(userWon ? 3 : 4)
       return userWon
         ? {
-            toast: `3º LUGAR NA TAÇA CACIQUE! Cota: ${formatCurrency(prize)}`,
+            toast: `3º LUGAR NA TAÇA DO POVO! Cota: ${formatCurrency(prize)}`,
             toastType: 'success'
           }
         : { toast: '4º lugar na Taça do Povo.', toastType: 'info' }
@@ -184,7 +184,7 @@ export function createCup(ctx: { cupState: Ref<CupState>; club: CompetitionsClub
       cup.currentRival = null
       cup.finalPosition = 1
       clubStore.recordTrophy('title', 'Campeão da Taça do Povo', prize)
-      return { toast: 'CAMPEÃO DA TAÇA CACIQUE!', toastType: 'success' }
+      return { toast: 'CAMPEÃO DA TAÇA DO POVO!', toastType: 'success' }
     }
     cup.roundIndex += 1
     cup.currentRival = rivalFromTie(b, userPendingTie(b))

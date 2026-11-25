@@ -61,7 +61,7 @@ const { prepareMatch, matchEntryLabel } = useMatchSimulation()
         v-else-if="cupState.champion"
         class="max-w-full break-words px-4 py-2 rounded-xl bg-emeraldpro-soft text-emeraldpro text-xs font-extrabold"
       >
-        CAMPEÃO DA TAÇA CACIQUE!
+        CAMPEÃO DA TAÇA DO POVO!
       </span>
       <span
         v-else-if="statusBadge"
