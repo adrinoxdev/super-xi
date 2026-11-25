@@ -1,4 +1,4 @@
-import type { ContinentalState, CupState, FinalState } from '@/types'
+import type { ContinentalState, CupState, FinalState, MundialState } from '@/types'
 
 export const DEFAULT_SUPERCUP_RIVAL = { name: 'Esporte Clube Estrela do Norte', power: 74 }
 export const DEFAULT_RECOPA_RIVAL = { name: 'Deportivo Costa Dourada', power: 75 }
@@ -35,4 +35,21 @@ export const emptyFinal = (rival: { name: string; power: number }): FinalState =
   scoreText: '',
   rivalName: rival.name,
   rivalPower: rival.power
+})
+
+export const emptyMundial = (): MundialState => ({
+  qualified: false,
+  edition: 0,
+  season: 0,
+  hostId: '',
+  userEntry: null,
+  stage: 'GROUPS',
+  groupRound: 1,
+  userGroupId: '',
+  groups: [],
+  bracket: null,
+  eliminated: false,
+  champion: false,
+  finalPosition: null,
+  history: []
 })

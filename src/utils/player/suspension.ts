@@ -4,10 +4,11 @@ import type { Player } from '@/types/player'
 /** Nome curto de cada competição para avisos de suspensão. */
 export const COMP_SHORT: Record<MatchCompetition, string> = {
   league: 'Liga',
-  cup: 'Taça Cacique',
+  cup: 'Taça do Povo',
   continental: 'Copa Condor',
   supercup: 'Supercopa',
   recopa: 'Recopa',
+  mundial: 'Copa dos Continentes',
   friendly: 'Amistoso'
 }
 
@@ -30,7 +31,7 @@ export function yellowsOf(p: Pick<Player, 'yellowCards'>): Array<{ comp: MatchCo
   return ORDER.filter((c) => (p.yellowCards?.[c] ?? 0) > 0).map((c) => ({ comp: c, label: COMP_SHORT[c], count: p.yellowCards![c]! }))
 }
 
-/** Ex.: "Liga (2 jogos) • Taça Cacique (1 jogo)". */
+/** Ex.: "Liga (2 jogos) • Taça do Povo (1 jogo)". */
 export function suspensionText(p: Pick<Player, 'suspension'>): string {
   return suspensionsOf(p)
     .map((s) => `${s.label} (${s.games} ${s.games === 1 ? 'jogo' : 'jogos'})`)

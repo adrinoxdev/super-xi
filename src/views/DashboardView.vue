@@ -21,6 +21,7 @@ import { retireAgeFor } from '@/utils/player/generatePlayer'
 import SeasonReviewCard from '@/components/club/SeasonReviewCard.vue'
 import { fmtDelta, fmtOver } from '@/utils/format/formatOver'
 import PodiumArchiveCard from '@/components/bracket/PodiumArchiveCard.vue'
+import MundialCycleCard from '@/components/competitions/MundialCycleCard.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
@@ -35,7 +36,7 @@ const competitions = useCompetitionsStore()
 const { prepareMatch, matchEntryLabel, opponentFor, labelFor, isHomeFor } = useMatchSimulation()
 
 // Próximos jogos das competições (além da liga): só as que ainda têm partida a disputar.
-const CUP_COMPETITIONS: MatchCompetition[] = ['cup', 'continental', 'supercup', 'recopa']
+const CUP_COMPETITIONS: MatchCompetition[] = ['cup', 'continental', 'supercup', 'recopa', 'mundial']
 const upcomingCompetitionGames = computed(() =>
   CUP_COMPETITIONS.filter((c) => competitions.isCompetitionPlayable(c)).map((comp) => {
     const [name, ...rest] = labelFor(comp).replace(' — ', ' • ').split(' • ')
@@ -145,6 +146,8 @@ const retiringCount = computed(() => squad.players.filter((p) => !p.isLoanedIn &
         </button>
       </BaseCard>
     </div>
+
+    <MundialCycleCard />
 
     <div class="space-y-2">
       <TeamPowerBar

@@ -1,4 +1,5 @@
 import { computed, reactive } from 'vue'
+import { mundialMatchLabel, mundialNeedsShootout } from '@/utils/competitions/mundialMatch'
 import { router } from '@/router'
 import { useClubStore } from '@/stores/club'
 import { useCompetitionsStore } from '@/stores/competitions'
@@ -117,7 +118,7 @@ function credit(comp: MatchCompetition, fn: () => void) {
   if (comp !== 'friendly') fn()
 }
 
-/** Mando de +3 OVER só vale na liga e no continental; Copa, Supercopa e Recopa não dão mando ao usuário. */
+/** Mando de +3 OVER só vale na liga e no continental; Copa, Supercopa, Recopa e Copa dos Continentes (neutra) não dão mando ao usuário. */
 export function homeBonusApplies(comp: MatchCompetition | null | undefined): boolean {
   return comp === 'league' || comp === 'continental'
 }
@@ -142,6 +143,7 @@ export function useMatchSimulation() {
       // groupRound = rodada a jogar (1-based); rodadas 4 a 6 do grupo são fora
       return c.stage !== 'GROUPS' || c.groupRound <= 3
     }
+    if (comp === 'mundial') return false // Copa dos Continentes: campo neutro para todos
     return true
   }
   // Partida aberta (rodando ou encerrada e ainda na tela): vale o que foi congelado no início.
@@ -171,22 +173,26 @@ export function useMatchSimulation() {
       return {
         name: competitions.supercupState.rivalName,
         power: competitions.supercupState.rivalPower,
-        style: 'Supercopa Soberana'
+        style: 'Supercopa Zênite'
       }
     }
     if (comp === 'recopa') {
       return {
         name: competitions.recopaState.rivalName,
         power: competitions.recopaState.rivalPower,
-        style: 'Recopa Condor'
+        style: 'Recopa dos Condores'
       }
     }
     const rival = competitions.cupState.currentRival
     if (comp === 'cup' && rival) {
-      return { name: rival.name, power: rival.power, style: 'Taça Cacique' }
+      return { name: rival.name, power: rival.power, style: 'Taça do Povo' }
     }
     if (comp === 'continental' && competitions.continentalState.qualified) {
       return competitions.continentalOpponent
+    }
+    if (comp === 'mundial' && competitions.mundialOpponent) {
+      const o = competitions.mundialOpponent
+      return { name: o.name, power: o.power, style: o.style }
     }
     return league.nextOpponent
   }
@@ -202,15 +208,19 @@ export function useMatchSimulation() {
       const opt = friendlies.selectedOption
       return opt ? 'Amistoso • Ranking #' + (friendlies.botNow(opt.botId)?.rank ?? opt.rank) : 'Amistoso'
     }
-    if (comp === 'supercup') return 'Supercopa Soberana • Final Única'
-    if (comp === 'recopa') return 'Recopa Condor • Final Única'
-    if (comp === 'cup') return 'Taça Cacique • ' + competitions.cupRoundLabel
+    if (comp === 'supercup') return 'Supercopa Zênite • Final Única'
+    if (comp === 'recopa') return 'Recopa dos Condores • Final Única'
+    if (comp === 'cup') return 'Taça do Povo • ' + competitions.cupRoundLabel
     if (comp === 'continental') {
       return (
         (competitions.continentalState.tier === 'libertadores' ? 'Condor de Ouro' : 'Condor de Prata') +
         ' • ' +
         competitions.continentalStageLabel
       )
+    }
+    if (comp === 'mundial') {
+      const knockout = competitions.mundialStageLabel.split(': ')[1] ?? ''
+      return mundialMatchLabel(competitions.mundialState, knockout)
     }
     if (league.isKnockoutStage) {
       const leg = league.nextUserFixture?.leg
@@ -490,6 +500,7 @@ export function useMatchSimulation() {
     if (comp === 'friendly') return false // amistoso: sem prorrogação nem pênaltis
     if (comp === 'cup' || comp === 'supercup' || comp === 'recopa') return u === o
     if (comp === 'continental') return u === o && competitions.continentalState.stage !== 'GROUPS'
+    if (comp === 'mundial') return mundialNeedsShootout(competitions.mundialState, u, o)
     if (!league.isKnockoutStage) return false
     const fx = league.nextUserFixture
     if (!fx || fx.leg === 1) return false
@@ -507,7 +518,7 @@ export function useMatchSimulation() {
 
   function startShootout(comp: MatchCompetition) {
     const state = match.sessions[comp].matchState
-    state.shootout = { kicks: [], first: isHomeFor(comp) ? 'user' : 'opp', done: false }
+    state.shootout = { kicks: [], first: comp === 'mundial' ? (Math.random() < 0.5 ? 'user' : 'opp') : isHomeFor(comp) ? 'user' : 'opp', done: false }
     state.events.unshift({
       minute: 90,
       type: 'penalty',
@@ -1438,6 +1449,9 @@ export function useMatchSimulation() {
       ui.showToast(r.toast, r.toastType)
     } else if (comp === 'continental') {
       const r = competitions.applyContinentalResult(uGoals, oGoals, club.name, rival.name, pens)
+      if (r) ui.showToast(r.toast, r.toastType)
+    } else if (comp === 'mundial') {
+      const r = competitions.applyMundialResult(uGoals, oGoals, club.name, rival.name, pens)
       if (r) ui.showToast(r.toast, r.toastType)
     } else {
       league.recordRoundResults(uGoals, oGoals, pens)
