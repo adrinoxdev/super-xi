@@ -8,6 +8,7 @@ export const COMP_SHORT: Record<MatchCompetition, string> = {
   continental: 'Copa Condor',
   supercup: 'Supercopa',
   recopa: 'Recopa',
+  mundial: 'Copa dos Continentes',
   friendly: 'Amistoso'
 }
 

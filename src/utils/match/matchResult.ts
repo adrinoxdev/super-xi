@@ -25,5 +25,6 @@ export const COMPETITION_NAMES: Record<MatchRecord['competition'], string> = {
   continental: 'Continental',
   supercup: 'Supercopa',
   recopa: 'Recopa',
+  mundial: 'Copa dos Continentes',
   friendly: 'Amistoso'
 }

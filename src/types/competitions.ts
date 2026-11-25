@@ -73,4 +73,20 @@ export interface FinalState {
   scoreText: string
   rivalName: string
   rivalPower: number
+  /** Etiqueta de origem do rival real (ex.: 'Campeão da Taça'). */
+  rivalOrigin?: string
+}
+
+export type MundialConfed = 'sulamerica' | 'europa' | 'asia' | 'africa' | 'norte' | 'oceania' | 'sede'
+export type MundialEntry = 'ouro' | 'ranking' | 'sede'
+export interface GroupTeam extends ContinentalTeam { confed?: MundialConfed; tag?: string }
+export interface GroupMatchResult { round: number; homeId: string; awayId: string; hg: number; ag: number }
+export interface MundialGroup { id: string; teams: GroupTeam[]; results: GroupMatchResult[] }
+export interface MundialState {
+  qualified: boolean; edition: number; season: number; hostId: string
+  userEntry: MundialEntry | null
+  stage: 'GROUPS' | 'KNOCKOUT' | 'DONE'; groupRound: number; userGroupId: string
+  groups: MundialGroup[]; bracket: Bracket | null
+  eliminated: boolean; champion: boolean; finalPosition: 1 | 2 | 3 | 4 | null
+  history: Array<{ roundName: string; summary: string; prize: number }>
 }

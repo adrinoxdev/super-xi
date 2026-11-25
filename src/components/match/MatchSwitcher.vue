@@ -14,6 +14,7 @@ const NAMES: Record<MatchCompetition, string> = {
   continental: 'Continental',
   supercup: 'Supercopa',
   recopa: 'Recopa',
+  mundial: 'Copa dos Continentes',
   friendly: 'Amistoso'
 }
 

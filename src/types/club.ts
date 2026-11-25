@@ -116,7 +116,27 @@ export interface ClubProgress {
   milestones: Milestone[]
 }
 
+export type EcoPhase = 'groups' | 'qf' | 'sf' | 'runnerUp' | 'champion'
+export interface EcoChampion { name: string; power: number }
+export interface SeasonEcoRecord {
+  season: number
+  division: number
+  leagueRank: number | null
+  leagueTitle: boolean
+  ouro: EcoPhase | null
+  prata: EcoPhase | null
+  cup: 'champion' | 'runnerUp' | null
+  recopa: boolean
+  supercup: boolean
+  ouroChampion: EcoChampion | null
+  prataChampion: EcoChampion | null
+  cupChampion: EcoChampion | null
+  serieAChampion: EcoChampion | null
+}
+
 export interface ClubSave {
+  /** Histórico do ciclo para o Ranking Condor (últimas 8 temporadas). */
+  ecoRecords?: SeasonEcoRecord[]
   name: string
   shortName: string
   stadiumName: string
