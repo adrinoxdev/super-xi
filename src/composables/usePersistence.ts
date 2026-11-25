@@ -12,9 +12,79 @@ import { LIVE_MATCH_KEY, STORAGE_KEY } from '@/config'
 import { useEconomy } from './useEconomy'
 import { checkMilestones } from '@/utils/club/progression'
 import { resolvePrematchCompetition } from '@/utils/match/prematchMemory'
+import { CONTINENTAL_RIVALS, MUNDIAL_EVERY, MUNDIAL_LABEL } from '@/config/competitions'
+import type { Podium, SeasonEcoRecord, TrophyRecord } from '@/types'
 
 // Definição única em constants.ts; reexportada por compatibilidade com quem importava daqui.
 export { STORAGE_KEY }
+
+/**
+ * Rótulos de título do trophyGallery reconhecidos na reconstrução (save antigo sem ecoRecords).
+ * Lista única: a T15 estende com os nomes novos sem mexer na lógica.
+ */
+export const ECO_TITLE_LABELS: Array<{ re: RegExp; apply: (r: SeasonEcoRecord) => void }> = [
+  { re: /^Campeão da Série A$/i, apply: (r) => { r.division = 1; r.leagueTitle = true; r.leagueRank = 1 } },
+  { re: /^Campeão da Série B$/i, apply: (r) => { r.division = 2; r.leagueTitle = true; r.leagueRank = 1 } },
+  { re: /^Campeão da Série C$/i, apply: (r) => { r.division = 3; r.leagueTitle = true; r.leagueRank = 1 } },
+  { re: /^Campeão da Série D$/i, apply: (r) => { r.division = 4; r.leagueTitle = true; r.leagueRank = 1 } },
+  { re: /^Campeão da Copa Condor de Ouro$/i, apply: (r) => { r.ouro = 'champion' } },
+  { re: /^Campeão da Copa Condor de Prata$/i, apply: (r) => { r.prata = 'champion' } },
+  { re: /^Campeão da Taça Cacique$/i, apply: (r) => { r.cup = 'champion' } },
+  { re: /^Campeão da Supercopa/i, apply: (r) => { r.supercup = true } },
+  { re: /^Campeão da Recopa/i, apply: (r) => { r.recopa = true } }
+]
+
+/**
+ * Reconstrói o histórico do ciclo de um save sem `ecoRecords`: títulos pelo trophyGallery,
+ * campeões e colocações do usuário pelo podiumArchive. Só temporadas encerradas; o que não
+ * é título e não aparece em pódio fica null. Função pura (a chamada decide quando rodar).
+ */
+export function reconstructEcoRecords(args: {
+  trophies: TrophyRecord[]
+  podiums: Podium[]
+  currentSeason: number
+  currentDivision: number
+  userName: string
+  userPower: number
+}): SeasonEcoRecord[] {
+  const { trophies, podiums, currentSeason, currentDivision, userName, userPower } = args
+  const blank = (season: number): SeasonEcoRecord => ({
+    season, division: currentDivision, leagueRank: null, leagueTitle: false, ouro: null, prata: null, cup: null,
+    recopa: false, supercup: false, ouroChampion: null, prataChampion: null, cupChampion: null, serieAChampion: null
+  })
+  const bySeason = new Map<number, SeasonEcoRecord>()
+  const get = (s: number) => {
+    let r = bySeason.get(s)
+    if (!r) { r = blank(s); bySeason.set(s, r) }
+    return r
+  }
+  const champ = (e: { name: string; isUser: boolean }, fallback: number) => {
+    if (e.isUser) return { name: userName, power: userPower }
+    const known = CONTINENTAL_RIVALS.find((c) => c.name === e.name)
+    return { name: e.name, power: known?.power ?? fallback }
+  }
+  for (const t of trophies) {
+    if (t.type !== 'title' || !(t.season < currentSeason)) continue
+    for (const l of ECO_TITLE_LABELS) if (l.re.test(t.title.trim())) l.apply(get(t.season))
+  }
+  for (const p of podiums) {
+    if (!(p.season < currentSeason)) continue
+    if (p.competition !== 'continental' && p.competition !== 'cup') continue
+    const r = get(p.season)
+    const phase = p.champion.isUser ? 'champion' : p.runnerUp.isUser ? 'runnerUp' : p.third?.isUser ? 'sf' : null
+    if (p.competition === 'cup') {
+      if (phase === 'champion' || phase === 'runnerUp') r.cup = phase
+      r.cupChampion = champ(p.champion, 70)
+    } else if (/prata/i.test(p.competitionLabel)) {
+      if (phase) r.prata = phase
+      r.prataChampion = champ(p.champion, 74)
+    } else {
+      if (phase) r.ouro = phase
+      r.ouroChampion = champ(p.champion, 74)
+    }
+  }
+  return [...bySeason.values()].sort((a, b) => a.season - b.season)
+}
 
 function utf8ToBase64(text: string): string {
   const bytes = new TextEncoder().encode(text)
@@ -97,6 +167,18 @@ export function usePersistence() {
         league.fromSave(p)
         club.transferHistory = p.transferHistory || []
         club.trophyGallery = p.trophyGallery || []
+        // Save sem ecoRecords = anterior à Copa dos Continentes: reconstrói uma única vez (depois o campo existe).
+        const legacyNoEco = !Array.isArray(p.club.ecoRecords)
+        if (legacyNoEco) {
+          for (const r of reconstructEcoRecords({
+            trophies: club.trophyGallery,
+            podiums: club.podiumArchive,
+            currentSeason: club.season,
+            currentDivision: club.division,
+            userName: club.name,
+            userPower: squad.teamStrength.rating
+          })) club.recordEcoSeason(r)
+        }
         club.seasonGoals = p.seasonGoals || {}
         club.seasonAssists = p.seasonAssists || {}
         club.seasonApps = p.seasonApps || {}
@@ -110,7 +192,8 @@ export function usePersistence() {
           cupState: p.cupState,
           continentalState: p.continentalState,
           supercupState: p.supercupState,
-          recopaState: p.recopaState
+          recopaState: p.recopaState,
+          mundialState: p.mundialState
         })
         competitions.ensureBrackets()
         friendlies.fromSave(p.friendlies)
@@ -154,6 +237,12 @@ export function usePersistence() {
           for (const dv of [3, 2, 1]) {
             if (club.division <= dv) club.addMilestones(checkMilestones({ season: club.season, teamOver: 0, bestPlayerOver: 0, promotedTo: dv, existingIds: ids() }))
           }
+        }
+        // Aviso único: só save antigo (sem ecoRecords) vê; o saveGame logo abaixo grava ecoRecords, que é a flag persistida.
+        if (legacyNoEco) {
+          const next = Math.ceil(club.season / MUNDIAL_EVERY) * MUNDIAL_EVERY
+          ui.showToast(`Nova competição: ${MUNDIAL_LABEL}, a cada ${MUNDIAL_EVERY} temporadas. Próxima edição na temporada ${next}. Seus títulos já contam para o Ranking Condor.`, 'success')
+          saveGame()
         }
         if (v3Done) {
           ui.showToast('Nova escala de OVER: todos os números do clube e dos rivais foram ajustados. A força do seu time na série não mudou.', 'success')
