@@ -150,9 +150,9 @@ async function runCareer(policy, N) {
   }
   const R = { policy, seasons: [], errors: [], matches: 0, forcedSales: 0, minBudget: Infinity }
   const ROT = policy.endsWith('Rot')
-  const offset = policy.startsWith('forte') ? 15 : policy.startsWith('fraco') ? -15 : policy.startsWith('caroFraco') ? 10 : 0
-  const FORCE = { tipicoD: 4, tipicoC: 3, tipicoB: 2, tipicoA: 1 }[policy] // típico preso a uma série (mede ampliações/caixa por série)
-  const buys = ['tipico', 'tipicoD', 'tipicoC', 'tipicoB', 'tipicoA', 'forte', 'fraco'].includes(policy)
+  const offset = policy === 'forteA' ? 6 : policy.startsWith('forte') ? 15 : policy.startsWith('fraco') ? -15 : policy.startsWith('caroFraco') ? 10 : 0
+  const FORCE = { tipicoD: 4, tipicoC: 3, tipicoB: 2, tipicoA: 1, forteA: 1 }[policy] // típico preso a uma série (mede ampliações/caixa por série)
+  const buys = ['tipico', 'tipicoD', 'tipicoC', 'tipicoB', 'tipicoA', 'forteA', 'forte', 'fraco'].includes(policy)
   let X = 60
   const INV = policy === 'investidor'
   let Xabs = TYP[4] + 3 // investidor: OVER absoluto do time (o elenco inicial tem ~53)
