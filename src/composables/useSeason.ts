@@ -10,6 +10,8 @@ import { useUiStore } from '@/stores/ui'
 import type { Bracket, Podium } from '@/types/bracket'
 import type { EcoChampion, EcoPhase, SeasonEcoRecord } from '@/types/club'
 import { MUNDIAL_EVERY } from '@/config/competitions'
+import { supercupRival, recopaRival } from '@/utils/competitions/finalsRivals'
+import { CONTINENTAL_RIVALS } from '@/config'
 import { buildMundialField } from '@/utils/competitions/mundialField'
 import { LEAGUE_CLUBS_POOL } from '@/utils/league/leagueScheduler'
 import type { StageOutcome, StageToastType } from '@/types/league'
@@ -110,6 +112,15 @@ export function useSeason() {
     const contChamp = cont.qualified ? bracketChampion(cont.bracket, club.name, userPowerEnd) : null
     const cupSt = competitions.cupState
     const cupPos = cupSt.finalPosition
+    // Usuário campeão continental: o campeão da outra copa não existe no estado; é sorteado uma vez e gravado.
+    let otherContChamp: EcoChampion | null = null
+    if (wonContinental) {
+      const o = CONTINENTAL_RIVALS[Math.floor(Math.random() * CONTINENTAL_RIVALS.length)]
+      if (o) otherContChamp = { name: o.name, power: o.power }
+    }
+    const cupRu = cupSt.bracket?.podium?.runnerUp
+    const cupRunnerUp: EcoChampion | null =
+      cupRu && !cupRu.isUser ? { name: cupRu.name, power: cupSt.bracket?.teams[cupRu.teamId]?.power ?? 70 } : null
     const ecoRec: SeasonEcoRecord = {
       season: finishedSeasonNo,
       division: prevDiv,
@@ -120,8 +131,8 @@ export function useSeason() {
       cup: cupPos === 1 ? 'champion' : cupPos === 2 ? 'runnerUp' : null,
       recopa: competitions.recopaState.played && competitions.recopaState.won,
       supercup: competitions.supercupState.played && competitions.supercupState.won,
-      ouroChampion: isOuro ? contChamp : null,
-      prataChampion: !isOuro ? contChamp : null,
+      ouroChampion: isOuro ? contChamp : otherContChamp,
+      prataChampion: !isOuro ? contChamp : otherContChamp,
       cupChampion: bracketChampion(cupSt.bracket, club.name, userPowerEnd),
       serieAChampion
     }
@@ -208,8 +219,8 @@ export function useSeason() {
     }
 
     competitions.resetFinals()
-    if (wonLeagueTitle || wonCup) competitions.qualifySupercup()
-    if (wonContinental) competitions.qualifyRecopa()
+    if (wonLeagueTitle || wonCup) competitions.qualifySupercup(supercupRival(ecoRec, wonLeagueTitle, wonCup, cupRunnerUp))
+    if (wonContinental) competitions.qualifyRecopa(recopaRival(ecoRec, isOuro ? 'libertadores' : 'other'))
 
     saveGame()
     ui.showToast(toast, toastType)

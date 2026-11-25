@@ -44,6 +44,7 @@ const { prepareMatch, matchEntryLabel } = useMatchSimulation()
             <div class="min-w-0">
               <span class="text-[11px] md:text-[10px] font-bold uppercase text-ink-muted block">Adversário da Decisão</span>
               <strong class="text-sm text-ink block break-words [overflow-wrap:anywhere]">{{ supercupState.rivalName }}</strong>
+              <span v-if="supercupState.rivalOrigin" class="text-[11px] text-ink-muted block break-words">{{ supercupState.rivalOrigin }}</span>
             </div>
           </div>
           <span class="shrink-0 font-bold text-ink-muted">OVER {{ supercupState.rivalPower }}</span>
@@ -92,6 +93,7 @@ const { prepareMatch, matchEntryLabel } = useMatchSimulation()
             <div class="min-w-0">
               <span class="text-[11px] md:text-[10px] font-bold uppercase text-ink-muted block">Campeão Continental Rival</span>
               <strong class="text-sm text-ink block break-words [overflow-wrap:anywhere]">{{ recopaState.rivalName }}</strong>
+              <span v-if="recopaState.rivalOrigin" class="text-[11px] text-ink-muted block break-words">{{ recopaState.rivalOrigin }}</span>
             </div>
           </div>
           <span class="shrink-0 font-bold text-ink-muted">OVER {{ recopaState.rivalPower }}</span>
