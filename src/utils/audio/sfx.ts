@@ -295,6 +295,62 @@ export function playOuch() {
   crowdVowel(a.c, a.out, t, 0.7, 260, 190, [320, 900], 0.2)
 }
 
+/**
+ * Bola na trave: pancada seca da bola + "tlim" metálico do poste (tubo de aço: parciais inarmônicos que somem rápido).
+ * É um som físico, igual para os dois lados.
+ */
+export function playPostHit() {
+  const a = audio()
+  if (!a) return
+  const { c, out } = a
+  const t = c.currentTime + 0.02
+  const g = c.createGain()
+  g.gain.value = 0.6
+  g.connect(out)
+  // Impacto: tum grave curto + estalo de couro/ar.
+  const thud = c.createOscillator()
+  thud.type = 'sine'
+  thud.frequency.setValueAtTime(150, t)
+  thud.frequency.exponentialRampToValueAtTime(55, t + 0.08)
+  const tg = c.createGain()
+  tg.gain.setValueAtTime(0.7, t)
+  tg.gain.exponentialRampToValueAtTime(0.0001, t + 0.1)
+  thud.connect(tg)
+  tg.connect(g)
+  thud.start(t)
+  thud.stop(t + 0.12)
+  const click = noiseSource(c, t, 0.03)
+  const chp = c.createBiquadFilter()
+  chp.type = 'highpass'
+  chp.frequency.value = 1800
+  const cg = c.createGain()
+  cg.gain.setValueAtTime(0.45, t)
+  cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.03)
+  click.connect(chp)
+  chp.connect(cg)
+  cg.connect(g)
+  // Ressonância do poste: parciais de um tubo, os agudos morrem primeiro.
+  const detune = 0.97 + Math.random() * 0.06
+  const partials: Array<[number, number, number]> = [
+    [410, 0.5, 0.55],
+    [1080, 0.38, 0.38],
+    [1950, 0.24, 0.24],
+    [3100, 0.14, 0.14]
+  ]
+  for (const [f, vol, decay] of partials) {
+    const o = c.createOscillator()
+    o.type = 'sine'
+    o.frequency.value = f * detune
+    const pg = c.createGain()
+    pg.gain.setValueAtTime(vol, t + 0.004)
+    pg.gain.exponentialRampToValueAtTime(0.0001, t + 0.004 + decay)
+    o.connect(pg)
+    pg.connect(g)
+    o.start(t)
+    o.stop(t + decay + 0.05)
+  }
+}
+
 /** "Ohhh!" de quase-gol (bola na trave): sobe e cai. */
 export function playOoh() {
   const a = audio()
