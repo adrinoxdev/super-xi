@@ -28,6 +28,7 @@ export function createContinental(ctx: { continentalState: Ref<ContinentalState>
 
   const continentalStageLabel = computed(() => {
     const c = continentalState.value
+    if (!c.qualified) return 'Sem vaga nesta temporada'
     if (c.stage === 'GROUPS') return `Fase de Grupos • Rodada ${c.groupRound}/6`
     if (c.stage === 'QF') return 'Quartas de Final Continental'
     if (c.stage === 'SF') return 'Semifinal Continental'

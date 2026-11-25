@@ -69,7 +69,7 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
   <div>
     <!-- Sem vaga do usuário -->
     <div v-if="!m.qualified" class="space-y-6">
-      <BaseCard v-if="editionNow" class="space-y-2">
+      <BaseCard v-if="editionNow && last?.season === club.season" class="space-y-2">
         <div class="flex items-start gap-3 min-w-0">
           <Globe class="w-6 h-6 text-ink-muted shrink-0 mt-0.5" />
           <div class="min-w-0 space-y-1">
