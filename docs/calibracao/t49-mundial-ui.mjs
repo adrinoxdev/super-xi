@@ -48,8 +48,8 @@ let html = await render(Panel, ({ club }) => {
   club.recordEcoSeason(rec(13, { cup: 'champion' }))
 })
 await ok(html.includes('Daqui a') && html.includes('2 temporadas') && html.includes('temporada 16'), '1a contagem regressiva (2 temporadas, edicao 16)')
-await ok(html.includes('Sede:') && html.includes('Ranking Condor (corte de 16)') && html.includes('5 pontos'), '1b sede e pontos do ranking (5 de 16)')
-await ok(html.includes('Faltam 11 pontos'), '1c "Faltam 11 pontos"')
+await ok(html.includes('Sede:') && html.includes('Ranking Condor (corte de 38)') && html.includes('5 pontos'), '1b sede e pontos do ranking (5 de 38)')
+await ok(html.includes('Faltam 33 pontos'), '1c "Faltam 11 pontos"')
 await ok(html.includes('Rumo à ' + MUNDIAL_LABEL) && html.includes('2 pts') && html.includes('3 pts'), '1d card do ciclo com pontos por competicao')
 
 // 2) Caminhos lista as competicoes do ecossistema

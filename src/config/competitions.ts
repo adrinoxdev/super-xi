@@ -48,13 +48,13 @@ export const MUNDIAL_HOSTS: MundialHost[] = [
 ]
 
 export const RANKING_CONTINENTAL = {
-  ouro: { groups: 2, qf: 4, sf: 6, runnerUp: 8, champion: 12 },
-  prata: { groups: 1, qf: 2, sf: 3, runnerUp: 4, champion: 6 },
-  serieA: { champion: 4, top4: 2, top6: 1 },
+  ouro: { groups: 0, qf: 3, sf: 6, runnerUp: 9, champion: 12 },
+  prata: { groups: 0, qf: 0, sf: 1, runnerUp: 2, champion: 4 },
+  serieA: { champion: 8, top4: 2, top6: 0 },
   cup: { champion: 3, runnerUp: 1 },
   recopa: 1,
   supercup: 1,
-  cutoff: 16
+  cutoff: 38
 }
 
 export type EcoNode =

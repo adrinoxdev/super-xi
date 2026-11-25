@@ -53,7 +53,7 @@ f = build(HOME, base({ division: 1, leagueRank: 1, leagueTitle: true, ouro: 'cha
 await ok(f.userEntry === 'ouro' && f.hostSource === 'serieARunnerUp' && f.teams.find((t) => t.id === f.hostId).name === 'Vice da A FC', '2 A, Ouro e Taça do mesmo: sede ao vice da A')
 f = build(HOME, base({ ouroChampion: ch('Serra Dourada FC', 75), serieAChampion: ch('Serra Dourada FC', 75), cupChampion: ch('Rio Claro do Norte', 52) }))
 await ok(f.hostId === 'd_2' && f.hostSource === 'cup' && new Set(f.teams.map((t) => t.id)).size === 32, '2 campeão da A = campeão da Ouro (IA): sede à Taça, sem duplicata')
-f = build(12, [rec(11, { ouro: 'qf', prata: 'champion', cup: 'champion', leagueRank: 3 }), rec(10, { ouro: 'qf', leagueRank: 3 }), rec(9, { ouro: 'sf', leagueRank: 2 }), rec(8, { prata: 'champion' })])
+f = build(12, [rec(11, { ouro: 'runnerUp', prata: 'champion', cup: 'champion', leagueRank: 3 }), rec(10, { ouro: 'runnerUp', leagueRank: 3 }), rec(9, { ouro: 'sf', leagueRank: 2 }), rec(8, { prata: 'champion' })])
 await ok(f.userEntry === 'ranking' && f.teams.filter((t) => t.isUser && t.tag === 'Ranking Condor').length === 1, "2 porta 'ranking'")
 f = build(12, [rec(11, { leagueRank: 8 })])
 await ok(f.userEntry === null && !f.teams.some((t) => t.isUser) && f.teams.length === 32, '2 sem vaga: usuário fora, ainda 32')
