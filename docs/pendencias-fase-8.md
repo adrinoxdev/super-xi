@@ -104,3 +104,19 @@ Ordem do plano: `chore/calib-imports`, `chore/t23-chaves` e `feature/copa-dos-co
 Ordem de integração sugerida (`--no-ff`, `npm run build` e `--check` depois de cada): `feature/copa-dos-continentes` (já contém as duas `chore/`) e depois `feature/universo-nomes`. Versão-alvo 1.3.0 só no pedido de lançamento.
 
 Tokens de subagentes desde a T14: investigação P2 70 mil, correções P4/P5/P7 123 mil, medição do corte 88 mil, T15 129 mil, revisão Opus T15 146 mil, correções T15 66 mil. Total da sessão ≈ 2,2 mi.
+
+---
+
+# Atualização 3 (ranking e siglas)
+
+- **Siglas dos 8 escudos trocadas** (P13 resolvida), `f7cc21f` na `feature/universo-nomes`: d_18 LUA, b_10 VSO, b_14 PCE, b_16 POE, a_8 MER, c_8 VLA, c_9 SDL, c_11 EAG. Sem duplicatas entre os 140; não conferidas contra lista de clubes reais.
+- **Ranking Condor: nova tabela aplicada** (`feature/copa-dos-continentes`, commit seguinte a `74ab543`): Ouro 0/3/6/9/12; Prata 0/0/1/2/4; Série A título 8, 2º a 4º 2, 5º e 6º 0; Taça 3/1; Supercopa 1; Recopa 1; **corte 38** (proposta do Opus em `docs/calibracao/proposta-ranking.md`). Só `RANKING_CONTINENTAL` mudou; prêmios e vagas intactos. Testes t41, t42 e t49 ajustados nos valores esperados.
+- **Medição** (`docs/calibracao/relatorio-ranking-novo.md`, 164 temporadas, 41 edições): `forteA` classifica 82,9% (dentro de 70-85%); `tipicoA` 24,4% (critério ≤ ~10%); `forteRot` e `tipicoRot` 0%.
+
+## Nova pendência
+
+**P17. `tipicoA` em 24%, acima do alvo.** O excesso não vem do ranking (só 3 edições pelo ranking; 9,8% com pontos ≥ 38) e sim das portas **Ouro** (5 edições) e **sede** (2) que o corte não afeta. Subir o corte não resolve (derruba o forteA). Opções: (a) aceitar (um clube típico que chega a campeão da Ouro merece a vaga; a amostra de 41 edições tem erro de ±6 a 7 pontos e o `tipicoA` do teste é mais forte que o típico do plano); (b) apertar a porta Ouro (ex.: só o campeão, não o vice) ou a da sede; (c) medir com mais edições antes de decidir.
+
+**P18. Clubes rotativos (sobem e descem) ficam em 0% pelo ranking** com a tabela nova (forteRot máx. 25 pontos). Aceito pela lógica "quem passa o ciclo na A" ou o ranking deve ter regra de alívio para rotativos? Decisão do dono.
+
+**P19. Integração:** a `feature/universo-nomes` foi criada antes desta tabela. Ao integrar, mergear `feature/copa-dos-continentes` primeiro e depois trazê-la para dentro da `feature/universo-nomes` (ou mergear as duas na `develop` na ordem sugerida).
