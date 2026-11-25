@@ -59,7 +59,8 @@ await ok(STAR && VALUE && C.VALUE_AGE && CONTRACT && AGING && TRANSFER && C.YOUT
 // (b) evolução recalcula valor e salário
 {
   const { club, squad } = fresh()
-  for (const p of squad.players) { p.potential = 96; p.stamina = 100 }
+  // Mudar o potencial muda valueForPlayer: recalcula aqui, senão quem não evolui nos 30 jogos fica com o valor do potencial antigo (falso negativo em b2).
+  for (const p of squad.players) { p.potential = 96; p.stamina = 100; GP.refreshPlayerEconomy(p) }
   club.upgrades.trainingCenterLevel = 5
   const sim = useMatchSimulation()
   const before = squad.players.map(p => p.overall).join()
