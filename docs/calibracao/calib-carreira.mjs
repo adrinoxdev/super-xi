@@ -56,6 +56,7 @@ const { useSquad } = await load('/src/composables/useSquad.ts')
 const { pickBestLineup } = await load('/src/utils/match/calculateTeamStrength.ts')
 const C = await load('/src/config/index.ts')
 const BR = await load('/src/utils/bracket/bracket.ts')
+const RK = await load('/src/utils/competitions/rankingCondor.ts')
 const { UPGRADE_COSTS, FACILITY_MAX_LEVEL } = C
 const NEW = !!C.SERIE_TYPICAL_OVER
 const ATL = !!C.CONTRACT && process.env.ATL !== '0'
@@ -236,9 +237,10 @@ async function runCareer(policy, N) {
     }
     return n
   }
-  const pickComp = () => ['cup', 'continental', 'supercup', 'recopa'].find(c => comp.isCompetitionPlayable(c)) ?? 'league'
+  const pickComp = () => ['cup', 'continental', 'mundial', 'supercup', 'recopa'].find(c => comp.isCompetitionPlayable(c)) ?? 'league'
   seasonSetup(true)
-  const info = () => ({ season: club.season, div: club.division, startBudget: club.budget, minBudget: club.budget, matches: 0, w: 0, d: 0, l: 0, bought: 0, over: X, rating: +userRating(squad).toFixed(1), wageBill: squad.totalWageBill, levels: `${club.upgrades.stadiumLevel}/${club.upgrades.financeLevel}`, income: 0, wages: 0, prizes: 0, sales: 0, interest: 0, maint: 0 })
+  const startEd = () => club.season % 4 === 0 // temporada de edição da Copa dos Continentes (MUNDIAL_EVERY = 4)
+  const info = () => ({ season: club.season, div: club.division, startBudget: club.budget, minBudget: club.budget, matches: 0, w: 0, d: 0, l: 0, bought: 0, over: X, rating: +userRating(squad).toFixed(1), wageBill: squad.totalWageBill, levels: `${club.upgrades.stadiumLevel}/${club.upgrades.financeLevel}`, income: 0, wages: 0, prizes: 0, sales: 0, interest: 0, maint: 0, ed: startEd(), mEntry: null, mPrize: 0, mGames: 0, mPts: startEd() ? RK.rankingPoints(club.ecoRecords, club.season) : null })
   let cur = info(); cur.bought = spend(); cur.startBudget = club.budget; cur.minBudget = club.budget
   for (let s = 1; s <= N; s++) {
     const startSeason = club.season
@@ -248,11 +250,13 @@ async function runCareer(policy, N) {
       const c = pickComp()
       if (c === 'league' && !league.nextUserFixture) { R.errors.push('sem partida ' + league.competitionStage); return R }
       if (policy !== 'caroFraco' || squad.players.length > 11) { setOver(X, policy === 'maximoRot' ? 8 : 4); applyWages() }
+      if (c === 'mundial') { cur.mEntry = comp.mundialState.userEntry; cur.mGames++ }
       sim.prepareMatch(c); sim.startLiveMatch()
       for (let m = 2; m <= 90; m += 2) { match.matchState.minute = m; sim.simulateMatchTick(m) }
       match.matchState.isRunning = false; match.matchState.isFinished = true
       const b0 = club.budget, nPl = squad.players.length
       sim.concludeMatch()
+      if (c === 'mundial') cur.mPrize = comp.mundialState.history.reduce((a, h) => a + h.prize, 0)
       const sm = match.lastMatchSummary
       sim.finishMatchAndReturn()
       R.matches++; cur.matches++
@@ -285,12 +289,14 @@ for (const spec of POLICIES) {
   console.log(`[${pol}] ${results[pol].crashed ? 'CRASH ' + results[pol].crashed : 'ok'} ${Date.now() - t}ms`)
 }
 // ---------- resumo ----------
+const mund = {} // Copa dos Continentes por política (informativo)
 const summary = { overlay: OVERLAY, novo: NEW, N, ms: Date.now() - t0 }
 if (results.curva && !results.curva.crashed) summary.curva = results.curva
 for (const [pol, r] of Object.entries(results)) {
   if (!r.seasons) continue
   const per = {}
   for (const s of r.seasons) {
+    if (s.ed) { const mm = mund[pol] ??= { ed: 0, edA: 0, cls: 0, clsA: 0, door: { ouro: 0, sede: 0, ranking: 0 }, prize: 0, games: 0 }; mm.ed++; (mm.pts ??= []).push(s.mPts); if (s.div === 1) mm.edA++; if (s.mEntry) { mm.cls++; if (s.div === 1) mm.clsA++; mm.door[s.mEntry]++; mm.prize += s.mPrize; mm.games += s.mGames } }
     const x = per[DN[s.div]] ??= { n: 0, delta: 0, w: 0, d: 0, m: 0, prizes: 0, income: 0, wages: 0, maint: 0, bought: 0, renew: 0, nRenew: 0, depart: 0, retire: 0, minB: Infinity, desf: {} }
     x.renew += s.renew || 0; x.nRenew += s.nRenew || 0; x.depart += s.depart || 0; x.retire += s.retire || 0
     const PT = C.PRIZES[{ 4: 'serieD', 3: 'serieC', 2: 'serieB', 1: 'serieA' }[s.div]]
@@ -305,6 +311,7 @@ for (const [pol, r] of Object.entries(results)) {
   }
   summary[pol] = { porSerie: per, series: r.seasons.map(s => DN[s.div]).join(''), caixaFim_mil: r.seasons.map(s => Math.round(s.endBudget / 1000)), over: r.seasons.map(s => Math.round(s.over)).join(','), niveis: r.seasons.map(s => s.levels).join(' '), ampliacoes: r.seasons.reduce((a, s) => a + s.bought, 0), vendasForcadas: r.forcedSales, caixaMinimo: Math.round(r.minBudget), erros: r.errors }
 }
+for (const [pol, mm] of Object.entries(mund)) { mm.premioPorEdicao = Math.round(mm.prize / mm.ed); mm.premioPorClassificado = mm.cls ? Math.round(mm.prize / mm.cls) : 0; mm.jogosMaisPorEdicao = +(mm.games / mm.ed).toFixed(2); mm.taxaClassifNaA = mm.edA ? +(100 * mm.clsA / mm.edA).toFixed(1) : null; if (summary[pol]) summary[pol].mundial = mm }
 // ---------- verificação dos alvos (--check) ----------
 const fails = []
 const chk = (ok, msg) => { if (!ok) fails.push(msg) }
@@ -349,6 +356,7 @@ if (summary.curva) {
 }
 for (const [p, v] of Object.entries(summary)) {
   if (!v || !v.porSerie) continue
+  if (v.mundial) { const m = v.mundial; console.log(`[${p}] mundial: edições ${m.ed} (na A ${m.edA}) classificado ${m.cls} (na A ${m.clsA}; taxa na A ${m.taxaClassifNaA}%) portas ouro/sede/ranking ${m.door.ouro}/${m.door.sede}/${m.door.ranking} prêmio/edição ${m.premioPorEdicao} prêmio/classificado ${m.premioPorClassificado} jogos a mais/edição ${m.jogosMaisPorEdicao}`) }
   console.log(`\n[${p}] séries ${v.series} ampliações ${v.ampliacoes} vendasForçadas ${v.vendasForcadas} caixaMín ${v.caixaMinimo} erros ${v.erros.length}`)
   console.log('  caixa fim (mil):', v.caixaFim_mil.join(','))
   if (!p.endsWith('Rot')) console.log('  OVER:', v.over, '| estádio/finanças:', v.niveis)
