@@ -1,145 +1,161 @@
-# Plano da Fase 8: Copa dos Continentes (Mundial) e Patrocinador Master
+# Plano da Fase 8: Copa dos Continentes e o ecossistema de competições
 
-Só planejamento: nenhum arquivo de `src/`, nem o `package.json`, foi alterado. Origem: `_origem/roadmap_de_evolu_o_handoff_completo.md` (Fase 8, itens 8.1 e 8.2). Os valores em R$ são propostas e esperam a aprovação do dono (seção 11).
+Só planejamento: nenhum arquivo de `src/`, nem o `package.json`, foi alterado. Origem: `_origem/roadmap_de_evolu_o_handoff_completo.md` (Fase 8, item 8.1). **Versão-alvo: 1.3.0.** O commit `chore(version): 1.3.0` só sai quando o dono pedir o lançamento; as branches de frente nunca mexem no `package.json`.
 
-**Revisão 2 (decisão do dono):** a Copa dos Continentes deve ser o mais próxima possível do torneio real, com nomes fictícios, e formalizar um ecossistema em que cada competição dá vaga em outra. O formato de 4 clubes da revisão 1 saiu: a seção 1 compara o formato clássico de 7 clubes com o ampliado de 32 e recomenda o de 7; a seção 2 define o ecossistema de vagas. O patrocínio (8.2) não mudou, só a numeração das tarefas.
+**Revisão 3 (respostas do dono):**
+- Formato ampliado de 32 clubes (8 grupos de 4, oitavas, quartas, semis, final e 3º lugar).
+- Nome "Copa dos Continentes" aprovado. Auditoria dos nomes das outras competições, confederações, sedes e clubes (seção 9, só proposta).
+- Campo neutro para todos, inclusive a sede.
+- A Condor de Prata, a Taça Cacique e a Série A entram no ecossistema.
+- Patrocinador Master fora da Fase 8 (seção 13, backlog).
+- Aprovados: aviso no save antigo, testes versionados em `docs/calibracao/` e asserção das 17 chaves do t23 numa `chore` separada.
 
 ## 0. Como o código está hoje (verificado)
 
-- **Mundial:** não existe nada em `src/`. As finais de jogo único (Supercopa e Recopa) moram em `src/stores/modules/competitions/finals.ts` (`FinalState`, `qualifySupercup`, `qualifyRecopa`, `applyFinalResult`). As vagas nascem na virada, em `useSeason.startNewSeason`: `if (wonLeagueTitle || wonCup) qualifySupercup()` e `if (wonContinental) qualifyRecopa()`. O rival é sorteado (`LEAGUE_CLUBS_POOL[1]` na Supercopa, `CONTINENTAL_RIVALS` na Recopa), sem ligação com quem ganhou de fato a outra competição. A disputa acontece na temporada seguinte, sem calendário; uma final pendente se perde na virada seguinte (relatório, item 10).
-- **Continental:** `ContinentalState.tier`: `'libertadores'` (na tela, Copa Condor de Ouro: top 4 da Série A) ou `'sulamericana'` (Condor de Prata: 5º e 6º da A ou campeão da Taça Cacique). O estado só existe quando o usuário se classifica: sem vaga, não há chave e não se sabe quem é o campeão da IA.
-- **Liga:** o jogo só simula a série do usuário. O campeão da Série A só é conhecido quando o usuário está na A.
-- **Motor de chave** (`src/utils/bracket/bracket.ts`): `createBracket` monta árvores binárias. A 1ª fase tem N confrontos e cada fase seguinte tem a metade; em `propagate`, o confronto `s` recebe os vencedores de `2s` e `2s+1`. `thirdPlace` recebe os perdedores da semi; `side` recebe os perdedores das quartas (é o que serve para a disputa de 5º lugar). `fillFrom` só preenche um confronto quando ele está vazio dos dois lados, então não aceita um cabeça de chave já posto num lado. `simulateMatchScore` sempre dá o mando (+`HOME_ADVANTAGE`) ao `homeId`. `userFinalPosition` só conhece as posições 1 a 4. Os componentes `src/components/bracket/BracketView.vue`, `PodiumCard.vue` e `BracketTieCard.vue` desenham a chave com fases que vão se reduzindo à metade.
-- **Patrocínio:** receita fixa por jogo `club.projectedSponsorIncome = sponsorBase × facilityIncomeFactor(financeLevel) × incomeMult` (`src/stores/club.ts:147`). Por jogo, `useEconomy.settleMatch` paga também `sponsorBase × 0,5` na vitória e `× 0,2` no empate (`ECONOMY.winBonusShare` e `drawBonusShare`, sobre o `sponsorBase` sem o fator da instalação). Não há contrato, meta nem escolha.
-- **Save:** `saveGame` grava hoje 24 chaves de topo, não 17. Somaram-se `seasonAssists`, `seasonApps`, `seasonYellows`, `seasonReds`, `matchHistory`, `friendlies` e `prematchCompetition`, e `clubStaff` virou `staffContracts`. A asserção "17 chaves" do `t23-atletas.mjs` (h6) está desatualizada.
-- **Calibração quebrada:** `docs/calibracao/calib-carreira.mjs` importa `/src/utils/constants.ts`, `/src/utils/generatePlayer.ts`, `/src/utils/calculateTeamStrength.ts` e `/src/utils/bracket.ts`. Esses caminhos deixaram de existir no commit `f673638`. Rodado hoje, o script falha antes de simular (`Failed to load url /src/utils/generatePlayer.ts`). Por isso ele é a tarefa T0.
+- **Mundial:** não existe nada em `src/`.
+- **Finais de jogo único** (`src/stores/modules/competitions/finals.ts`): a vaga da Supercopa (campeão de série ou da Copa) e a da Recopa (campeão continental) nascem na virada, em `useSeason.startNewSeason`. O rival é sorteado (`LEAGUE_CLUBS_POOL[1]` na Supercopa, `CONTINENTAL_RIVALS` na Recopa), e a disputa é na temporada seguinte.
+- **Continental:** `ContinentalState.tier`: `'libertadores'` (Condor de Ouro: top 4 da A) ou `'sulamericana'` (Condor de Prata: 5º e 6º da A ou campeão da Taça Cacique). 4 grupos de 4 em ida e volta (6 rodadas), quartas, semi, 3º e final. O estado só existe quando o usuário se classifica. O pódio fica em `club.podiumArchive` (máximo de 12 itens).
+- **Grupos:** `src/stores/modules/competitions/groups.ts` já tem `sortGroup` (pontos, saldo, gols pró, OVER), `GROUP_SCHEDULE` (3 rodadas de turno único; o continental repete com mando invertido) e `applyGroupMatch`. São puros, mas dependem do tipo `ContinentalTeam`. `seedContinentalGroups` (`bracketSeeding.ts`) é específico do continental (grupo A do usuário mais B, C e D).
+- **Motor de chave** (`src/utils/bracket/bracket.ts`): `createBracket` monta árvores em potência de 2 com disputa de 3º. **Uma chave de 16 (oitavas) serve sem mudança estrutural.** `simulateMatchScore` sempre dá `HOME_ADVANTAGE` ao mandante; para jogo neutro é preciso um parâmetro. `BracketView.vue` desenha a árvore normalmente.
+- **Liga:** só a série do usuário é simulada; o campeão da A só é conhecido quando o usuário está nela.
+- **Troféus:** `recordTrophy('title', ...)` grava os textos "Campeão da Copa Condor de Ouro", "Campeão da Copa Condor de Prata" e "Campeão da Taça Cacique", além dos títulos de série e de finais. Com isso dá para reconstruir o histórico de saves antigos.
+- **Save:** 24 chaves de topo hoje, não 17 (a asserção h6 do `t23-atletas.mjs` está desatualizada).
+- **Calibração quebrada:** `calib-carreira.mjs` importa caminhos que deixaram de existir no commit `f673638` (falha com `Failed to load url /src/utils/generatePlayer.ts`). É a tarefa T0. É provável que `escada.mjs` tenha o mesmo problema; ele não entra na Fase 8.
 
-## 1. Formato da Copa dos Continentes (8.1)
+## 1. Formato: 32 clubes (decisão do dono)
 
-### 1.1 As duas opções, comparadas
+| Fase | Regra |
+|---|---|
+| Grupos | 8 grupos de 4 (A a H), turno único, 3 rodadas (`GROUP_SCHEDULE`). Classificação por `sortGroup`. Avançam os 2 primeiros. |
+| Oitavas | Jogo único. Cruzamento: 1A x 2B, 1C x 2D, 1E x 2F, 1G x 2H, 1B x 2A, 1D x 2C, 1F x 2E, 1H x 2G. Quem é do mesmo grupo só se reencontra na final. |
+| Quartas, semis e final | Jogo único, árvore normal. |
+| 3º lugar | Perdedores das semis, jogo único (`thirdPlace` do motor). |
+| Empate | Pênaltis no mata-mata; empate vale 1 ponto nos grupos. |
+| Mando | **Campo neutro para todos, inclusive a sede.** Sem +3 em nenhum jogo, do usuário ou da IA. |
+| Partidas do usuário | Até 3 de grupo + oitavas + quartas + semi + final ou 3º = **até 7**. |
+| Outros jogos | 45 jogos de grupo e 15 a 16 de mata-mata simulados pelo OVER (`simulateMatchScore` neutro), rodada a rodada, no mesmo ritmo das partidas do usuário (como o continental). |
 
-| Critério | (a) Clássico, 7 clubes | (b) Ampliado, 32 clubes |
-|---|---|---|
-| Fidelidade ao real | Formato do Mundial anual de 2005 a 2023: os 6 campeões continentais mais o campeão do país-sede. Play-off (sede x Oceania), quartas (play-off + Ásia, África e América do Norte), semis (os campeões sul-americano e europeu entram aqui), final, disputa de 3º e de 5º lugar. | Formato de 2025: 8 grupos de 4 e mata-mata a partir das oitavas, de 4 em 4 anos, com vários clubes por confederação (12 europeus, 6 sul-americanos...). |
-| Motor de chave | Extensão pequena: cabeças de chave que entram em fases diferentes (byes) e uma fase de 1 confronto antes das quartas. O 5º lugar já existe (`side`). Cerca de 80 linhas mais testes (seção 1.3). | Grupos de 4 com 8 grupos (hoje só o continental tem grupos, preso ao grupo "A" do usuário em `groups.ts`), mais oitavas de 16. Reuso parcial; os grupos precisam virar um módulo genérico. |
-| Outros jogos (OVER) | 6 jogos de IA por edição (`simulateMatchScore`). | 48 jogos de grupo mais 15 de mata-mata, cerca de 60 jogos de IA. |
-| Tamanho do save | 7 times e 9 confrontos: cerca de 3 a 4 KB. | 32 times, 8 tabelas e 16 confrontos: cerca de 20 a 30 KB. |
-| Partidas do usuário | 2 (entra na semi como campeão sul-americano); até 5 se entrar pela vaga da sede. | De 3 a 7. |
-| Ecossistema | Uma vaga por confederação: liga direto à Condor de Ouro e, nos anos de sede, à Série A. | Pediria várias vagas sul-americanas (ranking de 4 temporadas, Condor de Ouro, talvez a Prata), um ranking que o jogo não tem. |
-| Calibração | O mesmo perfil da revisão 1 (2 jogos para o caminho normal) e prêmio só por colocação. | Cotas de participação reais para todos (contra a regra do dono "sem cota base"); até 7 jogos extras com bilheteria e prêmio; o teto do elenco máximo na A seria o primeiro a quebrar. De 4 em 4 anos, a maioria das carreiras nunca veria o torneio. |
+**Bilheteria no neutro (regra):** em cada jogo do usuário, a bilheteria é a fatia de visitante, `projectedStadiumIncome × ECONOMY.awayTicketShare` (40%), e o mesmo vale para os dois clubes. É a regra de renda dividida de jogo neutro, usa uma constante que já existe e não cria um caso especial. Patrocínio fixo, bônus de resultado, folha e manutenção seguem o `settleMatch` normal.
 
-**Recomendação: (a), o clássico de 7 clubes.** É o formato que o público reconhece como "o Mundial", é anual (casa com a Condor de Ouro, que também é anual), cabe no motor com uma extensão pequena, dá ao campeão sul-americano o mesmo caminho do real (2 jogos, semi e final) e não muda a forma da economia. O (b) custaria um módulo de grupos genérico, um ranking de clubes e uma recalibração inteira por um torneio que, de 4 em 4 anos, a maioria das carreiras nunca veria.
+**Sorteio dos grupos:** 4 potes de 8 por OVER (o usuário pelo OVER do time na criação da edição). A sede vai para A1, como no real. Restrição: no máximo um clube por confederação em cada grupo, exceto a Europa, com até 2. O sorteio tenta de novo até encaixar, com `rng` injetável e guarda de 200 tentativas; se falhar, relaxa a restrição.
 
-### 1.2 Regras do formato clássico (fiéis ao real)
+### 1.1 Calendário: a cada 4 temporadas, com ciclo (recomendado)
 
-| Fase | Confronto | Observação |
-|---|---|---|
-| Play-off | Campeão da sede x campeão da Oceania | jogo único |
-| Quartas 1 | Vencedor do play-off x campeão de uma de Ásia, África e América do Norte (sorteio) | as duas quartas também são sorteadas |
-| Quartas 2 | os outros dois campeões | |
-| 5º lugar | perdedores das quartas | jogo único, simulado (o usuário joga se perder nas quartas) |
-| Semi 1 | campeão sul-americano x vencedor das quartas 1 | o sul-americano entra aqui |
-| Semi 2 | campeão europeu x vencedor das quartas 2 | o europeu entra aqui |
-| 3º lugar | perdedores das semis | jogo único |
-| Final | vencedores das semis | jogo único |
+| Opção | Participações esperadas numa carreira de 30 temporadas (estimativa) | Prós | Contras |
+|---|---|---|---|
+| Anual | forte cerca de 6, médio cerca de 3 | aparece mais | 7 jogos a mais por temporada na A (já com cerca de 42 da liga, mais Copa e continental); vagas só com os títulos de 1 temporada; prêmio anual pesa no teto do elenco máximo |
+| A cada 2 temporadas | forte cerca de 5, médio cerca de 3 | meio-termo | ciclo de 2 temporadas, sem paralelo com o real |
+| **A cada 4 temporadas** | forte cerca de 3 a 4, médio cerca de 2 | igual ao real; o ciclo de 4 temporadas faz **toda temporada contar** (o ranking e a contagem regressiva ficam sempre na tela); evento raro e grande | menos edições |
 
-- Empate em qualquer jogo: pênaltis ao vivo (no real há prorrogação, que o motor não tem; os pênaltis seguem a regra da Copa).
-- **Mando:** campo neutro para todos, exceto o clube da sede, que tem +3 de mando em todos os seus jogos (torcida da casa). Se o usuário for o clube da sede, `homeBonusApplies('mundial')` vale para ele; caso contrário, não.
-- **Bilheteria do usuário:** jogo neutro rende a fatia de visitante (`ECONOMY.awayTicketShare`, 40%); como sede, a cheia.
-- **Quando joga:** na temporada seguinte à da conquista, como a Supercopa e a Recopa. A vaga nasce na virada. Se ainda estiver pendente na virada seguinte, vira W.O. (sem prêmio, chave completada por `completeBracket(..., { forfeitUser: true })`) e o pódio vai para o arquivo.
-- **Nome na tela:** Copa dos Continentes (id interno `mundial`). "Mundial de Clubes" e "Copa Intercontinental" são nomes reais.
+**Recomendação: a cada 4 temporadas** (edições nas temporadas múltiplas de 4: T4, T8, ..., T28; 7 edições em 30 temporadas). O dono quer que o torneio apareça na carreira, e com o ciclo ele aparece sempre: o card "Rumo à Copa dos Continentes" mostra os pontos do Ranking Condor e as temporadas que faltam. O jogador forte, que chega à A entre a 12ª e a 16ª temporada, disputa 3 a 4 edições; o médio, 2. A edição T4 é, na prática, inalcançável (o usuário está na D), e isso é esperado.
 
-### 1.3 Extensão do motor de chave (custo da opção a)
+O torneio acontece **durante a temporada da edição** (a vaga fecha na virada que abre essa temporada; o ciclo são as 4 temporadas anteriores). O Mundial fica disponível na aba Competições desde o 1º jogo, como o continental. O que estiver pendente na virada vira W.O. (derrota de 0 x 3 nos grupos, eliminação no mata-mata) e a chave é completada.
 
-Mudanças aditivas, sem alterar o comportamento das 4 chaves que já existem (que não usam os campos novos):
+### 1.2 Sede
 
-1. **`BracketTie.from?: { home?: TieRef; away?: TieRef }`**, com `TieRef = { tieId: string; take: 'winner' | 'loser' }`. Em `propagate`, um confronto com `from` preenche cada lado vazio a partir do confronto citado e mantém o lado já ocupado por um cabeça de chave. Sem `from`, vale a regra atual (`2s` e `2s+1`).
-2. **`createBracketFromSpec(spec)`**: monta a chave a partir de uma lista explícita de fases e confrontos (time fixo ou `TieRef` em cada lado), mais `thirdPlace` e `side` com `from`. `createBracket` continua igual.
-3. **`Bracket.neutral?: { hostId: string | null }`**: com o campo presente, `resolveTie` só soma `HOME_ADVANTAGE` quando o mandante é o `hostId`; sem o campo, nada muda.
-4. **`bracketPlacement(bracket, teamId): 1..7 | null`**: 1 e 2 na final, 3 e 4 na disputa de 3º, 5 e 6 na de 5º, 7 para o perdedor do play-off. `userFinalPosition` fica como está.
-5. **`BracketCompetition`** ganha `'mundial'`.
+Rotação fixa entre 4 países fictícios, um por edição: Ilhas Sakura, Emirado de Al-Rimal, Reino do Atlas e o seu país (`MUNDIAL_HOSTS[(edição - 1) % 4]`). O seu país é sede em 1 de cada 4 edições (a cada 16 temporadas, cerca de 1 a 2 vezes por carreira).
 
-Interface: o `BracketView` assume fases que se reduzem à metade (1, 2, 2, 1 não segue a regra). A recomendação é uma prop `layout="phases"`, que mostra abas por fase com os cards (`BracketTieCard`) e sem as linhas de ligação; o desenho em árvore continua o padrão das outras chaves.
+A frequência da sede não mexe nos números do jogo: ela só decide qual clube nacional ocupa 1 das 32 vagas. Como não há mando para ninguém, força, prêmio, bilheteria e calibração não mudam.
 
 ## 2. Ecossistema de vagas
 
-### 2.1 De onde vem cada vaga
+### 2.1 Vagas por confederação (32)
 
-| Competição | Vaga | Origem (dados que o jogo tem) |
+| Confederação (nome proposto, seção 9) | Vagas | Origem |
 |---|---|---|
-| Condor de Ouro | top 4 da Série A | já existe |
-| Condor de Prata | 5º e 6º da Série A ou campeão da Taça Cacique | já existe |
-| Supercopa Soberana | campeão da Série A (ou de qualquer série, como hoje) x campeão da Taça Cacique | hoje o rival é sorteado; proposta na seção 2.3 |
-| Recopa Condor | campeão da Condor de Ouro x campeão da Condor de Prata | hoje o rival é sorteado; proposta na seção 2.3 |
-| **Copa dos Continentes** | **Campeão sul-americano** (vaga da Condor) = campeão da Condor de Ouro | usuário: `continentalState.champion && tier === 'libertadores'`. IA: campeão do pódio da chave da Condor de Ouro, se o usuário a disputou; senão, sorteado de `CONTINENTAL_RIVALS`. |
-| | **Campeão europeu, asiático, africano, norte-americano e da Oceania** | sempre IA, sorteados de `MUNDIAL_RIVALS` (seção 3.2) |
-| | **Campeão da sede** | campeão nacional do país-sede (seção 2.2). No ano em que a sede é o país do usuário, é o campeão da Série A. |
+| Europa (Liga Boreal) | 12 | IA, `MUNDIAL_RIVALS.europa` |
+| América do Sul (Confederação Condor) | 6 | ecossistema do jogo (seção 2.2) |
+| Ásia (Liga das Monções) | 4 | IA |
+| África (Liga da Savana) | 4 | IA |
+| América do Norte e Central (Liga dos Alísios) | 4 | IA |
+| Oceania (Liga dos Corais) | 1 | IA |
+| Sede | 1 | campeão nacional do país-sede (seção 2.2) |
 
-**A Condor de Prata e a Taça Cacique não dão vaga na Copa dos Continentes.** No real, só os 6 campeões continentais e o campeão da sede entram. A Prata já leva à Recopa e a Copa à Supercopa e à Prata, então as duas já estão ligadas ao ecossistema sem vaga duplicada.
+É a distribuição real atual. Fica assim porque a América do Sul (as 6 vagas em que o usuário compete) já é a segunda maior.
 
-### 2.2 País-sede
+### 2.2 Como a Condor de Ouro, a Condor de Prata, a Taça Cacique e a Série A se ligam
 
-- **Rotação fixa de 4 temporadas** (`MUNDIAL_HOSTS`), sempre com nomes fictícios: Sakura (Ásia Oriental), Al-Rimal (Ásia Ocidental), Atlas (norte da África) e **o país do usuário** (sede da Liga Aurora). Sede da temporada disputada: `MUNDIAL_HOSTS[(season - 1) % 4]`. A tabela fica em `config` e pode ser trocada.
-- Sede estrangeira: o campeão da sede é um clube IA de `MUNDIAL_HOSTS[i].clubs`, com OVER entre 64 e 69.
-- **Sede no país do usuário:** a vaga é do campeão da Série A da temporada anterior. É a segunda porta de entrada do usuário (play-off, até 5 jogos, com o mando da casa). Se o usuário não estava na A, o campeão é um clube IA sorteado de `LEAGUE_CLUBS_POOL[1]` (como a Supercopa faz hoje), com o OVER da lista.
-- **Regra real da vaga repetida:** se o campeão da sede também for o campeão sul-americano, ele entra pela vaga da Condor (na semi) e a vaga da sede passa ao vice da Série A. Com o usuário campeão das duas, o vice sai da tabela da A; sendo IA, sorteia-se outro clube da A.
+Opções avaliadas para as 6 vagas sul-americanas e a vaga da sede:
 
-### 2.3 Supercopa e Recopa no ecossistema (sem conflito)
+| Opção | Desenho | Avaliação |
+|---|---|---|
+| A. Só campeões da Ouro | as 6 vagas para os campeões da Condor de Ouro do ciclo; o resto sorteado | a Prata, a Copa e a Série A ficam de fora; não atende ao dono |
+| B. Vagas diretas para cada título | campeão da Ouro, da Prata, da Série A e da Copa, cada um com vaga direta | dá vaga duplicada quando o mesmo clube ganha dois títulos; a Prata e a Copa valeriam tanto quanto a Ouro; foge do real |
+| **C. Campeões + Ranking Condor + sede nacional** | 4 vagas para os campeões da Ouro do ciclo; 2 vagas pelo **Ranking Condor**, que soma Ouro, Prata, Série A, Taça Cacique, Recopa e Supercopa; a vaga da sede no seu país para o campeão da Série A, com a Taça Cacique como suplente | **recomendado** |
 
-As três decisões (Supercopa, Recopa e Copa dos Continentes) acontecem na temporada seguinte, cada uma com a sua `MatchCompetition`, sessão de partida e estado próprio. Não há disputa de data nem vaga duplicada: o campeão da Condor de Ouro joga a Recopa e a Copa dos Continentes, como no real.
+**Recomendação C, em detalhe:**
 
-Para fechar o ecossistema, proposta opcional (tarefa T11, depende do sim do dono): trocar o rival sorteado pelo campeão de verdade, quando o jogo o conhece.
-- **Recopa:** o usuário campeão da Ouro enfrenta o campeão da Prata e vice-versa. Como o jogo só tem a chave da edição que o usuário jogou, o rival da outra edição é sorteado de `CONTINENTAL_RIVALS` com a etiqueta "Campeão da Condor de Prata" (ou "de Ouro").
-- **Supercopa:** o campeão da liga enfrenta o campeão da Taça Cacique (pódio da chave da Copa, que existe todo ano). Se o usuário ganhou as duas, enfrenta o vice da Copa (finalista do pódio). Se o usuário ganhou só a Copa, enfrenta o campeão da Série A se estiver nela; senão, um clube sorteado da A.
-- Não muda prêmio nem regra de vaga.
+1. **Campeões da Condor de Ouro** das 4 temporadas do ciclo: vaga direta (até 4). Um clube que ganhou duas vezes ocupa uma vaga só, e a vaga que sobra vai para o ranking (como no real).
+2. **Vaga da sede:** quando a sede é o seu país, vai para o campeão da Série A da temporada anterior à edição. Se ele já estiver classificado, passa ao campeão da Taça Cacique da mesma temporada e, depois, ao vice da A. É assim que a Série A e a Copa ganham porta direta. Quando a sede é estrangeira, a vaga é de um clube IA daquele país.
+3. **Ranking Condor:** as vagas sul-americanas que sobram (pelo menos 2) vão para os melhores do ranking do ciclo que ainda não estão classificados. É aqui que a Prata, a Copa, a Série A e as finais entram para todos os anos. Pontos por temporada (vale a maior fase de cada competição; soma do ciclo):
 
-### 2.4 Como a vaga nasce na virada (`useSeason.startNewSeason`)
+| Competição | Participação | Quartas | Semi | Vice | Campeão |
+|---|---|---|---|---|---|
+| Condor de Ouro | 2 | 4 | 6 | 8 | 12 |
+| Condor de Prata | 1 | 2 | 3 | 4 | 6 |
+| Série A | 5º e 6º: 1 | 2º a 4º: 2 | | | campeão: 4 |
+| Taça Cacique | | | | 1 | 3 |
+| Recopa / Supercopa | | | | | 1 cada |
 
-Ordem nova, com tudo lido antes de reiniciar o continental e a liga:
-1. Ler `wonContinental`, `prevTier = continentalState.tier`, `ouroPodium = continentalState.bracket?.podium` (se `tier === 'libertadores'`), `wonLeagueTitle`, `prevDiv`, `prevRank`, o campeão e o vice da A (da tabela, se `prevDiv === 1`).
-2. `finishMundialForSeason()` (W.O. do que está pendente) e arquivar o pódio junto com os outros.
-3. `resetMundial()`. Calcular a sede da temporada nova. Montar o campo com a função pura `buildMundialField(...)` (seção 3.3). Se o usuário tiver vaga (Ouro ou campeão da A na sede), `qualifyMundial(field)`.
-4. `resetFinals()`, Supercopa e Recopa como hoje (ou com os rivais da seção 2.3).
+   - **Para o usuário:** classifica-se pelo ranking com **14 pontos ou mais** no ciclo (`RANKING_CUTOFF`). A IA preenche as outras vagas de ranking (sorteadas entre os clubes fortes da A e `CONTINENTAL_RIVALS`). O corte de 14 representa "estar entre os 2 melhores não classificados" sem simular o ranking inteiro da IA. Exemplos: forte na A (Ouro nas quartas duas vezes, semi uma vez e 2º na A uma vez) soma 16 e entra; médio (Prata na semi, Ouro na fase de grupos, campeão da Copa e 5º na A) soma 9 e fica fora. A T12 mede e ajusta o corte para o forte entrar em 70% a 85% das edições em que está na A.
+4. **Sem vaga duplicada:** a vaga é atribuída nesta ordem (campeões da Ouro, sede, ranking), e cada clube recebe no máximo uma. O usuário tem uma vaga só e o estado guarda a porta (`userEntry`).
+5. **Sem conflito com a Supercopa e a Recopa:** as duas continuam anuais, com as vagas de hoje, jogadas na temporada seguinte à conquista. São competições separadas, com sessão de partida própria, e não usam a vaga do Mundial. Os títulos dão 1 ponto de ranking. Para fechar o ecossistema, a T10 troca os rivais sorteados pelos campeões de verdade, quando o jogo os conhece: Supercopa = campeão da liga x campeão da Taça Cacique (vice da Copa se o mesmo clube ganhou as duas); Recopa = campeão da Ouro x campeão da Prata.
 
-O Mundial **só é criado quando o usuário tem vaga**. Sem vaga, não há chave para simular nem para gravar.
+**Dados da IA:** o campeão IA da Ouro numa temporada vem do `podiumArchive` quando o usuário disputou a edição; senão, é sorteado na criação do Mundial entre `CONTINENTAL_RIVALS` e os clubes mais fortes da A. Os nomes ficam gravados no histórico do ciclo para não mudarem entre recargas.
+
+### 2.3 Histórico do ciclo (novo, dentro de `club`)
+
+Para pontuar o ranking é preciso guardar o desempenho de cada temporada. Fica num registro curto, gravado na virada antes das redefinições:
+
+```ts
+export type EcoPhase = 'groups' | 'qf' | 'sf' | 'runnerUp' | 'champion'
+export interface SeasonEcoRecord {
+  season: number
+  division: number
+  leagueRank: number | null          // só quando o jogo conhece (série do usuário)
+  leagueTitle: boolean
+  ouro: EcoPhase | null              // fase do usuário na Condor de Ouro
+  prata: EcoPhase | null
+  cup: 'champion' | 'runnerUp' | null
+  recopa: boolean
+  supercup: boolean
+  ouroChampion: { name: string; power: number } | null   // campeão da Ouro (usuário ou IA do pódio)
+}
+// em ClubSave: ecoRecords?: SeasonEcoRecord[]   (as últimas 8 temporadas)
+```
 
 ## 3. Tipos e constantes
 
 ### 3.1 Tipos
 
-`src/types/match.ts`:
-```ts
-export type MatchCompetition = 'league' | 'cup' | 'continental' | 'supercup' | 'recopa' | 'mundial' | 'friendly'
-```
-O `vue-tsc` vai apontar os `Record<MatchCompetition, ...>` sem a chave nova (`stores/match.ts` em `sessions`, `MatchSwitcher.vue` em `NAMES`, `utils/player/suspension.ts` em `COMP_SHORT`). Correntes de `if (comp === ...)` não são checadas (risco 1).
+`src/types/match.ts`: `MatchCompetition` ganha `'mundial'`. O `vue-tsc` vai apontar os `Record<MatchCompetition, ...>` (`stores/match.ts`, `MatchSwitcher.vue`, `suspension.ts`).
 
-`src/types/bracket.ts`:
-```ts
-export type BracketCompetition = 'cup' | 'continental' | 'serieD' | 'serieC' | 'mundial'
-export interface TieRef { tieId: string; take: 'winner' | 'loser' }
-// em BracketTie:
-from?: { home?: TieRef; away?: TieRef }
-// em Bracket:
-neutral?: { hostId: string | null }
-```
+`src/types/bracket.ts`: `BracketCompetition` ganha `'mundial'`. `Bracket` ganha `neutral?: boolean` (sem mando para ninguém na simulação).
 
 `src/types/competitions.ts`:
 ```ts
 export type MundialConfed = 'condor' | 'europa' | 'asia' | 'africa' | 'norte' | 'oceania' | 'sede'
-export type MundialEntry = 'condor' | 'sede'
+export type MundialEntry = 'ouro' | 'ranking' | 'sede'
 
-export interface MundialHistoryItem { roundName: string; summary: string; prize: number }
+export interface GroupTeam extends ContinentalTeam { confed?: MundialConfed; tag?: string }
+export interface GroupMatchResult { round: number; homeId: string; awayId: string; hg: number; ag: number }
+export interface MundialGroup { id: string; teams: GroupTeam[]; results: GroupMatchResult[] }
 
 export interface MundialState {
   qualified: boolean
-  season: number             // temporada em que é disputado
-  hostId: string             // id de MUNDIAL_HOSTS
+  edition: number            // 1, 2, 3... (temporada = 4 × edição)
+  season: number
+  hostId: string
   userEntry: MundialEntry | null
+  stage: 'GROUPS' | 'KNOCKOUT' | 'DONE'
+  groupRound: number         // 1 a 3: rodada a jogar
+  userGroupId: string
+  groups: MundialGroup[]
+  bracket: Bracket | null    // oitavas em diante, criado ao fim dos grupos
   eliminated: boolean
   champion: boolean
-  placement: 1 | 2 | 3 | 4 | 5 | 6 | 7 | null
-  history: MundialHistoryItem[]
-  bracket: Bracket | null    // BracketTeam.tag = confederação ('Campeão europeu', 'Campeão da sede')
+  finalPosition: 1 | 2 | 3 | 4 | null
+  history: Array<{ roundName: string; summary: string; prize: number }>
 }
 ```
 
@@ -147,320 +163,319 @@ export interface MundialState {
 
 ```ts
 export const MUNDIAL_LABEL = 'Copa dos Continentes'
+export const MUNDIAL_EVERY = 4                       // edição nas temporadas múltiplas de 4
+export const MUNDIAL_SLOTS = { europa: 12, condor: 6, asia: 4, africa: 4, norte: 4, oceania: 1, sede: 1 }
 
-// Nomes fictícios. OVER sorteado na faixa no momento da vaga.
-export const MUNDIAL_RIVALS: Record<Exclude<MundialConfed, 'condor' | 'sede'>, { tag: string; minOver: number; maxOver: number; names: string[] }> = {
-  europa:  { tag: 'Campeão europeu',        minOver: 79, maxOver: 82, names: ['Rheinstadt SV', 'AC Valdoro', 'Nordhavn FK', 'Athletic Brisamar'] },
-  asia:    { tag: 'Campeão asiático',       minOver: 70, maxOver: 74, names: ['Sakura Minato FC', 'Shenhai Golden Dragons', 'Hanseong United', 'Al-Qamar Club'] },
-  africa:  { tag: 'Campeão africano',       minOver: 69, maxOver: 73, names: ['Kilima Stars', 'Nilo Azul SC', 'Atlas Sahel FC', 'Savana Real'] },
-  norte:   { tag: 'Campeão norte-americano', minOver: 69, maxOver: 73, names: ['Sierra Madre FC', 'Bahía Esmeralda', 'Lakeshore United', 'Monte Caribe SC'] },
-  oceania: { tag: 'Campeão da Oceania',     minOver: 58, maxOver: 63, names: ['Coral Bay FC', 'Southern Cross AFC', 'Kauri United', 'Lagoon City'] }
+// Nomes fictícios (seção 9). OVER sorteado na faixa ao criar a edição; listas maiores que o número de vagas.
+export const MUNDIAL_RIVALS = {
+  europa:  { tag: 'Campeão da Taça Boreal',  minOver: 74, maxOver: 83, names: [/* 16 nomes */] }, // 4 do topo entre 80 e 83
+  asia:    { tag: 'Campeão da Copa Monção',  minOver: 66, maxOver: 72, names: [/* 6 */] },
+  africa:  { tag: 'Campeão da Copa Savana',  minOver: 65, maxOver: 71, names: [/* 6 */] },
+  norte:   { tag: 'Campeão da Copa Alísios', minOver: 65, maxOver: 71, names: [/* 6 */] },
+  oceania: { tag: 'Campeão da Copa Coral',   minOver: 56, maxOver: 60, names: [/* 3 */] }
 }
-// Campeão sul-americano IA sem pódio: CONTINENTAL_RIVALS (OVER 72 a 76), tag 'Campeão da Condor'.
+// Clubes sul-americanos IA: CONTINENTAL_RIVALS (72 a 76) e os clubes mais fortes de LEAGUE_CLUBS_POOL[1].
 
 export const MUNDIAL_HOSTS = [
-  { id: 'sakura',  label: 'Sakura',  user: false, clubs: ['Kashiwa Sakura FC', 'Minato Bay'], minOver: 64, maxOver: 69 },
-  { id: 'alrimal', label: 'Al-Rimal', user: false, clubs: ['Al-Rimal Club', 'Nakheel SC'],  minOver: 64, maxOver: 69 },
-  { id: 'atlas',   label: 'Atlas',   user: false, clubs: ['Raja Atlas', 'Wydad Sahel'],      minOver: 64, maxOver: 69 },
-  { id: 'aurora',  label: 'seu país', user: true,  clubs: [],                                minOver: 0,  maxOver: 0 }
+  { id: 'sakura',  label: 'Ilhas Sakura',      user: false, clubs: ['Hanami FC', 'Minato Bay'],       minOver: 64, maxOver: 69 },
+  { id: 'alrimal', label: 'Emirado de Al-Rimal', user: false, clubs: ['Al-Rimal Club', 'Nakheel SC'], minOver: 64, maxOver: 69 },
+  { id: 'atlas',   label: 'Reino do Atlas',    user: false, clubs: ['Medina Atlas FC', 'Sahel Azul'], minOver: 64, maxOver: 69 },
+  { id: 'aurora',  label: 'seu país',          user: true,  clubs: [],                                minOver: 0,  maxOver: 0 }
 ]
 
-// Em PRIZES (acréscimo):
-mundial: { champion: 400000, runnerUp: 200000, third: 100000, fourth: 70000, fifth: 50000, sixth: 30000, seventh: 0 },
+export const RANKING_CONDOR = {
+  ouro:  { groups: 2, qf: 4, sf: 6, runnerUp: 8, champion: 12 },
+  prata: { groups: 1, qf: 2, sf: 3, runnerUp: 4, champion: 6 },
+  serieA: { champion: 4, top4: 2, top6: 1 },
+  cup: { champion: 3, runnerUp: 1 },
+  recopa: 1, supercup: 1,
+  cutoff: 14
+}
+
+// Em PRIZES (acréscimo): pago ao alcançar cada fase, sem cota base (como PRIZES.cup.rounds).
+mundial: { r16: 40000, qf: 60000, sf: 80000, thirdWin: 60000, thirdLoss: 20000, finalLoss: 100000, champion: 320000 },
 ```
 
-Escala de força: a A típica está em 71, o forte em 76 a 78 na T30, a Condor IA entre 72 e 76. Com isso o europeu é o chefão (3 a 10 acima do campeão sul-americano típico), Ásia, África e América do Norte ficam no nível da Condor ou um pouco abaixo, a Oceania é a zebra, e a sede estrangeira fica no meio. É a mesma hierarquia do real.
+Escala de força: a A típica está em 71, o forte em 76 a 78 na T30, e a Condor IA entre 72 e 76. Os 4 europeus do topo (80 a 83) são os favoritos; os outros 8 europeus (74 a 79) ficam no nível do forte sul-americano; Ásia, África e América do Norte ficam um pouco abaixo da A típica; a Oceania é a zebra. É a hierarquia do real.
 
 ### 3.3 Funções puras novas
 
-- `src/utils/bracket/bracket.ts`: `createBracketFromSpec`, `propagate` com `from`, `resolveTie` com `neutral`, `bracketPlacement` (seção 1.3).
-- `src/utils/bracket/bracketSeeding.ts`: `seedMundial(field, rng): Bracket`. Sorteia quem da Ásia, África e América do Norte joga as quartas 1 contra o vencedor do play-off, e monta as fases da seção 1.2 com `from`, `thirdPlace` e `side` (5º lugar). `neutral.hostId` = id do campeão da sede.
-- `src/utils/competitions/mundialField.ts` (novo): `buildMundialField({ season, userWonOuro, ouroPodiumChampion, userIsSerieAChampion, serieAChampion, serieAVice, rng })`. Devolve os 7 `BracketTeam` com `tag`, a sede, `userEntry` e a regra da vaga repetida (seção 2.2), ou `null` quando o usuário não tem vaga.
+- `src/utils/groups/groupStage.ts` (novo, **módulo genérico de grupos**): `sortGroup`, `applyGroupMatch` e `GROUP_SCHEDULE` movidos de `modules/competitions/groups.ts`, que passa a reexportá-los (o continental não muda), tipados com `ContinentalTeam` ou `GroupTeam`. Mais `drawGroups(teams, groupCount, rng, { pots, maxPerConfed, hostId })` e `simulateGroupRound(group, roundIndex, rng, { neutral, skipUser })`, que grava o resultado em `results`.
+- `src/utils/bracket/bracket.ts`: `simulateMatchScore(home, away, rng, homeAdvantage = HOME_ADVANTAGE)`; `resolveTie` passa 0 quando `bracket.neutral`. Sem o campo, nada muda.
+- `src/utils/bracket/bracketSeeding.ts`: `MUNDIAL_R16_TEMPLATE` e `seedMundialRoundOf16(sortedGroups)`, entregue a `createBracket` com 8 confrontos na 1ª fase e `thirdPlace: true`.
+- `src/utils/competitions/rankingCondor.ts` (novo): `ecoPoints(record)`, `rankingPoints(records, editionSeason)` (soma das 4 temporadas anteriores) e `userMundialEntry(records, editionSeason, hostIsUser, ...)`, que devolve `'ouro' | 'sede' | 'ranking' | null` na ordem da seção 2.2.
+- `src/utils/competitions/mundialField.ts` (novo): `buildMundialField({ edition, records, userOver, userName, serieAPool, podiumArchive, rng })` monta os 32 `GroupTeam` com `confed` e `tag`, aplica a regra das vagas sem duplicação e devolve os grupos sorteados.
 
-## 4. Patrocinador Master (8.2): decisões (sem mudança desde a revisão 1)
-
-| Tema | Recomendação | Motivo |
-|---|---|---|
-| Duração | Contrato de 1 temporada, escolhido no começo de cada temporada. | Os valores dependem da série, que muda a cada temporada. |
-| Ofertas | 3 por temporada, uma de cada perfil (Estável, Desempenho, Ousado), com marca fictícia sorteada. | A escolha fica entre segurança e risco. |
-| Prazo | Até o 1º jogo oficial. Sem escolha, o Estável é assinado sozinho no 1º `settleMatch`, com aviso. | A calibração roda com o Estável, que é igual à economia de hoje. |
-| Por jogo | Corte fixo sobre o `sponsorBase` cru (não sobre o ganho da instalação de Finanças) e fatia própria do bônus de vitória. O empate não muda. | O investimento em Finanças vale igual em todo contrato, e o equilíbrio não depende do nível. |
-| Meta | Permanência (Estável), Acesso (Desempenho), Título (Ousado), paga uma vez na virada. | Usa `prevDiv`, `nextDivision`, `prevRank` e `trophyType`. |
-| Bônus por título | Só no Ousado, por troféu de campeão (liga, Taça Cacique, continental, Supercopa, Recopa e Copa dos Continentes), pago em `recordTrophy('title', ...)`. | O "bônus variável por título" do roadmap, num ponto só. |
-| Escala | Múltiplos do `sponsorBase`, arredondados a R$ 500. | A escada entre séries se mantém sozinha. |
-
-| Meta | Série D | Séries C e B | Série A |
-|---|---|---|---|
-| Permanência | passou da 1ª fase (tem jogo em `D_R64`) | não foi rebaixado | não foi rebaixado |
-| Acesso | subiu | subiu | top 6 (`prevRank <= 6`) |
-| Título | campeão da série | campeão da série | campeão da série |
-
-Tipos (`src/types/club.ts`, dentro de `ClubSave` como `sponsor?: ClubSponsorState`):
-
-```ts
-export type SponsorTier = 'estavel' | 'desempenho' | 'ousado'
-export type SponsorGoal = 'permanencia' | 'acesso' | 'titulo'
-export interface SponsorOffer {
-  id: string; tier: SponsorTier; brand: string; division: number
-  fixedCut: number; winBonus: number; goal: SponsorGoal; goalBonus: number; titleBonus: number
-}
-export interface SponsorContract extends SponsorOffer { season: number; signedAuto: boolean }
-export interface SponsorSeasonResult {
-  season: number; brand: string; tier: SponsorTier; goal: SponsorGoal
-  goalMet: boolean; goalPaid: number; winPaid: number; titlePaid: number
-}
-export interface ClubSponsorState {
-  season: number; offers: SponsorOffer[]; contract: SponsorContract | null
-  earned: { win: number; title: number }; lastResult: SponsorSeasonResult | null
-}
-```
-
-Constantes (`src/config/economy.ts`):
-
-```ts
-export const SPONSOR_TIERS: Record<SponsorTier, { label: string; fixedCutX: number; winShare: number; goal: SponsorGoal; goalBonusX: number; titleBonusX: number }> = {
-  estavel:    { label: 'Estável',    fixedCutX: 0,    winShare: 0.50, goal: 'permanencia', goalBonusX: 1, titleBonusX: 0 },
-  desempenho: { label: 'Desempenho', fixedCutX: 0.15, winShare: 0.85, goal: 'acesso',      goalBonusX: 4, titleBonusX: 0 },
-  ousado:     { label: 'Ousado',     fixedCutX: 0.30, winShare: 1.10, goal: 'titulo',      goalBonusX: 8, titleBonusX: 2 }
-}
-export const SPONSOR_BRANDS = [
-  'Vértice Telecom', 'Tropeiro Seguros', 'Maré Alta Bebidas', 'Cerrado Energia', 'Grupo Aurora Austral',
-  'Ipê Roxo Construtora', 'Farol Azul Logística', 'Sabiá Pagamentos', 'Serra Fria Laticínios'
-]
-```
-
-Funções puras em `src/utils/club/sponsor.ts`: `buildSponsorOffers(division, season, rng)`, `sponsorGoalMet(goal, ctx)`, `sponsorGoalLabel(goal, division)` e `roundTo500(v)`.
-
-## 5. Stores e composables afetados
+## 4. Stores e composables afetados
 
 | Arquivo | Mudança |
 |---|---|
-| `src/utils/bracket/bracket.ts`, `bracketSeeding.ts`, `src/utils/competitions/mundialField.ts` (novo) | Seções 1.3 e 3.3. |
-| `src/stores/modules/competitions/mundial.ts` (novo) | `createMundial({ mundialState, club })`: `qualifyMundial(field, rng?)`, `resetMundial()`, `finishMundialForSeason()`, `applyMundialResult(uGoals, oGoals, clubName, pens)` (avança com `simulatePhaseExceptUser` e `propagate`; quando o usuário é eliminado, `completeBracket`; paga pela `bracketPlacement` ao fim; troféu "Campeão da Copa dos Continentes"), `mundialStageLabel`, `mundialOpponent`, `hasPendingMundial`, `mundialUserHosts` (usuário é o clube da sede). |
-| `defaults.ts`, `save.ts`, `src/stores/competitions.ts` | `emptyMundial()`; `mundialState` em `toSave`/`fromSave` (spread sobre o vazio); `isCompetitionPlayable('mundial')`; `hasPendingThirdPlace` com os 3º e 5º lugares do Mundial. |
-| `src/composables/useMatchSimulation.ts` | `homeBonusApplies(comp)` passa a aceitar o caso `mundial` com o usuário como sede (`competitions.mundialUserHosts`); `rawIsHomeFor('mundial')` = `mundialUserHosts` (bilheteria de visitante no neutro); `rawOpponentFor`, `rawLabelFor` ("Copa dos Continentes • Semifinal"), `needsShootout` (`u === o`), ramo em `concludeMatch`. |
-| `src/stores/match.ts` | `sessions.mundial`; `'mundial'` em `COMPETITIONS_ORDER` depois de `'recopa'`. |
-| `src/composables/useSeason.ts` | Seção 2.4 (Mundial) e, para o patrocínio, meta antes de `club.season += 1` e ofertas depois de `club.division = nextDivision`; `initializeFreshCareer` gera as ofertas da T1. |
-| `src/stores/modules/competitions/finals.ts` | Só na T11 (opcional): rivais reais da Supercopa e da Recopa (seção 2.3). |
-| `src/composables/usePersistence.ts` | Passar `mundialState: p.mundialState` a `competitions.fromSave`. |
-| `src/stores/club.ts` | Patrocínio: estado `sponsor`; `projectedSponsorIncome` menos `round(fixedCut × incomeMult)`, com piso 0; `signSponsor`, `ensureSponsorContract`, `recordSponsorWin`; bônus por título em `recordTrophy`; `closeSponsorSeason`/`openSponsorSeason`; normalização em `fromSave`; `resetCareerRecords`. |
-| `src/composables/useEconomy.ts` | `settleMatch`: `ensureSponsorContract()`; bônus de vitória do contrato; `earned.win`. |
-| Interface | `src/components/competitions/MundialPanel.vue` (novo), `CompetitionsView.vue`, `BracketView.vue` (prop `layout="phases"`), `src/components/club/SponsorCard.vue` (novo), `ClubView.vue`, `DashboardView.vue` (`'mundial'` em `CUP_COMPETITIONS` e banner do patrocínio), `PostMatchSummary.vue`, `SeasonReviewCard.vue`, `useNavigation.ts` (selos). |
+| `src/stores/modules/competitions/mundial.ts` (novo) | `createMundial({ mundialState, club })`: `openMundialEdition(field)`, `resetMundial()`, `finishMundialForSeason()` (W.O. do que falta, grupos simulados, `completeBracket(..., { forfeitUser: true })` e pódio), `applyMundialResult(uGoals, oGoals, clubName, pens)` (grupos: aplica o jogo do usuário, simula a rodada dos outros 7 grupos e o outro jogo do grupo dele; na 3ª rodada, classifica e cria a chave; mata-mata: segue o fluxo da `cup.ts`), prêmios ao alcançar cada fase, troféu "Campeão da Copa dos Continentes", `mundialStageLabel`, `mundialOpponent`, `hasPendingMundial`, `mundialStandings`. |
+| `defaults.ts`, `save.ts`, `src/stores/competitions.ts` | `emptyMundial()`; `mundialState` em `toSave`/`fromSave` (spread sobre o vazio); `isCompetitionPlayable('mundial')`; `hasPendingThirdPlace` com o 3º do Mundial. |
+| `src/stores/club.ts` | `ecoRecords` (máximo de 8), `recordEcoSeason(record)`, `toSave`/`fromSave`/`resetCareerRecords`. |
+| `src/composables/useMatchSimulation.ts` | `homeBonusApplies` continua só liga e continental (o `mundial` é neutro); `rawIsHomeFor('mundial') = false` (bilheteria de 40%); `rawOpponentFor`, `rawLabelFor` ("Copa dos Continentes • Grupo C, 2ª rodada" / "• Oitavas de Final"), `needsShootout` (só no mata-mata), ramo em `concludeMatch`. |
+| `src/stores/match.ts`, `MatchSwitcher.vue`, `suspension.ts` | `sessions.mundial`, `COMPETITIONS_ORDER`, `NAMES` ("Continentes"), `COMP_SHORT` ("CON"). |
+| `src/composables/useSeason.ts` | Virada: (1) montar e gravar o `SeasonEcoRecord` da temporada que termina (antes de `finishContinentalForSeason` reiniciar o estado, lendo `tier`, fase, `finalPosition`, pódio, `prevRank`, `trophyType`, Copa, Recopa e Supercopa); (2) `finishMundialForSeason()` e arquivar o pódio; (3) `resetMundial()`; (4) se a temporada nova for múltipla de 4, `buildMundialField` e, se o usuário tiver vaga, `openMundialEdition`. |
+| `src/stores/modules/competitions/finals.ts` | T10: rivais reais da Supercopa e da Recopa (seção 2.2, item 5). |
+| `src/composables/usePersistence.ts` | `mundialState` em `competitions.fromSave`; reconstrução do `ecoRecords` em save antigo e aviso único (seção 5). |
+| Interface | `MundialPanel.vue` (novo), `src/components/club/MundialCycleCard.vue` (novo), `CompetitionsView.vue`, `DashboardView.vue` (`CUP_COMPETITIONS` e card), `useNavigation.ts` (selo). |
 
-## 6. Save e migração (idempotente, sem migração numerada)
+## 5. Save e migração (idempotente)
 
-- **`mundialState`:** chave de topo aditiva (25 no total), como `friendlies`. Save antigo sem a chave carrega `emptyMundial()`. A chave de 7 times ocupa cerca de 3 a 4 KB e só existe quando o usuário tem vaga. Os campos novos do motor (`from`, `neutral`) são opcionais: as chaves já gravadas de Copa, continental e Séries C e D carregam sem mudança. `migrateBalanceV2` e `migrateProgressionV3` não tocam no Mundial (os rivais nascem já na escala nova).
-- **`club.sponsor`:** opcional dentro de `club`, normalizado em `fromSave`:
-  1. Campo ausente (save antigo, quase sempre no meio da temporada): contrato Estável da série atual com `signedAuto: true` e ofertas vazias. Reproduz a economia de hoje, e as ofertas começam na próxima virada.
-  2. Campo presente: validar cada número (finito, maior ou igual a 0) e descartar ofertas malformadas. Se `sponsor.season !== club.season`, cair no caso 1.
-  3. Segunda carga: nada muda. Teste: load, save, load, save dá JSON idêntico.
-- **Asserção das 17 chaves:** os testes novos conferem "as chaves de antes mais `mundialState`" e não um número fixo.
+- **Tamanho:** `mundialState` com 32 times nos grupos (cerca de 3 KB), 48 resultados de grupo (cerca de 3 KB) e uma chave de 16 com 3º lugar (cerca de 5 KB): **8 a 12 KB**, só na temporada da edição e só com o usuário classificado. `ecoRecords`: 8 registros de cerca de 150 bytes. Fica longe do limite do `localStorage` (cerca de 5 MB).
+- **`mundialState`:** chave de topo aditiva (25 no total), padrão `emptyMundial()` em save antigo. O campo `neutral` da chave é opcional, e as chaves já gravadas carregam sem mudança.
+- **`ecoRecords`** dentro de `club`. Em save antigo (campo ausente), reconstruir a partir do `trophyGallery` (títulos por temporada: "Campeão da Copa Condor de Ouro", "...de Prata", "Campeão da Taça Cacique", títulos de série e das finais) e do `podiumArchive` (campeões da Ouro). As fases que não são título (quartas, semis) ficam desconhecidas e contam como `null`. A reconstrução roda só quando o campo está ausente, então uma segunda carga não muda nada. Se a seção 9 renomear as competições, a reconstrução precisa reconhecer os textos antigos e os novos.
+- **Aviso único (aprovado):** no primeiro load de um save antigo, um toast: "Nova competição: Copa dos Continentes, a cada 4 temporadas. Próxima edição na temporada N. Seus títulos já contam para o Ranking Condor."
+- **Asserção das 17 chaves:** numa `chore` separada (T1), atualizar a h6 do `t23-atletas.mjs` para a lista real de chaves. Os testes da Fase 8 conferem "as chaves de antes mais `mundialState`".
 
-## 7. Impacto na calibração econômica
+## 6. Prêmios e calibração
 
-### 7.1 Copa dos Continentes
+### 6.1 Prêmios (sem cota base; pagos ao alcançar a fase)
 
-Prêmios por colocação (sem cota base nem cota por vitória). A distribuição real do formato clássico vai de 1,0 a 0,1 do prêmio do campeão (vice 0,8, 3º 0,5, 4º 0,4, 5º 0,3, 6º 0,2, 7º 0,1). Aqui ela foi comprimida para não quebrar a escada e para respeitar a regra do dono "quem cai cedo não recebe".
-
-| Colocação | Prêmio | Comparação |
+| Desfecho | Pago na fase | Total |
 |---|---|---|
-| Campeão | 400 mil | topo da escada: Supercopa 40 < Recopa 60 < Copa 330 < campeão continental (cerca de 380 a 420 mil, com cotas e bônus) <= Copa dos Continentes 400, e > Série A campeã (300). |
-| Vice | 200 mil | > vice da Copa (140) e vice continental (70 mais cotas); < campeão da Série A. O real (0,8) daria 320 mil, acima do campeão da A. |
-| 3º | 100 mil | > 3º continental (30) e da Copa (25). |
-| 4º | 70 mil | piso de quem entra na semi (o campeão da Condor joga no máximo 2 jogos). |
-| 5º | 50 mil | só para quem entra pela vaga da sede. |
-| 6º | 30 mil | idem. |
-| 7º | 0 | perdedor do play-off: "quem cai cedo não recebe". |
+| Eliminado nos grupos | 0 | **0** |
+| Oitavas (passou dos grupos) | 40 mil | 40 mil |
+| Quartas | +60 mil | 100 mil |
+| Semi | +80 mil | 180 mil |
+| 4º (perdeu o 3º) | +20 mil | 200 mil |
+| 3º | +60 mil | 240 mil |
+| Vice | +100 mil | 280 mil |
+| Campeão | +320 mil | **500 mil** |
 
-Efeito no `--check`:
-- **`tipicoRot`:** quase nunca ganha a Condor de Ouro, e ser campeão da A num ano de sede no país é raro. O valor esperado fica em poucos mil por temporada, longe do teto de 650 mil na A.
-- **Elenco máximo na A** (saldo menor que 400 mil), o ponto de atenção. Estimativa para o `maximoRot` (OVER 88): ganha a Condor de Ouro em cerca de 50% das temporadas. Entrando na semi, passa em cerca de 85% (contra 70 a 74) e vence a final em cerca de 70% (contra 79 a 82, com pênaltis). O valor esperado por vaga é de cerca de 305 mil (0,6 × 400 + 0,26 × 200 + 0,15 × cerca de 90), cerca de 150 mil por temporada. A porta da sede soma cerca de 0,075 × 230 mil ≈ 17 mil. Total: cerca de 170 mil por temporada (a revisão 1 estimava 140 mil). Com o saldo histórico desse perfil na A negativo (cerca de −240 mil, relatório, decisão 6), deve ficar abaixo de 400 mil, mas precisa ser medido (T9). A alavanca, se quebrar, é o campeão a 300 mil (o mesmo da Série A), antes de qualquer outra constante.
-- **Jogos extras:** 2 para o caminho normal, até 5 pela sede. Rendem bilheteria de visitante (40%), patrocínio fixo e bônus de vitória como qualquer jogo oficial. No `maximoRot`, cerca de +1 a 1,5 jogo por temporada na A: alguns mil de receita contra a folha do mesmo jogo, o que é neutro para o teto.
-- O `calib-carreira.mjs` precisa de `'mundial'` no `pickComp`; sem isso o Mundial vira W.O. e a medição sai otimista.
+Escada:
+- Cada fase paga mais que a fase equivalente da Taça Cacique (`cup.rounds` 10/20/40/260) e do continental (30 mil por vitória mais bônus de 180/70/30 mil).
+- O campeão (500 mil) fica no topo: > campeão continental (cerca de 380 a 420 mil com cotas) > Copa (330 mil) > Série A (300 mil).
+- O vice (280 mil) fica abaixo do campeão da A (300 mil), então título nacional continua valendo mais que vice mundial.
+- Quem cai nos grupos não recebe nada (regra do dono).
 
-### 7.2 Patrocínio (sem mudança desde a revisão 1)
+### 6.2 Efeito no `--check` e no teto do elenco máximo na A
 
-Por jogo, contra hoje: `Δ = sponsorBase × (−fixedCutX + (winShare − 0,5) × p)`. Equilíbrio: Desempenho em p = 0,43; Ousado em p = 0,50.
+- **Edição a cada 4 temporadas:** o valor por temporada é o valor da edição dividido por 4.
+- **`maximoRot` (OVER 88) na A:** quase sempre classificado (Ouro ou ranking). Chances por fase, estimadas: grupos 95%, oitavas 85% (contra cerca de 76), quartas 70%, semi 65%, final 62% (contra 80 a 83). Valor esperado da edição ≈ 38 + 48 + 45 + 73 (campeão) + 14 (vice) + 9 (3º e 4º) ≈ **230 mil por edição, cerca de 57 mil por temporada**. A anual seria cerca de 230 mil por temporada. Com o saldo histórico desse perfil na A negativo (cerca de −240 mil), fica bem abaixo do teto de 400 mil. A medição fica na T12; se quebrar, a alavanca é o campeão (320 → 220 mil).
+- **Jogos a mais:** até 7 na temporada da edição, com 40% de bilheteria. Num clube típico da A, cada jogo do Mundial fica perto de −6 mil (bilheteria de cerca de 11 mil + patrocínio de cerca de 28 mil + bônus médio de cerca de 4 mil − folha de cerca de 44 mil − manutenção de cerca de 5 mil). Cair nos grupos custa cerca de −18 mil; chegar às oitavas já paga a conta (+40 mil). É coerente com "sem cota base": jogar o torneio não é lucro garantido.
+- **`tipicoRot`:** raramente classificado (precisa da Ouro ou de 14 pontos). Efeito de poucos mil por temporada, longe dos tetos (A 650 mil).
+- O `calib-carreira.mjs` precisa de `'mundial'` no `pickComp` e de rodar pelo menos 20 temporadas (5 edições). Saem duas métricas novas e informativas: edições classificadas por política e prêmio médio por edição.
+- **Escada entre séries:** sem efeito. O Mundial só existe para clubes da A ou que pontuaram no ciclo; a escada D < C < B < A não muda.
 
-| | D | C | B | A |
-|---|---|---|---|---|
-| `sponsorBase` | 8.650 | 10.520 | 13.690 | 16.600 |
-| Bônus de vitória hoje (= Estável) | 4.325 | 5.260 | 6.845 | 8.300 |
-| Estável: meta (1 S) | 8.500 | 10.500 | 13.500 | 16.500 |
-| Desempenho: corte por jogo / vitória | 1.298 / 7.353 | 1.578 / 8.942 | 2.054 / 11.637 | 2.490 / 14.110 |
-| Desempenho: meta (4 S) | 34.500 | 42.000 | 55.000 | 66.500 |
-| Ousado: corte por jogo / vitória | 2.595 / 9.515 | 3.156 / 11.572 | 4.107 / 15.059 | 4.980 / 18.260 |
-| Ousado: meta (8 S) | 69.000 | 84.000 | 109.500 | 133.000 |
-| Ousado: por troféu (2 S) | 17.500 | 21.000 | 27.500 | 33.000 |
+## 7. Interface
 
-Ganho esperado por temporada acima de hoje (probabilidades estimadas, medidas na T18):
+- Aba "Continentes" em `CompetitionsView.vue`, com selo `!` quando há jogo pendente.
+- **`MundialPanel.vue`:**
+  - Sem edição na temporada: contagem regressiva ("Próxima edição: temporada N, sede: Reino do Atlas") e o Ranking Condor do usuário, com o corte de 14.
+  - Edição sem o usuário: os 8 grupos simulados ao fim da temporada (ou na virada) e o campeão, como notícia.
+  - Edição com o usuário: a tabela do grupo dele (no padrão de `ContinentalPanel`), as abas com os outros 7 grupos, o botão de entrada (`prepareMatch('mundial')`, `matchEntryLabel`), a chave do mata-mata (`BracketView` padrão, já que a chave de 16 é uma árvore normal), o `PodiumCard` e os prêmios lidos de `PRIZES.mundial`.
+- **`MundialCycleCard.vue`** (Painel ou aba Clube): "Rumo à Copa dos Continentes": temporadas que faltam, pontos do ciclo por competição e a porta provável ("Vaga pelo campeão da Ouro", "Vaga pelo ranking", "Faltam N pontos").
+- Rótulos: "Copa dos Continentes • Grupo C, 1ª rodada" / "• Oitavas de Final" / "• Disputa de 3º Lugar". Galeria: "Campeão da Copa dos Continentes".
+- T10: os cards da Supercopa e da Recopa mostram a origem do rival.
 
-| Clube | Estável | Desempenho | Ousado |
-|---|---|---|---|
-| D típico (p 0,40) | +6,4 mil | +3,8 mil | −5,5 mil |
-| D forte (p 0,55) | +7,7 mil | +23,3 mil | +23,4 mil |
-| D dominante (p 0,65) | +8,5 mil | +35,2 mil | +50,9 mil |
-| A típico (p 0,45) | +14,9 mil | +28,5 mil | −3,5 mil |
-
-A meta sozinha nunca passa o prêmio do campeão da série (D 69 contra 80; C 84 contra 140; B 109,5 contra 240; A 133 contra 300 mil). No `--check`, a política não escolhe e fica com o Estável: o saldo sem prêmio é igual ao de hoje, e o saldo total sobe cerca de +6 mil (D) a +15 mil (A), com folga de pelo menos 45 mil contra os tetos (D 130, C 220, B 380, A 650 mil). O elenco máximo na A soma cerca de +16 mil, o que, junto do Mundial, dá cerca de +185 mil a medir contra o teto de 400 mil.
-
-## 8. Interface
-
-**Copa dos Continentes**
-- Aba "Continentes" em `CompetitionsView.vue` (depois de "Supercopa & Recopa"), com selo `!` quando há jogo pendente.
-- `MundialPanel.vue`:
-  - Travado: `EmptyState` com as duas portas ("Conquiste a Copa Condor de Ouro, ou seja campeão da Série A num ano em que o seu país é a sede"), mais a sede da próxima edição.
-  - Qualificado: os 7 clubes com escudo, `tag` da confederação e "OVER N"; a sede destacada; o botão de entrada por fase (`prepareMatch('mundial')`, `matchEntryLabel`); a chave com `BracketView layout="phases"`; o `PodiumCard` ao fim e a colocação do usuário (1º a 7º). Prêmios lidos de `PRIZES.mundial`.
-- Rótulos: "Copa dos Continentes • Play-off / Quartas de Final / Semifinal / Final / Disputa de 3º Lugar / Disputa de 5º Lugar". `MatchSwitcher` com "Continentes"; `COMP_SHORT` "CON".
-- Galeria: "Campeão da Copa dos Continentes".
-- Opcional (T11): os cards da Supercopa e da Recopa mostram a origem do rival ("Campeão da Taça Cacique", "Campeão da Condor de Prata").
-
-**Patrocinador Master:** `SponsorCard.vue` na aba Clube (3 ofertas com os valores já calculados para o clube, equilíbrio "vale a pena acima de 43% / 50% de vitórias", "Assinar" com `ui.askConfirm`; com contrato: marca, meta, estado e o recebido; `lastResult`). Banner no Painel sem contrato; marca na linha do bônus do `PostMatchSummary`; toast e linha no `SeasonReviewCard` na virada.
-
-## 9. Tarefas (uma por delegação a Sonnet, esforço low)
+## 8. Tarefas (uma por delegação a Sonnet, esforço low, salvo indicação)
 
 ### Regras para todas as tarefas
 
-- Projeto `C:\Users\elphant\Downloads\Super XI`. Não commitar nem mexer em `package.json`. Só os arquivos listados.
-- Branches (`CLAUDE.md`): T0 em `chore/calib-imports`; T1 a T11 em `feature/copa-dos-continentes`; T12 a T19 em `feature/patrocinador-master`. Saem da `develop` e voltam com `--no-ff` depois da revisão do Opus; quem commita e faz o merge é a sessão principal.
+- Projeto `C:\Users\elphant\Downloads\Super XI`. Não commitar nem mexer em `package.json` (a versão 1.3.0 só entra quando o dono pedir o lançamento). Só os arquivos listados.
+- Branches: T0 em `chore/calib-imports`; T1 em `chore/t23-chaves`; T2 a T13 em `feature/copa-dos-continentes`; T14 em `feature/universo-nomes` (só depois de o dono aprovar a seção 9). Saem da `develop` e voltam com `--no-ff`, depois da revisão do Opus. Commit e merge ficam com a sessão principal.
 - Pronto comum: `npm run build` sem erro, mais o teste da tarefa.
-- Testes: scripts Node em `docs/calibracao/` (`t40` em diante), com o harness do `calib-carreira.mjs` consertado na T0 (Vite em middleware, `ssrLoadModule`, stubs de navegador, `setActivePinia(createPinia())`). Imprimem `OK <nome>`, saem com `exit(1)` na 1ª falha e fecham o servidor. Rodar com `node docs/calibracao/<script>.mjs`. Sorteios com `mulberry32(seed)`.
-- Português, nenhum nome de clube, marca ou confederação real; poder sempre como "OVER".
+- Testes versionados em `docs/calibracao/` (`t40` em diante), com o harness do `calib-carreira.mjs` consertado (T0). Imprimem `OK <nome>`, saem com `exit(1)` na 1ª falha e fecham o servidor Vite. Sorteios com `mulberry32(seed)`.
+- Português; nenhum nome real de clube, marca ou confederação; poder sempre como "OVER".
 
 ### Grafo
 
 ```
-T0
-8.1: T1 -> T2 -> T3 -> T4 -> T5 -> T6 -> T7 -> T8 -> T9 -> T10 (Opus)   [T11 opcional, depois de T6, antes de T10]
-8.2: T12 -> T13 -> T14 -> T15 -> T16 -> T17 -> T18 -> T19 (Opus)
-8.1 e 8.2 são independentes depois de T0 (as duas tocam em useSeason.ts e useNavigation.ts: quem integrar por último resolve).
+T0 -> T1
+T2 -> T3 -> T4 -> T5 -> T6 -> T7 -> T8 -> T9 -> (T10, T11) -> T12 -> T13 (Opus)
+T14 depois de aprovada a seção 9, independente de T2-T13 (conflita só em textos: integrar depois da T13)
 ```
 
 ---
 
 **T0. Consertar os imports da calibração e tirar a linha de base** (`chore/calib-imports`)
 - Arquivos: `docs/calibracao/calib-carreira.mjs`.
-- Fazer: trocar os imports para `/src/config/index.ts`, `/src/utils/player/generatePlayer.ts`, `/src/utils/match/calculateTeamStrength.ts` e `/src/utils/bracket/bracket.ts` (conferir que tudo o que o script usa de `C.` é exportado; se faltar, importar do módulo certo).
-- Pronto: `node docs/calibracao/calib-carreira.mjs 20 curva,tipicoRot:240,forteRot:80,fracoRot:80,maximoRot:120,tipico,tipicoD,forte,fraco,caroFraco,investidor --check` dá `CHECK OK`. Anotar os números por série do `tipicoRot` e do `maximoRot` na A: é a linha de base.
-- Não fazer: mudar alvos, constantes ou políticas. Se a linha de base falhar, parar e reportar.
+- Fazer: trocar os imports para `/src/config/index.ts`, `/src/utils/player/generatePlayer.ts`, `/src/utils/match/calculateTeamStrength.ts` e `/src/utils/bracket/bracket.ts` (conferir os nomes usados de `C.`). Mais nada.
+- Pronto: `node docs/calibracao/calib-carreira.mjs 20 curva,tipicoRot:240,forteRot:80,fracoRot:80,maximoRot:120,tipico,tipicoD,forte,fraco,caroFraco,investidor --check` dá `CHECK OK`. Anotar os números do `tipicoRot` por série e do `maximoRot` na A (linha de base). Se falhar, parar e reportar.
 
-**T1. Tipos e constantes do Mundial**
-- Arquivos: `src/types/match.ts`, `src/types/bracket.ts`, `src/types/competitions.ts`, `src/config/competitions.ts`, `src/stores/match.ts` (só `sessions` e `COMPETITIONS_ORDER`), `MatchSwitcher.vue` (só `NAMES`), `src/utils/player/suspension.ts` (só `COMP_SHORT`).
-- Fazer: seções 3.1 e 3.2.
+**T1. Asserção das chaves do save no t23** (`chore/t23-chaves`)
+- Arquivos: `docs/calibracao/t23-atletas.mjs`.
+- Fazer: consertar os imports como na T0 e trocar a h6 (`Object.keys(o).length === 17`) pela lista real de chaves de topo de hoje.
+- Pronto: `node docs/calibracao/t23-atletas.mjs` com todas as asserções OK.
+
+**T2. Tipos e constantes**
+- Arquivos: `src/types/match.ts`, `src/types/bracket.ts`, `src/types/competitions.ts`, `src/types/club.ts` (só `SeasonEcoRecord` e `ecoRecords?`), `src/config/competitions.ts`, `src/stores/match.ts` (só `sessions` e `COMPETITIONS_ORDER`), `MatchSwitcher.vue` (só `NAMES`), `src/utils/player/suspension.ts` (só `COMP_SHORT`).
+- Fazer: seções 2.3, 3.1 e 3.2 (com as listas completas de nomes da seção 9).
 - Pronto: build. Não fazer: lógica.
 
-**T2. Extensão do motor de chave** (depende de T1)
-- Arquivos: `src/utils/bracket/bracket.ts`.
-- Fazer: seção 1.3, itens 1 a 4.
-- Teste `t40-bracket-ext.mjs`: (1) **regressão:** antes de editar, gravar em JSON o resultado de `seedCup` + `completeBracket` e da chave continental (sementes 1 a 20) rodando contra a `develop`; depois da mudança, o mesmo JSON, byte a byte; (2) uma chave por spec com cabeça de chave na semi preenche só o lado vazio; (3) `from` com `take: 'loser'` alimenta o 5º lugar; (4) com `neutral.hostId = 'x'`, em 20 mil jogos simulados entre times iguais o mandante que não é sede vence 40% ± 2 (sem mando) e a sede vence mais; (5) `bracketPlacement` cobre de 1 a 7.
+**T3. Módulo genérico de grupos e jogo neutro**
+- Arquivos: `src/utils/groups/groupStage.ts` (novo), `src/stores/modules/competitions/groups.ts` (passa a reexportar), `src/utils/bracket/bracket.ts`.
+- Fazer: as funções de grupos e de jogo neutro da seção 3.3.
+- Teste `t40-groups.mjs`:
+  1. **Regressão:** antes de editar, gravar em JSON o resultado do continental completo e de `seedCup` + `completeBracket` (sementes 1 a 20) contra a `develop`; depois, JSON idêntico.
+  2. `drawGroups` com 32 times em 1.000 sementes: 8 grupos de 4, a sede em A1, no máximo 2 europeus e 1 de cada outra confederação por grupo (ou relaxado, com o caso contado e menor que 1%), potes respeitados.
+  3. `simulateGroupRound` neutro: em 20 mil jogos entre OVER iguais, o mandante vence 40% ± 2 e o visitante igual.
+  4. `sortGroup` desempata por pontos, saldo, gols pró e OVER.
 
-**T3. Campo e sorteio do Mundial** (depende de T2)
-- Arquivos: `src/utils/competitions/mundialField.ts` (novo), `src/utils/bracket/bracketSeeding.ts`.
-- Fazer: seção 3.3 e as regras das seções 1.2 e 2.2.
-- Teste `t41-mundial-field.mjs`: (1) campeão da Ouro: usuário na semi 1, sede pela tabela de rotação; (2) campeão da A num ano de sede no seu país: usuário no play-off contra a Oceania, `neutral.hostId = 'user'`; (3) campeão das duas no ano de sede: usuário na semi e o vice da A no play-off; (4) nenhum dos dois: `null`; (5) em 1.000 sementes, o europeu sempre na semi 2 e as faixas de OVER respeitadas; (6) o campeão IA da Condor vem do pódio quando há pódio.
+**T4. Histórico do ciclo e Ranking Condor**
+- Arquivos: `src/utils/competitions/rankingCondor.ts` (novo), `src/stores/club.ts` (`ecoRecords`, `recordEcoSeason`, save e reset).
+- Fazer: seções 2.2 (item 3), 2.3 e a linha `rankingCondor` da seção 3.3.
+- Teste `t41-ranking.mjs`: pontos de cada célula da tabela; soma só as 4 temporadas do ciclo; ordem das portas (Ouro > sede > ranking); corte de 14; `ecoRecords` limitado a 8 e `fromSave(toSave())` idêntico.
 
-**T4. Módulo e store do Mundial** (depende de T3)
+**T5. Campo de 32 clubes**
+- Arquivos: `src/utils/competitions/mundialField.ts` (novo), `src/utils/bracket/bracketSeeding.ts` (template das oitavas).
+- Fazer: as linhas `mundialField` e `bracketSeeding` da seção 3.3.
+- Teste `t42-mundial-field.mjs`:
+  1. Sempre 32 clubes distintos com 12/6/4/4/4/1/1 por confederação.
+  2. Campeão da Ouro no ciclo: usuário entra por `'ouro'`.
+  3. Sede no seu país e usuário campeão da A sem Ouro: entra por `'sede'`; campeão da A e da Ouro: entra por `'ouro'` e a sede vai ao campeão da Taça Cacique.
+  4. 14 pontos sem título: `'ranking'`; 13: fora (`null`).
+  5. Bicampeão da Ouro ocupa uma vaga só.
+  6. Campeão IA da Ouro vem do `podiumArchive` quando existe.
+  7. Faixas de OVER respeitadas.
+
+**T6. Módulo e store do Mundial**
 - Arquivos: `src/stores/modules/competitions/mundial.ts` (novo), `defaults.ts`, `save.ts`, `src/stores/competitions.ts`.
-- Fazer: seção 5 (linhas do módulo e da store). Seguir `cup.ts` para avançar, fazer W.O. e montar o pódio.
-- Teste `t42-mundial-store.mjs`: (1) entrada pela Condor, vitória na semi e na final: campeão, troféu, +400 mil, `placement` 1; (2) derrota na semi e vitória no 3º: +100 mil; derrota no 3º: +70 mil; (3) entrada pela sede: perde o play-off: 7º, 0, eliminado e chave completada; vence o play-off e perde nas quartas: joga o 5º lugar (pendente), vence: +50 mil; (4) `finishMundialForSeason()` com jogo pendente: W.O., sem prêmio, pódio completo; (5) `fromSave({})` dá `emptyMundial()` e `fromSave(toSave())` preserva tudo.
+- Fazer: seção 4 (linhas do módulo e da store).
+- Teste `t43-mundial-store.mjs`:
+  1. Abre a edição: grupos sorteados e `isCompetitionPlayable('mundial')` verdadeiro.
+  2. 3 vitórias nos grupos: passa, +40 mil, chave de 16 com o usuário e os outros 7 grupos completos (cada grupo com 6 resultados).
+  3. Campeão: total de 500 mil, troféu e pódio.
+  4. Perde a semi e vence o 3º: 240 mil no total.
+  5. Eliminado nos grupos: 0 e o resto do torneio simulado até o pódio.
+  6. `finishMundialForSeason()` no meio dos grupos: W.O. e pódio completo.
+  7. `fromSave({})` dá `emptyMundial()`; `fromSave(toSave())` preserva tudo.
 
-**T5. Partida do Mundial** (depende de T4)
-- Arquivos: `src/composables/useMatchSimulation.ts`, `src/views/DashboardView.vue` (só `CUP_COMPETITIONS`), `src/composables/useNavigation.ts` (só o selo de Competições).
-- Fazer: as linhas correspondentes da seção 5. Buscar todas as correntes `comp === 'recopa'` / `'supercup'` em `src/` e decidir caso a caso.
-- Teste `t43-mundial-match.mjs`: o adversário vem da chave (não da liga); o rótulo começa com "Copa dos Continentes"; `homeBonusApplies('mundial')` é falso pela Condor e verdadeiro pela sede no seu país; a bilheteria é 40% no neutro; o empate gera pênaltis; a chave avança.
+**T7. Partida do Mundial**
+- Arquivos: `src/composables/useMatchSimulation.ts`, `src/views/DashboardView.vue` (só `CUP_COMPETITIONS`), `src/composables/useNavigation.ts` (só o selo).
+- Fazer: as linhas correspondentes da seção 4. Buscar todas as correntes `comp === 'recopa'` / `'supercup'` / `'continental'` em `src/` e decidir caso a caso.
+- Teste `t44-mundial-match.mjs`: o adversário vem do grupo ou da chave (não da liga); o rótulo começa com "Copa dos Continentes"; `homeBonusApplies('mundial')` é falso; a bilheteria é 40% de `projectedStadiumIncome`; empate nos grupos não gera pênaltis e no mata-mata gera.
 
-**T6. Virada de temporada do Mundial** (depende de T5)
+**T8. Virada de temporada**
 - Arquivos: `src/composables/useSeason.ts`.
-- Fazer: seção 2.4.
-- Teste `t44-mundial-season.mjs`: (1) campeão da Ouro: Mundial e Recopa na temporada seguinte; (2) campeão da Prata: só a Recopa; (3) campeão da Taça Cacique: Supercopa, sem Mundial; (4) campeão da A num ano de sede no seu país: Mundial pela sede e a Supercopa; (5) Mundial pendente na virada seguinte: W.O. em `podiumArchive` e estado zerado.
+- Fazer: a linha `useSeason` da seção 4.
+- Teste `t45-mundial-season.mjs`:
+  1. O registro do ciclo grava a fase da Ouro, a da Prata, a Copa e a colocação na A.
+  2. Na virada para a temporada 8, com o usuário campeão da Ouro na 6, a edição 2 abre com o usuário.
+  3. Na virada para a 9, a edição pendente vira W.O. e o pódio vai para o `podiumArchive`.
+  4. Fora de ano de edição, nada é criado.
+  5. A Supercopa e a Recopa continuam com as vagas de hoje.
 
-**T7. Persistência do Mundial** (depende de T6)
+**T9. Persistência, reconstrução e aviso**
 - Arquivos: `src/composables/usePersistence.ts`.
-- Fazer: seção 6 (Mundial).
-- Teste `t45-mundial-save.mjs`: save antigo sem `mundialState` carrega; save no meio do Mundial (quartas simuladas, semi pendente) recarrega igual; save, load, save idêntico; as chaves são as de antes mais `mundialState`; chaves antigas de Copa e continental (sem `from`) continuam funcionando.
+- Fazer: seção 5.
+- Teste `t46-mundial-save.mjs`:
+  1. Save antigo sem `mundialState` nem `ecoRecords`: carrega, e os títulos do `trophyGallery` viram registros.
+  2. Aviso único (o segundo load não repete).
+  3. Save no meio dos grupos recarrega igual.
+  4. Save, load, save dá JSON idêntico.
+  5. As chaves são as de antes mais `mundialState`.
 
-**T8. Interface do Mundial** (depende de T7)
-- Arquivos: `src/components/competitions/MundialPanel.vue` (novo), `src/views/CompetitionsView.vue`, `src/components/bracket/BracketView.vue` (só a prop `layout="phases"`; o padrão não muda).
-- Fazer: seção 8 (Copa dos Continentes).
-- Teste `t46-mundial-panel.mjs` (`renderToString`): travado contém as duas portas e a próxima sede; qualificado contém os 7 nomes e "Disputar Semifinal" (ou "Disputar Play-off" pela sede); a `CupPanel` continua renderizando a árvore com as linhas.
+**T10. Supercopa e Recopa com os rivais reais**
+- Arquivos: `src/stores/modules/competitions/finals.ts`, `src/composables/useSeason.ts` (só os argumentos de `qualifySupercup`/`qualifyRecopa`), `src/components/competitions/SupercupsPanel.vue` (texto da origem).
+- Fazer: seção 2.2, item 5.
+- Teste `t47-finais-ecossistema.mjs`:
+  1. Campeão da liga e da Copa enfrenta o vice da Copa.
+  2. Só campeão da Copa, estando na A: enfrenta o campeão da A.
+  3. Campeão da Ouro: rival com etiqueta "Campeão da Condor de Prata".
+  4. Prêmios iguais aos de hoje.
 
-**T9. Calibração com o Mundial** (depende de T8)
-- Arquivos: `docs/calibracao/calib-carreira.mjs` (só `'mundial'` no `pickComp`).
-- Fazer: `--check` completo (comando da T0) e um extra informativo com `maximoRot:120`: temporadas com Mundial por porta (Condor e sede), colocação média e prêmio médio na A.
-- Pronto: `CHECK OK`; comparação com a linha de base da T0; saldo do `maximoRot` na A abaixo de 400 mil. Se quebrar, **não** mexer em constantes: reportar (seção 7.1).
+**T11. Interface**
+- Arquivos: `src/components/competitions/MundialPanel.vue` (novo), `src/components/club/MundialCycleCard.vue` (novo), `src/views/CompetitionsView.vue`, `src/views/DashboardView.vue` (só o card).
+- Fazer: seção 7.
+- Teste `t48-mundial-ui.mjs` (`renderToString`):
+  1. Sem edição: contagem regressiva e pontos.
+  2. Edição com o usuário: a tabela do grupo, "Disputar 1ª rodada" e os 8 grupos.
+  3. No mata-mata: a chave de 16.
+  4. O card do ciclo mostra "Faltam N pontos".
 
-**T10. Revisão do Opus da branch `feature/copa-dos-continentes`** (Opus, esforço medium)
-- Diff contra a `develop`, build, t40 a t46 (e t47 se houver T11), `--check`. Foco: regressão do motor nas chaves antigas, casos `comp === ...` esquecidos, mando e bilheteria da sede, ordem da virada, restauração de partida ao vivo (`LIVE_MATCH_KEY`) com `mundial`.
+**T12. Calibração**
+- Arquivos: `docs/calibracao/calib-carreira.mjs` (`'mundial'` no `pickComp` e as duas métricas informativas da seção 6.2).
+- Fazer: `--check` completo (comando da T0). Extra informativo: `maximoRot:120`, `forteRot:80`, `tipicoRot:240`, com edições classificadas por porta, prêmio médio por edição e jogos a mais.
+- Pronto: `CHECK OK`; relatório contra a linha de base; saldo do `maximoRot` na A abaixo de 400 mil; a taxa do forte classificado nas edições em que está na A, com a proposta de corte (alvo de 70% a 85%). **Não** mudar constantes: reportar.
 
-**T11. (Opcional, depende do sim do dono) Rivais reais da Supercopa e da Recopa** (depende de T6)
-- Arquivos: `src/stores/modules/competitions/finals.ts`, `src/composables/useSeason.ts` (só os argumentos de `qualifySupercup`/`qualifyRecopa`), `src/components/competitions/SupercupsPanel.vue` (só o texto da origem do rival).
-- Fazer: seção 2.3.
-- Teste `t47-finals-ecossistema.mjs`: campeão da liga e da Copa enfrenta o vice da Copa; só campeão da Copa na A enfrenta o campeão da A; campeão da Ouro enfrenta um rival com etiqueta "Campeão da Condor de Prata". Prêmios iguais aos de hoje.
+**T13. Revisão do Opus da branch `feature/copa-dos-continentes`** (Opus, esforço medium)
+- Diff contra a `develop`, build, t40 a t48, `--check`. Foco: regressão do continental e das chaves; casos `comp === ...` esquecidos; ordem da virada (registro do ciclo antes das redefinições); W.O.; vagas sem duplicação; reconstrução idempotente; restauração de partida ao vivo (`LIVE_MATCH_KEY`) com `mundial`.
 
-**T12. Tipos, constantes e funções puras do patrocínio** (`feature/patrocinador-master`)
-- Arquivos: `src/types/club.ts`, `src/config/economy.ts`, `src/utils/club/sponsor.ts` (novo).
-- Fazer: seção 4.
-- Teste `t50-sponsor-pure.mjs`: 3 ofertas, uma por perfil, com os valores da tabela da seção 7.2 (D: Estável meta 8.500; Desempenho 1.298 / 7.353 / 34.500; Ousado 2.595 / 9.515 / 69.000 / 17.500); valores crescentes de D para A; `sponsorGoalMet` em todas as células da tabela de metas.
+**T14. (Condicional) Aplicar os nomes aprovados da seção 9** (`feature/universo-nomes`)
+- Arquivos: `src/utils/league/leagueScheduler.ts` (nomes de clubes e `SERIE_META.name`), `src/utils/identity/teamIdentities.ts` (nome novo e **alias do nome antigo para o mesmo id**), `src/utils/league/leagueKnockout.ts`, textos das competições nos stores e componentes (só strings), `src/composables/usePersistence.ts` (migração por id, seção 9.4).
+- Pronto: build; t49 com save antigo (clube renomeado mantém o escudo; `leagueTeams` atualizado pelo id; segunda carga sem mudança).
+- Não fazer: mudar ids internos (`libertadores`, `sulamericana`, `cup`, ids de clube).
 
-**T13. Estado do patrocínio no `club`** (depende de T12)
-- Arquivos: `src/stores/club.ts`.
-- Teste `t51-sponsor-club.mjs`: sem contrato, `projectedSponsorIncome` igual ao de hoje; Desempenho na D desconta 1.298 por jogo e o desconto não depende do nível de Finanças; Ousado: `recordTrophy('title')` soma 17.500 e `'promotion'` não; `signSponsor` recusa depois do 1º jogo oficial; `fromSave` sem `sponsor` dá o Estável com `signedAuto`; `fromSave(toSave())` idempotente.
+**Integração (sessão principal):** `chore/calib-imports`, `chore/t23-chaves` e depois `feature/copa-dos-continentes` na `develop` com `--no-ff`; build e `--check` depois do merge. A versão sobe para 1.3.0 só no pedido de lançamento.
 
-**T14. Patrocínio no jogo** (depende de T13)
-- Arquivos: `src/composables/useEconomy.ts`.
-- Teste `t52-sponsor-match.mjs`: sem escolha, o 1º `settleMatch` assina o Estável e dá resultado idêntico ao de hoje; Ousado na D: vitória 9.515, empate 1.730; `earned.win` acumula; a renda offline usa a receita já descontada.
+## 9. Auditoria de nomes: proposta de universo (o dono aprova depois)
 
-**T15. Patrocínio na virada** (depende de T14)
-- Arquivos: `src/composables/useSeason.ts`, `src/stores/modules/league/getters.ts` (só `userReachedStage(stage)`, se não houver equivalente).
-- Fazer: ordem: troféu, meta, `season += 1`, `division = nextDivision`, ofertas novas; ofertas da T1 em `initializeFreshCareer`.
-- Teste `t53-sponsor-season.mjs`: Desempenho na C com acesso dá +42.000; Estável na A rebaixado dá 0; Ousado campeão da D dá 69.000 + 17.500; depois da virada, 3 ofertas novas com a série nova e o contrato nulo; carreira nova com 3 ofertas.
+### 9.1 Tema
 
-**T16. Interface do patrocínio** (depende de T15)
-- Arquivos: `src/components/club/SponsorCard.vue` (novo), `ClubView.vue`, `DashboardView.vue` (banner), `PostMatchSummary.vue`, `SeasonReviewCard.vue`, `useNavigation.ts` (selo de Clube).
-- Teste `t54-sponsor-ui.mjs`: sem contrato, 3 perfis e "Assinar"; com contrato, a marca e "Meta:"; o banner aparece só sem contrato.
+Hoje o universo mistura a Liga Aurora (luz), o Condor (Andes) e o Cacique (título de liderança indígena). A proposta organiza tudo em torno de **céu, luz e forças da natureza**:
+- No país: a Aurora e a subida das raízes ao zênite.
+- No continente: o Condor.
+- No mundo: confederações com nome de fenômeno natural de cada região. A Liga Boreal conversa com a Aurora (aurora boreal).
 
-**T17. Toasts e textos finais do patrocínio** (depende de T16)
-- Arquivos: `src/composables/useSeason.ts` (toasts), `src/composables/usePersistence.ts` (aviso de save antigo, se aprovado). Conferir a quebra de linha a 390 px. Pronto: build e o t53 de novo.
+Nenhum nome é de marca, entidade ou clube real.
 
-**T18. Calibração com o patrocínio** (depende de T17)
-- Arquivos: `docs/calibracao/calib-carreira.mjs` (variável de ambiente `SPONSOR_TIER`).
-- Pronto: `--check` sem a variável dá `CHECK OK`; informativo com `tipicoRot:240` e `forteRot:80` por perfil: saldo e taxa medida de cada meta. Se algum perfil do típico passar o Estável em mais de 10 mil por temporada, reportar ao dono com a proposta de `goalBonusX`. Não alterar sozinho.
+### 9.2 Competições, ligas, confederações e sedes
 
-**T19. Revisão do Opus da branch `feature/patrocinador-master`** (Opus, esforço medium)
-- Foco: idempotência do `fromSave`, ordem da virada, trava da escolha, renda offline e venda forçada com o corte do Ousado.
+| Atual | Proposto | Justificativa |
+|---|---|---|
+| Liga Aurora | **Liga Aurora** (mantém) | âncora do universo, já reconhecida |
+| Série D | **Série D • Raízes** | começo da escalada; a letra continua para leitura rápida |
+| Série C | **Série C • Horizonte** | o sol aparece |
+| Série B | **Série B • Ascensão** | a subida |
+| Série A | **Série A • Zênite** | o ponto mais alto do céu: a elite |
+| Taça Cacique | **Taça Ipê** | o ipê floresce em todo o país (copa de todas as séries) e tem flor dourada (troféu); evita usar um título de liderança indígena como nome de taça |
+| Copa Condor de Ouro / de Prata | **Condor de Ouro / Condor de Prata** (sem "Copa" nos rótulos curtos) | já coesos e marcantes; custo quase zero |
+| Supercopa Soberana | **Supercopa Aurora** | liga a decisão nacional à liga; "Soberana" se confunde com o clube Soberano FC |
+| Recopa Condor | **Recopa dos Condores** | Ouro x Prata, o duelo dos dois condores |
+| Copa dos Continentes | **Copa dos Continentes** (aprovado) | |
+| Confederação sul-americana (sem nome) | **Confederação Condor** | organiza as Condores |
+| Europa | **Liga Boreal** / **Taça Boreal** | aurora boreal: eco direto da Liga Aurora |
+| Ásia | **Liga das Monções** / **Copa Monção** | o fenômeno climático da região |
+| África | **Liga da Savana** / **Copa Savana** | paisagem emblemática |
+| América do Norte e Central | **Liga dos Alísios** / **Copa Alísios** | os ventos do Caribe |
+| Oceania | **Liga dos Corais** / **Copa Coral** | recifes da região |
+| Sedes (Sakura, Al-Rimal, Atlas) | **Ilhas Sakura, Emirado de Al-Rimal, Reino do Atlas** | países fictícios, com tipo de governo para soar como país e não como cidade |
 
-**Integração (sessão principal):** merge `--no-ff` de `chore/calib-imports`, `feature/copa-dos-continentes` e `feature/patrocinador-master` na `develop`, nessa ordem; depois do segundo merge, build e `--check` de novo. A versão não muda sem o dono.
+### 9.3 Clubes que lembram reais
+
+| Atual (id) | Proposto | Motivo |
+|---|---|---|
+| Tupinambá EC (`d_18`) | **Jacarandá EC** | há clubes reais com o nome Tupinambá/Tupynambás |
+| Noroeste do Vale (`b_10`) | **Vale dos Ventos** | lembra o Noroeste (Bauru) |
+| Operário Araucário (`b_14`) | **Pinhão Atlético** | junta dois clubes reais do Paraná (Operário e Araucária) |
+| Oeste Catarinense (`b_16`) | **Rio do Peixe EC** | lembra o Oeste FC e o futebol do oeste catarinense |
+| Farroupilha AC (`a_8`) | **Minuano AC** | lembra o Farroupilha (Pelotas); minuano é o vento gaúcho (tema dos ventos) |
+| Ferrovia Paulista (`c_8`), a revisar | **Trilho Bandeirante** | lembra a Ferroviária |
+| São Bento do Vale (`c_9`), a revisar | **Serra do Bento** | lembra o São Bento |
+| Esperança de Lagarto (`c_11`), a revisar | **Esperança do Agreste** | lembra o Lagarto (SE) |
+| Rivais da revisão 2: Raja Atlas, Wydad Sahel, Kashiwa Sakura FC | **Medina Atlas FC, Sahel Azul, Hanami FC** | "Raja", "Wydad" e "Kashiwa" são de clubes reais |
+
+As listas completas de `MUNDIAL_RIVALS` (16 europeus, 6 de cada confederação média e 3 da Oceania) entram na T2 pela mesma regra: nome de lugar ou fenômeno inventado mais um sufixo genérico (FC, SV, AC, United), checado contra clubes reais conhecidos.
+
+### 9.4 Custo de migração
+
+- **Ids internos não mudam** (`cup`, `continental`, `libertadores`, `sulamericana`, ids de clube): **nenhuma migração obrigatória de save.** Trocar `libertadores`/`sulamericana` por `ouro`/`prata` exigiria migrar o `tier` gravado (relatório, item 8) e não é proposto.
+- **Rótulos calculados na hora** (`rawLabelFor`, `SERIE_META.name`, painéis): mudam sozinhos.
+- **Textos gravados no save:** títulos no `trophyGallery`, `competitionLabel` no `podiumArchive`, `label` das chaves vigentes e `label` no `matchHistory`. Recomendação: migração idempotente por mapa exato de textos antigos para novos, só no `trophyGallery` e no `podiumArchive` (a galeria fica coerente); o `matchHistory` fica como está (é registro de época). Custo: um mapa e um laço, com teste.
+- **Clubes:** o nome fica em `leagueTeams` da temporada vigente, e `teamIdentities.ts` mapeia **nome → id**. Para não perder o escudo, manter o nome antigo como alias. Na carga, renomear em `leagueTeams` pelo id (idempotente). Na virada seguinte, a liga nasce do pool com os nomes novos.
+- **Reconstrução do ciclo (seção 5):** precisa reconhecer os títulos antigos e os novos.
 
 ## 10. Riscos
 
-1. **Casos esquecidos de `comp === ...`:** um `if` sem `mundial` cai em `league.nextOpponent`. Mitigação: busca explícita na T5 e o adversário conferido no t43.
-2. **Regressão do motor de chave:** a Copa, o continental e as Séries C e D usam `propagate` e `resolveTie`. Mitigação: campos opcionais e o teste de regressão byte a byte da T2.
-3. **Teto do elenco máximo na A** com o Mundial (cerca de +170 mil) e o Estável (cerca de +16 mil). Medido na T9; a alavanca é o prêmio do campeão.
-4. **Desenho da chave irregular** (1, 2, 2, 1 mais o 5º lugar): a árvore com linhas não serve. Mitigação: `layout="phases"` só no Mundial.
-5. **Ordem na virada:** a vaga do Mundial depende do pódio da Condor e da tabela da A, que são reiniciados na virada. Mitigação: ler tudo no passo 1 da seção 2.4, conferido no t44.
-6. **Porta da sede rara:** precisa de um título da A no ano certo (1 em 4). Se o dono quiser mais chances, a alternativa é sede no país de 2 em 4 anos (pergunta 4).
-7. **Ruído da calibração** de ±10 a 20 mil por série: as diferenças do Estável ficam perto do ruído, mas longe dos tetos.
-8. **Escolha dominante no patrocínio:** medida na T18; o ajuste é só no `goalBonusX`.
-9. **Armadilha de caixa na D** (b1) agravada pelo Ousado para quem perde: é uma escolha consciente, e a interface mostra o equilíbrio.
-10. **Conflito de merge** em `useSeason.ts` e `useNavigation.ts` entre as duas frentes: blocos separados, resolução simples.
-11. **`npm run dev` com agentes editando** apaga a partida em andamento: não testar no navegador durante as tarefas.
+1. **Escopo do formato de 32:** é o maior módulo novo do projeto desde o chaveamento (grupos genéricos, campo, ranking, cerca de 60 jogos simulados por edição). Mitigação: tarefas pequenas, funções puras testadas antes do store, e regressão byte a byte do continental na T3.
+2. **Casos esquecidos de `comp === ...`** caem no rival da liga. Mitigação: busca explícita na T7 e o adversário conferido no t44.
+3. **Teto do elenco máximo na A:** cerca de +57 mil por temporada, estimado. Medido na T12; a alavanca é o prêmio do campeão.
+4. **Corte do ranking mal calibrado:** o usuário forte não entra (frustra) ou entra sempre (banaliza). Mitigação: a T12 mede e propõe o corte (alvo de 70% a 85%).
+5. **Ordem da virada:** o registro do ciclo precisa ler o continental, a Copa e a liga antes das redefinições. Conferido no t45.
+6. **Duração da temporada da edição:** até 7 jogos a mais na A. São opcionais (o Mundial não trava a liga); o W.O. na virada evita que a temporada fique presa.
+7. **Reconstrução de save antigo** perde as fases que não foram título (quartas, semis). Aceito: o aviso explica que os títulos já contam.
+8. **Renomeação (T14):** escudos perdidos se o alias faltar; textos misturados no histórico. Mitigação: alias e teste com save antigo.
+9. **Ruído da calibração** (±10 a 20 mil por série): o Mundial dividido por 4 fica perto do ruído na média, mas o teto tem folga.
+10. **`npm run dev` com agentes editando** apaga a partida em andamento: não testar no navegador durante as tarefas.
 
-## 11. Perguntas ao dono do produto
+## 11. Perguntas ainda abertas ao dono
 
-1. **Formato:** o clássico de 7 clubes (recomendado) ou o ampliado de 32 com grupos (de 4 em 4 anos, até 7 jogos, pede um ranking de clubes e uma recalibração)?
-2. **Nome:** "Copa dos Continentes" serve?
-3. **Sede:** a rotação de 4 temporadas (Sakura, Al-Rimal, Atlas e o seu país), com o campeão da Série A entrando pelo play-off quando o seu país é a sede, está boa?
-4. **Frequência da sede no seu país:** 1 em 4 temporadas (recomendado) ou 2 em 4?
-5. **Mando da sede:** só o clube da sede ganha os +3 de mando, todos os outros jogos são neutros, e a bilheteria do usuário no neutro é a de visitante (40%)?
-6. **Vagas extras:** confirma que a Condor de Prata e a Taça Cacique **não** dão vaga na Copa dos Continentes (como no real)?
-7. **Supercopa e Recopa com rivais reais** (T11 opcional): campeão da liga x campeão da Copa e Ouro x Prata, em vez do rival sorteado de hoje?
-8. **Força dos rivais:** europeu 79 a 82, Ásia 70 a 74, África e América do Norte 69 a 73, Oceania 58 a 63, sede estrangeira 64 a 69?
-9. **Prêmios do Mundial:** 400 / 200 / 100 / 70 / 50 / 30 / 0 mil (comprimido em relação ao real para não passar o campeão da A)? Alternativa se o teto quebrar: campeão a 300 mil.
-10. **Patrocínio:** aprova os 3 perfis e a tabela em R$ da seção 7.2?
-11. **Contrato** de 1 temporada (recomendado) ou plurianual?
-12. **Prazo:** escolha travada no 1º jogo oficial, com o Estável automático?
-13. **Bônus por título do Ousado:** vale para todos os títulos (incluindo Supercopa, Recopa e Copa dos Continentes) ou só para a liga e a Copa?
-14. **Meta da Série D:** permanência = passar da 1ª fase?
-15. **Nomes fictícios:** aprova as marcas de `SPONSOR_BRANDS`, os clubes de `MUNDIAL_RIVALS` e os países e clubes de `MUNDIAL_HOSTS`?
-16. **Avisos e testes:** mostrar um aviso no save antigo sobre o patrocínio? Os scripts t40 a t54 ficam versionados em `docs/calibracao/`? Posso atualizar a asserção das 17 chaves do t23 numa `chore` separada?
-17. **Versão do jogo:** hoje é 1.2.0. A Fase 8 sobe a versão (por exemplo, 1.3.0)? Num commit próprio ou só no lançamento? Uma subida para as duas frentes ou uma por frente?
+1. **Calendário:** a cada 4 temporadas com ciclo (recomendado), a cada 2 ou anual?
+2. **Ecossistema:** aprova a opção C (4 campeões da Ouro, 2 vagas pelo Ranking Condor somando Ouro, Prata, Série A, Copa e finais, e a sede no seu país para o campeão da A, com a Taça Cacique de suplente)?
+3. **Ranking Condor:** aprova a tabela de pontos e o corte de 14 (a T12 mede e pode propor outro)?
+4. **Prêmios:** 40 / +60 / +80 mil por fase, 3º +60, 4º +20, vice +100, campeão +320 (total de 500 mil), sem nada nos grupos?
+5. **Rivais:** Europa 74 a 83 (4 do topo entre 80 e 83), Ásia 66 a 72, África e América do Norte 65 a 71, Oceania 56 a 60, sede estrangeira 64 a 69?
+6. **Supercopa e Recopa com os rivais reais** (T10)?
+7. **Nomes (seção 9):** aprova o tema e a tabela atual → proposto? Quais dos itens "a revisar" entram? Migra os textos antigos da galeria e dos pódios?
