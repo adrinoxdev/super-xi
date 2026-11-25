@@ -792,9 +792,9 @@ export function useMatchSimulation() {
     const userName = club.name
     const oppName = opponentFor(comp).name
     const audible = comp === match.activeMatchCompetition
-    const say = (type: MatchEventType, description: string) => {
+    const say = (type: MatchEventType, description: string, side?: 'user' | 'opp') => {
       state.events.unshift({ minute, type, description })
-      if (audible) playMatchEventSfx(type)
+      if (audible) playMatchEventSfx(type, side)
     }
     // Opinião do comentarista sobre o lance que acabou de ser narrado.
     const opine = (description: string) => say('comment', description)
@@ -954,7 +954,7 @@ export function useMatchSimulation() {
         const keeper = taker === 'user' ? keeperDefends(undefined, oppName) : keeperDefends(keeperOf(comp)?.name, userName)
         say('info', freeKickResultLine('saved', team, who, keeper))
       } else if (r < 0.5) say('info', freeKickResultLine('wall', team, who, ''))
-      else if (r < 0.6) say('post', freeKickResultLine('post', team, who, ''))
+      else if (r < 0.6) say('post', freeKickResultLine('post', team, who, ''), taker)
       else say('info', freeKickResultLine('over', team, who, ''))
     }
     if (Math.random() < 0.18) {
@@ -1027,7 +1027,7 @@ export function useMatchSimulation() {
         }
       } else {
         if (Math.random() < M.postShare) {
-          say('post', postLine(userName, shooter?.name))
+          say('post', postLine(userName, shooter?.name), 'user')
           if (Math.random() < 0.4) opine(postReaction())
         } else say('info', offTargetLine(userName, shooter?.name))
       }
@@ -1051,7 +1051,7 @@ export function useMatchSimulation() {
         }
       } else {
         if (Math.random() < M.postShare) {
-          say('post', postLine(oppName))
+          say('post', postLine(oppName), 'opp')
           if (Math.random() < 0.4) opine(postReaction())
         } else say('info', offTargetLine(oppName))
       }

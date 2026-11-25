@@ -29,7 +29,6 @@ const rowClass = computed(() => {
     case 'red': return 'bg-dangerpro-soft border-l-dangerpro font-bold'
     case 'brawl':
     case 'injury': return 'bg-subtle/40 border-l-dangerpro font-semibold'
-    case 'post':
     case 'penalty':
     case 'freekick': return 'bg-subtle/40 border-l-amberpro font-semibold'
     case 'sub':
