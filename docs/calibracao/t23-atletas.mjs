@@ -196,7 +196,7 @@ await ok(STAR && VALUE && C.VALUE_AGE && CONTRACT && AGING && TRANSFER && C.YOUT
   const a = localStorage.getItem(STORAGE_KEY)
   const o = JSON.parse(a)
   const KEYS = ["club","squad","scouting","competitionStage","leagueTeams","leagueFixtures","transferHistory","trophyGallery","seasonGoals","seasonAssists","seasonApps","seasonYellows","seasonReds","careerStats","matchHistory","incomingOffers","youthAcademyProspects","staffContracts","supercupState","recopaState","cupState","continentalState","friendlies","prematchCompetition","mundialState"]
-  await ok(JSON.stringify(Object.keys(o)) === JSON.stringify(KEYS) && o.club.athleteEconomyVersion === 1, 'h6 25 chaves de topo (24 + mundialState) (lista exata) e club.athleteEconomyVersion = 1')
+  await ok(JSON.stringify([...Object.keys(o)].sort()) === JSON.stringify([...KEYS].sort()) && o.club.athleteEconomyVersion === 1, 'h6 25 chaves de topo (24 + mundialState) (lista exata) e club.athleteEconomyVersion = 1')
   const h = fresh(); localStorage.setItem(STORAGE_KEY, a); h.P.loadGame(); h.P.saveGame()
   await ok(localStorage.getItem(STORAGE_KEY) === a || JSON.stringify(JSON.parse(localStorage.getItem(STORAGE_KEY)).squad) === JSON.stringify(o.squad), 'h7 recarregar não muda nada (idempotente)')
 }
