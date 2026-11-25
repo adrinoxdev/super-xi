@@ -3,7 +3,7 @@ import type { EcoChampion, SeasonEcoRecord } from '@/types/club'
 export interface FinalRival {
   name: string
   power: number
-  /** Etiqueta de origem exibida no painel (ex.: 'Campeão da Taça Cacique'). */
+  /** Etiqueta de origem exibida no painel (ex.: 'Campeão da Taça do Povo'). */
   origin: string
 }
 
@@ -21,8 +21,8 @@ export function supercupRival(
   cupRunnerUp?: EcoChampion | null
 ): FinalRival | null {
   if (!record) return null
-  if (userWonLeague && userWonCup) return make(cupRunnerUp, 'Vice da Taça Cacique') ?? make(record.serieAChampion, 'Campeão da Série A')
-  if (userWonLeague) return make(record.cupChampion, 'Campeão da Taça Cacique')
+  if (userWonLeague && userWonCup) return make(cupRunnerUp, 'Vice da Taça do Povo') ?? make(record.serieAChampion, 'Campeão da Série A')
+  if (userWonLeague) return make(record.cupChampion, 'Campeão da Taça do Povo')
   if (userWonCup) return make(record.serieAChampion, 'Campeão da Série A')
   return null
 }

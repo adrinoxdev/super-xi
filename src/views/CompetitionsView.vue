@@ -16,7 +16,7 @@ const { compSubTab } = storeToRefs(ui)
 const competitions = useCompetitionsStore()
 
 const tabs = [
-  { id: 'cup', label: 'Taça Cacique' },
+  { id: 'cup', label: 'Taça do Povo' },
   { id: 'continental', label: 'Continental' },
   { id: 'supercups', label: 'Supercopa & Recopa' },
   { id: 'mundial', label: 'Continentes' }
@@ -34,7 +34,7 @@ const tabs = [
     <BaseCard padding="p-4 sm:p-5" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div class="min-w-0">
         <h2 class="text-lg sm:text-xl font-bold text-ink break-words">Competições Paralelas & Supercopas</h2>
-        <p class="text-xs text-ink-muted mt-0.5 break-words">Dispute a Taça Cacique, torneios continentais e decisões em jogo único.</p>
+        <p class="text-xs text-ink-muted mt-0.5 break-words">Dispute a Taça do Povo, torneios continentais e decisões em jogo único.</p>
       </div>
       <div class="flex flex-wrap items-center gap-1.5 bg-subtle p-1 rounded-xl border border-borderline self-start max-w-full">
         <button

@@ -12,7 +12,7 @@ import { LIVE_MATCH_KEY, STORAGE_KEY } from '@/config'
 import { useEconomy } from './useEconomy'
 import { checkMilestones } from '@/utils/club/progression'
 import { resolvePrematchCompetition } from '@/utils/match/prematchMemory'
-import { CONTINENTAL_RIVALS, MUNDIAL_EVERY, MUNDIAL_LABEL } from '@/config/competitions'
+import { CLUB_RENAME_BY_ID, CONTINENTAL_RIVALS, MUNDIAL_EVERY, MUNDIAL_LABEL, NAME_MIGRATION_MAP } from '@/config/competitions'
 import { cycleTarget } from '@/utils/competitions/mundialCycle'
 import type { Podium, SeasonEcoRecord, TrophyRecord } from '@/types'
 
@@ -30,10 +30,49 @@ export const ECO_TITLE_LABELS: Array<{ re: RegExp; apply: (r: SeasonEcoRecord) =
   { re: /^Campeão da Série D$/i, apply: (r) => { r.division = 4; r.leagueTitle = true; r.leagueRank = 1 } },
   { re: /^Campeão da Copa Condor de Ouro$/i, apply: (r) => { r.ouro = 'champion' } },
   { re: /^Campeão da Copa Condor de Prata$/i, apply: (r) => { r.prata = 'champion' } },
-  { re: /^Campeão da Taça Cacique$/i, apply: (r) => { r.cup = 'champion' } },
+  { re: /^Campeão da Taça do Povo$/i, apply: (r) => { r.cup = 'champion' } },
   { re: /^Campeão da Supercopa/i, apply: (r) => { r.supercup = true } },
   { re: /^Campeão da Recopa/i, apply: (r) => { r.recopa = true } }
 ]
+
+/** Texto antigo -> novo (troca exata, idempotente: texto novo passa intacto). */
+export function migrateName(text: string): string {
+  return Object.prototype.hasOwnProperty.call(NAME_MIGRATION_MAP, text) ? NAME_MIGRATION_MAP[text] : text
+}
+
+/**
+ * Migração de nomes (plano fase 8, secao 10.2): textos gravados e clubes renomeados pelo id.
+ * Não toca no matchHistory (registro de época). Idempotente.
+ */
+export function migrateNames(args: {
+  trophies: TrophyRecord[]
+  podiums: Podium[]
+  ecoRecords: SeasonEcoRecord[]
+  leagueTeams: Array<{ id: string; name: string }>
+  brackets: Array<{ label: string; teams: Record<string, { id: string; name: string }> } | null | undefined>
+  finals: Array<{ rivalName: string; rivalOrigin?: string } | null | undefined>
+}): void {
+  const byId = (o: { id: string; name: string }) => { const n = CLUB_RENAME_BY_ID[o.id]; if (n) o.name = n }
+  for (const t of args.trophies) t.title = migrateName(t.title)
+  for (const p of args.podiums) {
+    p.competitionLabel = migrateName(p.competitionLabel)
+    for (const e of [p.champion, p.runnerUp, p.third]) if (e) { e.name = migrateName(e.name); const n = CLUB_RENAME_BY_ID[e.teamId]; if (n) e.name = n }
+  }
+  for (const r of args.ecoRecords) {
+    for (const c of [r.ouroChampion, r.prataChampion, r.cupChampion, r.serieAChampion]) if (c) c.name = migrateName(c.name)
+  }
+  args.leagueTeams.forEach(byId)
+  for (const b of args.brackets) {
+    if (!b) continue
+    b.label = migrateName(b.label)
+    Object.values(b.teams).forEach(byId)
+  }
+  for (const f of args.finals) {
+    if (!f) continue
+    f.rivalName = migrateName(f.rivalName)
+    if (f.rivalOrigin) f.rivalOrigin = migrateName(f.rivalOrigin)
+  }
+}
 
 /**
  * Reconstrói o histórico do ciclo de um save sem `ecoRecords`: títulos pelo trophyGallery,
@@ -66,7 +105,8 @@ export function reconstructEcoRecords(args: {
   }
   for (const t of trophies) {
     if (t.type !== 'title' || !(t.season < currentSeason)) continue
-    for (const l of ECO_TITLE_LABELS) if (l.re.test(t.title.trim())) l.apply(get(t.season))
+    const title = migrateName(t.title.trim()) // reconhece textos antigos e novos
+    for (const l of ECO_TITLE_LABELS) if (l.re.test(title)) l.apply(get(t.season))
   }
   for (const p of podiums) {
     if (!(p.season < currentSeason)) continue
@@ -168,6 +208,8 @@ export function usePersistence() {
         league.fromSave(p)
         club.transferHistory = p.transferHistory || []
         club.trophyGallery = p.trophyGallery || []
+        // Textos de troféu antigos viram os novos antes da reconstrução e de qualquer leitura (idempotente).
+        for (const t of club.trophyGallery) t.title = migrateName(t.title)
         // Save sem ecoRecords = anterior à Copa dos Continentes: reconstrói uma única vez (depois o campo existe).
         const legacyNoEco = !Array.isArray(p.club.ecoRecords)
         if (legacyNoEco) {
@@ -197,6 +239,14 @@ export function usePersistence() {
           mundialState: p.mundialState
         })
         competitions.ensureBrackets()
+        migrateNames({
+          trophies: club.trophyGallery,
+          podiums: club.podiumArchive,
+          ecoRecords: club.ecoRecords,
+          leagueTeams: league.leagueTeams,
+          brackets: [competitions.cupState.bracket, competitions.continentalState.bracket, competitions.mundialState?.bracket],
+          finals: [competitions.supercupState, competitions.recopaState]
+        })
         friendlies.fromSave(p.friendlies)
         const v2Done = migrateBalanceV2({
           saved: p,

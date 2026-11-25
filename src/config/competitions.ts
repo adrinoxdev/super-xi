@@ -114,3 +114,32 @@ export const PRIZES = {
     byRank: [300000, 285000, 270000, 255000, 240000, 225000, 210000, 195000, 180000, 165000, 129000, 120000, 111000, 108000, 105000, 102000]
   }
 } as const
+
+// NAME_MIGRATION_MAP:start
+// Textos antigos gravados em save -> textos novos (plano fase 8, secao 10.2). Troca exata e idempotente.
+export const NAME_MIGRATION_MAP: Record<string, string> = {
+  'Taça Cacique': 'Taça do Povo',
+  'Campeão da Taça Cacique': 'Campeão da Taça do Povo',
+  'Vice da Taça Cacique': 'Vice da Taça do Povo',
+  'Final da Taça Cacique': 'Final da Taça do Povo',
+  'Supercopa Soberana': 'Supercopa Zênite',
+  'Campeão da Supercopa Soberana': 'Campeão da Supercopa Zênite',
+  'Recopa Condor': 'Recopa dos Condores',
+  'Campeão da Recopa Condor': 'Campeão da Recopa dos Condores',
+  'Tupinambá EC': 'Lua Nova EC',
+  'Noroeste do Vale': 'Vale do Sol',
+  'Operário Araucário': 'Pinhal Celeste',
+  'Oeste Catarinense': 'Poente FC',
+  'Farroupilha AC': 'Meridiano AC',
+  'Ferrovia Paulista': 'Via Láctea FC',
+  'São Bento do Vale': 'Serra do Luar',
+  'Esperança de Lagarto': 'Estrela do Agreste'
+}
+/** Clubes renomeados, pelo id interno (que não muda). */
+export const CLUB_RENAME_BY_ID: Record<string, string> = {
+  d_18: 'Lua Nova EC', b_10: 'Vale do Sol', b_14: 'Pinhal Celeste', b_16: 'Poente FC',
+  a_8: 'Meridiano AC', c_8: 'Via Láctea FC', c_9: 'Serra do Luar', c_11: 'Estrela do Agreste'
+}
+/** Nome antigo da final da Taça nos históricos de save antigo. */
+export const LEGACY_CUP_FINAL_NAME = 'Final da Taça Cacique'
+// NAME_MIGRATION_MAP:end

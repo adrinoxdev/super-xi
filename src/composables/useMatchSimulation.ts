@@ -173,19 +173,19 @@ export function useMatchSimulation() {
       return {
         name: competitions.supercupState.rivalName,
         power: competitions.supercupState.rivalPower,
-        style: 'Supercopa Soberana'
+        style: 'Supercopa Zênite'
       }
     }
     if (comp === 'recopa') {
       return {
         name: competitions.recopaState.rivalName,
         power: competitions.recopaState.rivalPower,
-        style: 'Recopa Condor'
+        style: 'Recopa dos Condores'
       }
     }
     const rival = competitions.cupState.currentRival
     if (comp === 'cup' && rival) {
-      return { name: rival.name, power: rival.power, style: 'Taça Cacique' }
+      return { name: rival.name, power: rival.power, style: 'Taça do Povo' }
     }
     if (comp === 'continental' && competitions.continentalState.qualified) {
       return competitions.continentalOpponent
@@ -208,9 +208,9 @@ export function useMatchSimulation() {
       const opt = friendlies.selectedOption
       return opt ? 'Amistoso • Ranking #' + (friendlies.botNow(opt.botId)?.rank ?? opt.rank) : 'Amistoso'
     }
-    if (comp === 'supercup') return 'Supercopa Soberana • Final Única'
-    if (comp === 'recopa') return 'Recopa Condor • Final Única'
-    if (comp === 'cup') return 'Taça Cacique • ' + competitions.cupRoundLabel
+    if (comp === 'supercup') return 'Supercopa Zênite • Final Única'
+    if (comp === 'recopa') return 'Recopa dos Condores • Final Única'
+    if (comp === 'cup') return 'Taça do Povo • ' + competitions.cupRoundLabel
     if (comp === 'continental') {
       return (
         (competitions.continentalState.tier === 'libertadores' ? 'Condor de Ouro' : 'Condor de Prata') +

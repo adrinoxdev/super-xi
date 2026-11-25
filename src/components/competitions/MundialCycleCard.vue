@@ -16,11 +16,11 @@ const NODE_LABEL: Record<EcoNode, string> = {
   serieC: 'Série C',
   serieB: 'Série B',
   serieA: 'Série A',
-  cup: 'Taça Cacique',
+  cup: 'Taça do Povo',
   ouro: 'Copa Condor de Ouro',
   prata: 'Copa Condor de Prata',
-  supercup: 'Supercopa Soberana',
-  recopa: 'Recopa Condor',
+  supercup: 'Supercopa Zênite',
+  recopa: 'Recopa dos Condores',
   ranking: 'Ranking Condor',
   mundial: MUNDIAL_LABEL
 }
@@ -29,7 +29,7 @@ const ROW_NODE = { serieA: 'serieA', cup: 'cup', ouro: 'ouro', prata: 'prata', s
 const doorText = computed(() => {
   if (info.value.door === 'ouro') return 'Campeão da Copa Condor de Ouro no ciclo'
   if (info.value.door === 'ranking') return 'Ranking Condor'
-  if (info.value.hostIsUser) return 'Sede (campeão da Série A ou da Taça Cacique) ou Ranking Condor'
+  if (info.value.hostIsUser) return 'Sede (campeão da Série A ou da Taça do Povo) ou Ranking Condor'
   return 'Ranking Condor ou título da Copa Condor de Ouro'
 })
 

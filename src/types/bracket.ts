@@ -64,7 +64,7 @@ export interface PodiumEntry {
 
 export interface Podium {
   competition: BracketCompetition
-  competitionLabel: string   // 'Taça Cacique', 'Copa Condor de Ouro', 'Liga Aurora — Série D'
+  competitionLabel: string   // 'Taça do Povo', 'Copa Condor de Ouro', 'Liga Aurora — Série D'
   season: number
   champion: PodiumEntry
   runnerUp: PodiumEntry

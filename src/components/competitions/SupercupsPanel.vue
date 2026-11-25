@@ -19,23 +19,23 @@ const { prepareMatch, matchEntryLabel } = useMatchSimulation()
 
 <template>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <!-- Supercopa Soberana -->
+    <!-- Supercopa Zênite -->
     <BaseCard class="flex flex-col justify-between space-y-4">
       <div class="space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <span class="max-w-full break-words px-2.5 py-0.5 rounded-full bg-amberpro text-night text-[11px] font-bold uppercase">
-            Supercopa Soberana • Final Única
+            Supercopa Zênite • Final Única
           </span>
           <span class="text-xs font-bold text-ink-muted">Temp. {{ club.season }}</span>
         </div>
-        <h3 class="text-lg font-bold text-ink">Supercopa Soberana</h3>
+        <h3 class="text-lg font-bold text-ink">Supercopa Zênite</h3>
         <p class="text-xs text-ink-muted leading-relaxed break-words">
-          Confronto em jogo único que abre a temporada entre os campeões nacionais da Liga e da Taça Cacique. Prêmio: <strong class="text-emeraldpro">{{ formatCurrency(PRIZES.supercup.champion) }}</strong>.
+          Confronto em jogo único que abre a temporada entre os campeões nacionais da Liga e da Taça do Povo. Prêmio: <strong class="text-emeraldpro">{{ formatCurrency(PRIZES.supercup.champion) }}</strong>.
         </p>
       </div>
 
       <EmptyState v-if="!supercupState.qualified" padding="p-4">
-        Vaga bloqueada. Conquiste um título nacional de divisão ou a Taça Cacique para disputar a Supercopa na temporada seguinte!
+        Vaga bloqueada. Conquiste um título nacional de divisão ou a Taça do Povo para disputar a Supercopa na temporada seguinte!
       </EmptyState>
       <div v-else class="space-y-3">
         <ListRow padding="p-3.5">
@@ -68,23 +68,23 @@ const { prepareMatch, matchEntryLabel } = useMatchSimulation()
       </div>
     </BaseCard>
 
-    <!-- Recopa Condor -->
+    <!-- Recopa dos Condores -->
     <BaseCard class="flex flex-col justify-between space-y-4">
       <div class="space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <span class="max-w-full break-words px-2.5 py-0.5 rounded-full bg-emeraldpro text-night text-[11px] font-bold uppercase">
-            Recopa Condor • Final Única
+            Recopa dos Condores • Final Única
           </span>
           <span class="text-xs font-bold text-ink-muted">Temp. {{ club.season }}</span>
         </div>
-        <h3 class="text-lg font-bold text-ink">Recopa Condor</h3>
+        <h3 class="text-lg font-bold text-ink">Recopa dos Condores</h3>
         <p class="text-xs text-ink-muted leading-relaxed break-words">
           Decisão internacional entre os campeões da Copa Condor de Ouro e da Copa Condor de Prata. Prêmio do campeão: <strong class="text-emeraldpro">{{ formatCurrency(PRIZES.recopa.champion) }}</strong>.
         </p>
       </div>
 
       <EmptyState v-if="!recopaState.qualified" padding="p-4">
-        Vaga bloqueada. Conquiste a Copa Condor de Prata ou a Copa Condor de Ouro para disputar a Recopa Condor!
+        Vaga bloqueada. Conquiste a Copa Condor de Prata ou a Copa Condor de Ouro para disputar a Recopa dos Condores!
       </EmptyState>
       <div v-else class="space-y-3">
         <ListRow padding="p-3.5">

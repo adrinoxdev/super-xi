@@ -75,7 +75,7 @@ export function createFinals(ctx: {
     const state = isSuper ? supercupState : recopaState
     const titlePrize = isSuper ? PRIZES.supercup.champion : PRIZES.recopa.champion
     const runnerUpPrize = isSuper ? PRIZES.supercup.runnerUp : PRIZES.recopa.runnerUp
-    const titleName = isSuper ? 'Campeão da Supercopa Soberana' : 'Campeão da Recopa Condor'
+    const titleName = isSuper ? 'Campeão da Supercopa Zênite' : 'Campeão da Recopa dos Condores'
     let userWon = uGoals > oGoals
     let scoreText = `${uGoals} x ${oGoals}`
     if (uGoals === oGoals && userPens) {

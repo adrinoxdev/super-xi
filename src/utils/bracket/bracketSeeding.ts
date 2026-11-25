@@ -4,7 +4,7 @@ import { LEAGUE_CLUBS_POOL } from '@/utils/league/leagueScheduler'
 import { mulberry32, shuffle } from '@/utils/core/random'
 import type { Rng } from '@/utils/core/random'
 
-/** Taça Cacique: sorteio por potes (A=4, B=4, C=4, D=3). Primeiro par: ['user', D1]. */
+/** Taça do Povo: sorteio por potes (A=4, B=4, C=4, D=3). Primeiro par: ['user', D1]. */
 export function seedCup(rng: Rng): { teams: BracketTeam[]; firstRound: Array<[string, string]> } {
   const draw = (div: number, n: number, tag: string): BracketTeam[] =>
     shuffle(LEAGUE_CLUBS_POOL[div], rng)

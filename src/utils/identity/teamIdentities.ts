@@ -170,7 +170,8 @@ export const TEAM_ID_BY_NAME: Record<string, string> = {
   'Oeiras Atlético': 'd_15',
   'Sete de Setembro-RS': 'd_16',
   'Clube do Retiro Novo': 'd_17',
-  'Tupinambá EC': 'd_18',
+  'Lua Nova EC': 'd_18',
+  'Tupinambá EC': 'd_18', // alias do nome antigo (saves antigos)
   'Penedo Atlético': 'd_19',
   'Tapajós Esporte': 'c_1',
   'Ribeirinho AC': 'c_2',
@@ -179,10 +180,13 @@ export const TEAM_ID_BY_NAME: Record<string, string> = {
   'Guaribas EC': 'c_5',
   'Barra do Sul FC': 'c_6',
   'Caiçara FC': 'c_7',
-  'Ferrovia Paulista': 'c_8',
-  'São Bento do Vale': 'c_9',
+  'Via Láctea FC': 'c_8',
+  'Ferrovia Paulista': 'c_8', // alias do nome antigo (saves antigos)
+  'Serra do Luar': 'c_9',
+  'São Bento do Vale': 'c_9', // alias do nome antigo (saves antigos)
   'Atlético Serrano': 'c_10',
-  'Esperança de Lagarto': 'c_11',
+  'Estrela do Agreste': 'c_11',
+  'Esperança de Lagarto': 'c_11', // alias do nome antigo (saves antigos)
   'Estrela de Malta EC': 'c_12',
   'Tombo Velho': 'c_13',
   'Aliança Potiguar': 'c_14',
@@ -200,13 +204,16 @@ export const TEAM_ID_BY_NAME: Record<string, string> = {
   'Ilhéu Catarinense': 'b_7',
   'Vila Hermínia': 'b_8',
   'Mirante Paulista': 'b_9',
-  'Noroeste do Vale': 'b_10',
+  'Vale do Sol': 'b_10',
+  'Noroeste do Vale': 'b_10', // alias do nome antigo (saves antigos)
   'Bandeirante de Campinas': 'b_11',
   'Mogiana Alvinegra': 'b_12',
   'Alagoano do Mar': 'b_13',
-  'Operário Araucário': 'b_14',
+  'Pinhal Celeste': 'b_14',
+  'Operário Araucário': 'b_14', // alias do nome antigo (saves antigos)
   'Guajará Esporte': 'b_15',
-  'Oeste Catarinense': 'b_16',
+  'Poente FC': 'b_16',
+  'Oeste Catarinense': 'b_16', // alias do nome antigo (saves antigos)
   'Selva Amazônica FC': 'b_17',
   'Camboriú Real': 'b_18',
   'Ituverava FC': 'b_19',
@@ -217,7 +224,8 @@ export const TEAM_ID_BY_NAME: Record<string, string> = {
   'Pampa Sport Clube': 'a_5',
   'Bandeirantes FC': 'a_6',
   'Cais do Porto': 'a_7',
-  'Farroupilha AC': 'a_8',
+  'Meridiano AC': 'a_8',
+  'Farroupilha AC': 'a_8', // alias do nome antigo (saves antigos)
   'Minas Celeste': 'a_9',
   'Mucuripe FC': 'a_10',
   'Recôncavo Atlético': 'a_11',

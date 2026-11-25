@@ -53,7 +53,7 @@ await ok(html.includes('Faltam 11 pontos'), '1c "Faltam 11 pontos"')
 await ok(html.includes('Rumo à ' + MUNDIAL_LABEL) && html.includes('2 pts') && html.includes('3 pts'), '1d card do ciclo com pontos por competicao')
 
 // 2) Caminhos lista as competicoes do ecossistema
-const names = ['Série D', 'Série C', 'Série B', 'Série A', 'Taça Cacique', 'Copa Condor de Ouro', 'Copa Condor de Prata', 'Supercopa Soberana', 'Recopa Condor', 'Ranking Condor', MUNDIAL_LABEL]
+const names = ['Série D', 'Série C', 'Série B', 'Série A', 'Taça do Povo', 'Copa Condor de Ouro', 'Copa Condor de Prata', 'Supercopa Zênite', 'Recopa dos Condores', 'Ranking Condor', MUNDIAL_LABEL]
 const card = await render(Card, ({ club }) => { club.season = 14 })
 await ok(card.includes('Caminhos') && names.every((n) => card.includes(n)), '2a "Caminhos" lista as 11 entradas (10 competicoes + Ranking)')
 await ok(card.includes('Vem de:') && card.includes('Leva a:') && ECOSYSTEM_LINKS.every((l) => card.includes(l.rule.replace(/&/g, '&amp;'))), '2b regras de ECOSYSTEM_LINKS aparecem')
