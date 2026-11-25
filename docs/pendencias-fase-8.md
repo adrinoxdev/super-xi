@@ -130,3 +130,12 @@ Tokens de subagentes desde a T14: investigação P2 70 mil, correções P4/P5/P7
 - **P19 feita:** `feature/copa-dos-continentes` foi mergeada (`--no-ff`, sem conflito) dentro de `feature/universo-nomes`. Na branch combinada: `npm run build` OK e t40 a t50 (com t44b) OK.
 - **Ordem de integração na `develop`** (ainda NÃO feita, aguarda o dono): como `feature/universo-nomes` já contém `feature/copa-dos-continentes`, basta um merge `--no-ff` da `feature/universo-nomes` (ou dois merges: copa, depois nomes). Versão 1.3.0 só no pedido de lançamento.
 - **Ainda abertas:** P12 (`--check` completo após a mudança no `calib-carreira.mjs`), P11 (verificação visual), P14 e P15.
+
+---
+
+# Atualização 5 (check final e merge na develop)
+
+- **P12 resolvida:** `--check` completo na branch combinada (`feature/universo-nomes` em `eb8bb2c`, 20 temporadas, 10 perfis) terminou com `summary.check = "OK"` no `calib-results.json`. Todos os perfis `ok`; fracoRot (~77 min) e maximoRot (~69 min) foram os mais lentos. O processo saiu com `exit 4` depois de gravar os resultados, sem linha `FALHOU`; causa não investigada (provável fechamento do servidor vite). Os alvos foram lidos do JSON, não da linha `CHECK OK` do console.
+- **Merge feito na `develop`:** `666729b`, `git merge --no-ff feature/universo-nomes` (traz também `feature/copa-dos-continentes`). `npm run build` OK depois do merge. **Sem push. Versão intocada (1.2.0);** 1.3.0 só no pedido de lançamento.
+- **Backup:** os 5 `.mjs` antigos sem rastreio de `docs/calibracao/` na `develop` (calib-carreira, curva, escada, t23-atletas, vivo-atletas) colidiam com o merge e foram movidos para `C:\Users\elphant\Downloads\Super XI backup-calibracao-antiga\`, sem apagar. Podem ser descartados quando o dono quiser.
+- **Ainda abertas:** P11 (verificação visual: telas novas, edição jogada, save antigo real), P14 (nits da revisão T15), P15 (riscos residuais de nomes), P20 (investigar o `exit 4` do `calib-carreira.mjs --check`), push da `develop`, limpeza opcional de worktrees e branches (`feature/copa-dos-continentes`, `feature/universo-nomes`).
