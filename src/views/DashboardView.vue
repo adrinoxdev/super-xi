@@ -35,7 +35,7 @@ const competitions = useCompetitionsStore()
 const { prepareMatch, matchEntryLabel, opponentFor, labelFor, isHomeFor } = useMatchSimulation()
 
 // Próximos jogos das competições (além da liga): só as que ainda têm partida a disputar.
-const CUP_COMPETITIONS: MatchCompetition[] = ['cup', 'continental', 'supercup', 'recopa']
+const CUP_COMPETITIONS: MatchCompetition[] = ['cup', 'continental', 'supercup', 'recopa', 'mundial']
 const upcomingCompetitionGames = computed(() =>
   CUP_COMPETITIONS.filter((c) => competitions.isCompetitionPlayable(c)).map((comp) => {
     const [name, ...rest] = labelFor(comp).replace(' — ', ' • ').split(' • ')
