@@ -39,17 +39,17 @@ Tokens de subagentes (aprox.): T0 61 mil, diagnóstico Opus 114 mil, T1 53 mil, 
 
 **P5. Aviso de save antigo** (achado I1, `usePersistence.ts:243`): em save carregado numa temporada múltipla de 4, o aviso diz que a próxima edição é na temporada atual, mas nenhuma edição abre nela. O t46 (1f) confere justamente esse texto errado. Correção pequena: usar `cycleTarget(club.season)` e ajustar o teste. Entra nesta branch antes do merge ou numa `fix/` depois?
 
-**P6. Taça e Supercopa ganhas fora da Série A valem pontos no Ranking Condor?** Hoje valem (Taça campeão 3, vice 1; Supercopa 1). Confirmar.
+**P6. Taça e Supercopa ganhas fora da Série A valem pontos no Ranking Condor?** Hoje valem (Taça campeão 3, vice 1; Supercopa 1). Confirmar. [RESOLVIDA (Atualização 6): mantida na tabela do Ranking Condor aprovada (Taça 3/1, Supercopa 1).]
 
 **P7. Testes de integração fracos da partida** (achado I4): t44 checks 8, 9 e 12 só buscam texto no código, o 11 testa fórmula copiada, e a bilheteria de 40% foi conferida pela fórmula (o Opus revisou à mão e está certa; as partidas do Mundial rodaram pelo fluxo real na T13 sem erro). Recomendado um `t44b` com pinia real. Fazer agora ou depois?
 
-**P8. Nome "Brasil" em `MUNDIAL_HOSTS`** (sede do usuário). Não aparece na tela (a interface mostra "Seu país"), mas é nome real no dado. Trocar?
+**P8. Nome "Brasil" em `MUNDIAL_HOSTS`** (sede do usuário). Não aparece na tela (a interface mostra "Seu país"), mas é nome real no dado. Trocar? [RESOLVIDA (Atualização 6): a interface mostra o nome do país da sede (`765bbf4`).]
 
-**P9. Nomes de rivais do Mundial** (T2): 16 europeus (Real Montanha FC, Atlético Fiorde, Union Nordhaven, Sporting Castelmar, Dinamo Verdália, FC Aurelion, Borealis United, Stella Argenta, Olimpia Kronberg, Racing Valmonte, AS Belvedere, Wolfram Rovers, Athletic Lunaris, Torre Alta CF, Esperia Calcio, Vanguard Ostrava), 6 asiáticos, 6 africanos, 6 norte-americanos e 3 da Oceania. "Real", "Atlético", "Dinamo", "Sporting", "Olimpia" e "Racing" são prefixos comuns a clubes reais. Checagem contra nomes reais só na T15 (não iniciada).
+**P9. Nomes de rivais do Mundial** (T2): 16 europeus (Real Montanha FC, Atlético Fiorde, Union Nordhaven, Sporting Castelmar, Dinamo Verdália, FC Aurelion, Borealis United, Stella Argenta, Olimpia Kronberg, Racing Valmonte, AS Belvedere, Wolfram Rovers, Athletic Lunaris, Torre Alta CF, Esperia Calcio, Vanguard Ostrava), 6 asiáticos, 6 africanos, 6 norte-americanos e 3 da Oceania. "Real", "Atlético", "Dinamo", "Sporting", "Olimpia" e "Racing" são prefixos comuns a clubes reais. Checagem contra nomes reais só na T15 (não iniciada). [RESOLVIDA (Atualização 6): dono aceitou os prefixos comuns; sem outra ação.]
 
 **P10. T15 (aplicar nomes) não foi iniciada.** Ao rodá-la: a busca na web dos nomes novos para e pergunta ao dono se algum colidir (atenção à "Taça do Povo"); migrar os textos gravados de `rivalOrigin` e a lista `ECO_TITLE_LABELS`, o `NODE_LABEL` do `MundialCycleCard.vue` e as origens fixas de `finalsRivals.ts`. Falta também "Copa" na etiqueta "Campeão da Condor de Ouro" (nit).
 
-**P11. Verificação visual** (ninguém viu o navegador): `MundialPanel`, `MundialCycleCard` e o card no Dashboard em desktop e 390 px (estouro de texto, tabela do grupo com rolagem horizontal, 7 abas de grupos, selo âmbar da aba, posição do card, botão de entrada na partida), uma edição inteira jogada, e carga de um save antigo real.
+**P11. Verificação visual** (ninguém viu o navegador): `MundialPanel`, `MundialCycleCard` e o card no Dashboard em desktop e 390 px (estouro de texto, tabela do grupo com rolagem horizontal, 7 abas de grupos, selo âmbar da aba, posição do card, botão de entrada na partida), uma edição inteira jogada, e carga de um save antigo real. [RESOLVIDA (Atualização 6): verificação visual feita em 2026-11-25.]
 
 ## Desvios do plano e decisões tomadas pelos agentes (para ciência)
 
@@ -89,7 +89,7 @@ Ordem do plano: `chore/calib-imports`, `chore/t23-chaves` e `feature/copa-dos-co
 
 **P15. Nomes: riscos residuais.** A web não elimina a chance de um torneio municipal "Taça do Povo" ou clubes amadores "Vale do Sol"/"Serra do Luar" existirem sem indexação (dono já aceitou os prefixos comuns nos rivais).
 
-**P16. Alterações em testes por causa dos nomes:** `t40-baseline.json` foi regravado só com os nomes dos 8 clubes (o Opus confirmou: os 1600 valores numéricos são idênticos aos do commit anterior) e `t49-mundial-ui.mjs` só nos 3 nomes de competição.
+**P16. Alterações em testes por causa dos nomes:** `t40-baseline.json` foi regravado só com os nomes dos 8 clubes (o Opus confirmou: os 1600 valores numéricos são idênticos aos do commit anterior) e `t49-mundial-ui.mjs` só nos 3 nomes de competição. [ENCERRADA (Atualização 6): era só um aviso informativo.]
 
 ## Estado atual das branches (sem merge, sem push)
 
@@ -139,3 +139,16 @@ Tokens de subagentes desde a T14: investigação P2 70 mil, correções P4/P5/P7
 - **Merge feito na `develop`:** `666729b`, `git merge --no-ff feature/universo-nomes` (traz também `feature/copa-dos-continentes`). `npm run build` OK depois do merge. **Sem push. Versão intocada (1.2.0);** 1.3.0 só no pedido de lançamento.
 - **Backup:** os 5 `.mjs` antigos sem rastreio de `docs/calibracao/` na `develop` (calib-carreira, curva, escada, t23-atletas, vivo-atletas) colidiam com o merge e foram movidos para `C:\Users\elphant\Downloads\Super XI backup-calibracao-antiga\`, sem apagar. Podem ser descartados quando o dono quiser.
 - **Ainda abertas:** P11 (verificação visual: telas novas, edição jogada, save antigo real), P14 (nits da revisão T15), P15 (riscos residuais de nomes), P20 (investigar o `exit 4` do `calib-carreira.mjs --check`), push da `develop`, limpeza opcional de worktrees e branches (`feature/copa-dos-continentes`, `feature/universo-nomes`).
+
+---
+
+# Atualização 6 (verificação visual e fechamento)
+
+- **P11 resolvida:** app rodado na `develop` (v1.3.0) com Playwright. Telas conferidas num save novo (Início, Liga, Competições com as 4 abas, Clube, Histórico) e em 6 saves avançados gerados por `docs/calibracao/gera-saves-mundial.mjs`: grupos (rodada 2/3), quartas, campeão, eliminado nos grupos, edição sem o usuário e save antigo (sem `ecoRecords` e `mundialState`). Sem erro de console ou de página.
+- **Achados corrigidos** (merge `994bb26`, sem subir versão, que segue 1.3.0):
+  - chip "Continental" do cabeçalho mostrava "Fase de grupos" para clube sem vaga; agora mostra "Sem vaga nesta temporada" (`2cb6724`);
+  - save antigo em temporada múltipla de 4 mostrava "o torneio foi disputado sem você… aparecem abaixo" sem resumo da edição; agora mostra a contagem para a próxima. Asserções 4a e 4b no `t49` (`2374ae1`).
+- **Não é bug:** a chave parece cortada em print de página inteira, mas é contêiner rolável (`max-h-[70dvh]`).
+- **Fechadas:** P6, P8, P9, P11 e P16 (marcadas no texto acima).
+- **Ainda abertas:** P1 (decidir se o relatório da decisão 6 é atualizado), P14 (nits da revisão T15), P15 (riscos residuais de nomes), P20 (`exit 4` do `calib-carreira.mjs --check`, sem investigar).
+- **Fora do escopo:** Patrocinador Master (8.2), no backlog (seção 13 do plano).
