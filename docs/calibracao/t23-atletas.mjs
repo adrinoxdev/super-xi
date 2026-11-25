@@ -18,8 +18,8 @@ const { useSquad, sellPriceFor, loanOutFeeFor } = await load('/src/composables/u
 const { useScouting } = await load('/src/composables/useScouting.ts')
 const { useEconomy } = await load('/src/composables/useEconomy.ts')
 const { useMatchSimulation } = await load('/src/composables/useMatchSimulation.ts')
-const GP = await load('/src/utils/generatePlayer.ts')
-const C = await load('/src/utils/constants.ts')
+const GP = await load('/src/utils/player/generatePlayer.ts')
+const C = await load('/src/config/index.ts')
 const { CONTRACT, AGING, TRANSFER, STAR, VALUE, WAGE } = C
 const starX = o => o > STAR.from ? Math.pow(2, (o - STAR.from) / STAR.doubleEvery) : 1
 const wageX = o => Math.max(WAGE.min, Math.round(WAGE.base * Math.pow(2, (o - WAGE.refOvr) / WAGE.doubleEvery) * starX(o) / WAGE.step) * WAGE.step)
@@ -176,7 +176,7 @@ await ok(STAR && VALUE && C.VALUE_AGE && CONTRACT && AGING && TRANSFER && C.YOUT
   await ok(r.forcedSale && r.forcedSale.price <= 1000, 'g1 venda forçada na temporada da chegada limitada ao valor pago')
 }
 
-// (h) migração de save antigo: idempotente, 17 chaves
+// (h) migração de save antigo: idempotente, 24 chaves
 {
   const { club, squad, P } = fresh()
   club.season = 7
@@ -195,7 +195,8 @@ await ok(STAR && VALUE && C.VALUE_AGE && CONTRACT && AGING && TRANSFER && C.YOUT
   g.P.saveGame()
   const a = localStorage.getItem(STORAGE_KEY)
   const o = JSON.parse(a)
-  await ok(Object.keys(o).length === 17 && o.club.athleteEconomyVersion === 1, 'h6 17 chaves e club.athleteEconomyVersion = 1')
+  const KEYS = ["club","squad","scouting","competitionStage","leagueTeams","leagueFixtures","transferHistory","trophyGallery","seasonGoals","seasonAssists","seasonApps","seasonYellows","seasonReds","careerStats","matchHistory","incomingOffers","youthAcademyProspects","staffContracts","supercupState","recopaState","cupState","continentalState","friendlies","prematchCompetition"]
+  await ok(JSON.stringify(Object.keys(o)) === JSON.stringify(KEYS) && o.club.athleteEconomyVersion === 1, 'h6 24 chaves de topo (lista exata) e club.athleteEconomyVersion = 1')
   const h = fresh(); localStorage.setItem(STORAGE_KEY, a); h.P.loadGame(); h.P.saveGame()
   await ok(localStorage.getItem(STORAGE_KEY) === a || JSON.stringify(JSON.parse(localStorage.getItem(STORAGE_KEY)).squad) === JSON.stringify(o.squad), 'h7 recarregar não muda nada (idempotente)')
 }
