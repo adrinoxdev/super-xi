@@ -120,3 +120,13 @@ Tokens de subagentes desde a T14: investigação P2 70 mil, correções P4/P5/P7
 **P18. Clubes rotativos (sobem e descem) ficam em 0% pelo ranking** com a tabela nova (forteRot máx. 25 pontos). Aceito pela lógica "quem passa o ciclo na A" ou o ranking deve ter regra de alívio para rotativos? Decisão do dono.
 
 **P19. Integração:** a `feature/universo-nomes` foi criada antes desta tabela. Ao integrar, mergear `feature/copa-dos-continentes` primeiro e depois trazê-la para dentro da `feature/universo-nomes` (ou mergear as duas na `develop` na ordem sugerida).
+
+---
+
+# Atualização 4 (decisões do dono)
+
+- **P17 decidida:** aceitar o `tipicoA` em 24% (um clube típico que chega a campeão da Ouro merece a vaga). Corte 38 mantido.
+- **P18 decidida (recomendação):** sem regra de alívio para clubes rotativos. Pontos por subir (título da B 3, acesso 2, título da C/D 1) somariam ≈ 6 por ciclo e o `forteRot` (máx. 25) ainda ficaria abaixo de 38: seria cosmético. Se o dono quiser dar chance a quem sobe, o caminho é uma porta própria (repescagem), que é desenho novo e fica para depois.
+- **P19 feita:** `feature/copa-dos-continentes` foi mergeada (`--no-ff`, sem conflito) dentro de `feature/universo-nomes`. Na branch combinada: `npm run build` OK e t40 a t50 (com t44b) OK.
+- **Ordem de integração na `develop`** (ainda NÃO feita, aguarda o dono): como `feature/universo-nomes` já contém `feature/copa-dos-continentes`, basta um merge `--no-ff` da `feature/universo-nomes` (ou dois merges: copa, depois nomes). Versão 1.3.0 só no pedido de lançamento.
+- **Ainda abertas:** P12 (`--check` completo após a mudança no `calib-carreira.mjs`), P11 (verificação visual), P14 e P15.
