@@ -5,6 +5,7 @@ import { CONTINENTAL_RIVALS, PRIZES } from '@/config'
 import { formatCurrency } from '@/utils/format/formatCurrency'
 import { LEAGUE_CLUBS_POOL } from '@/utils/league/leagueScheduler'
 import { pickRandom, randInt } from '@/utils/core/random'
+import type { FinalRival } from '@/utils/competitions/finalsRivals'
 import { DEFAULT_SUPERCUP_RIVAL, DEFAULT_RECOPA_RIVAL, emptyFinal } from './defaults'
 import type { CompetitionToast, CompetitionsClub } from './types'
 
@@ -26,7 +27,14 @@ export function createFinals(ctx: {
     recopaState.value = emptyFinal(DEFAULT_RECOPA_RIVAL)
   }
 
-  function qualifySupercup() {
+  function qualifySupercup(rival?: FinalRival | null) {
+    if (rival) {
+      supercupState.value = {
+        qualified: true, played: false, won: false, scoreText: '',
+        rivalName: rival.name, rivalPower: rival.power, rivalOrigin: rival.origin
+      }
+      return
+    }
     const pick = pickRandom(LEAGUE_CLUBS_POOL[1])
     supercupState.value = {
       qualified: true,
@@ -38,7 +46,14 @@ export function createFinals(ctx: {
     }
   }
 
-  function qualifyRecopa() {
+  function qualifyRecopa(rival?: FinalRival | null) {
+    if (rival) {
+      recopaState.value = {
+        qualified: true, played: false, won: false, scoreText: '',
+        rivalName: rival.name, rivalPower: rival.power, rivalOrigin: rival.origin
+      }
+      return
+    }
     const pick = pickRandom(CONTINENTAL_RIVALS)
     recopaState.value = {
       qualified: true,
@@ -60,7 +75,7 @@ export function createFinals(ctx: {
     const state = isSuper ? supercupState : recopaState
     const titlePrize = isSuper ? PRIZES.supercup.champion : PRIZES.recopa.champion
     const runnerUpPrize = isSuper ? PRIZES.supercup.runnerUp : PRIZES.recopa.runnerUp
-    const titleName = isSuper ? 'Campeão da Supercopa Soberana' : 'Campeão da Recopa Condor'
+    const titleName = isSuper ? 'Campeão da Supercopa Zênite' : 'Campeão da Recopa dos Condores'
     let userWon = uGoals > oGoals
     let scoreText = `${uGoals} x ${oGoals}`
     if (uGoals === oGoals && userPens) {

@@ -21,9 +21,10 @@ export const OUTCOME_UI: Record<MatchOutcome, { letter: string; label: string; c
 
 export const COMPETITION_NAMES: Record<MatchRecord['competition'], string> = {
   league: 'Liga',
-  cup: 'Taça Cacique',
+  cup: 'Taça do Povo',
   continental: 'Continental',
   supercup: 'Supercopa',
   recopa: 'Recopa',
+  mundial: 'Copa dos Continentes',
   friendly: 'Amistoso'
 }

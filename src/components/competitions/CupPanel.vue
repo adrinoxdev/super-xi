@@ -43,7 +43,7 @@ const { prepareMatch, matchEntryLabel } = useMatchSimulation()
         <span class="inline-block max-w-full px-2.5 py-0.5 rounded-full bg-emeraldpro-soft text-emeraldpro text-xs font-bold uppercase break-words">
           Mata-Mata Nacional • Jogo Único
         </span>
-        <h3 class="text-lg sm:text-xl font-extrabold text-ink break-words">Taça Cacique — {{ cupRoundLabel }}</h3>
+        <h3 class="text-lg sm:text-xl font-extrabold text-ink break-words">Taça do Povo — {{ cupRoundLabel }}</h3>
         <p class="text-xs text-ink-muted break-words">
           16 clubes das Séries A, B, C e D em confronto eliminatório direto. Cota da final: <strong class="text-emeraldpro">{{ formatCurrency(PRIZES.cup.rounds[3]) }}</strong>. Campeão leva até <strong class="text-emeraldpro">{{ formatCurrency(PRIZES.cup.rounds.reduce((a, b) => a + b, 0)) }}</strong> no acumulado. Vice: {{ formatCurrency(PRIZES.cup.finalLoss) }}. Disputa de 3º lugar: {{ formatCurrency(PRIZES.cup.thirdWin) }} pela vitória e {{ formatCurrency(PRIZES.cup.thirdLoss) }} pela derrota.
         </p>
@@ -61,7 +61,7 @@ const { prepareMatch, matchEntryLabel } = useMatchSimulation()
         v-else-if="cupState.champion"
         class="max-w-full break-words px-4 py-2 rounded-xl bg-emeraldpro-soft text-emeraldpro text-xs font-extrabold"
       >
-        CAMPEÃO DA TAÇA CACIQUE!
+        CAMPEÃO DA TAÇA DO POVO!
       </span>
       <span
         v-else-if="statusBadge"
@@ -98,12 +98,12 @@ const { prepareMatch, matchEntryLabel } = useMatchSimulation()
     <BracketView
       v-if="cupState.bracket"
       :bracket="cupState.bracket"
-      title="Chave da Taça Cacique"
+      title="Chave da Taça do Povo"
       :user-power="squad.teamStrength.total"
     />
 
     <BaseCard v-if="cupState.history.length" class="space-y-3">
-      <h4 class="font-bold text-sm text-ink">Campanha na Taça Cacique</h4>
+      <h4 class="font-bold text-sm text-ink">Campanha na Taça do Povo</h4>
       <div class="space-y-2">
         <ListRow v-for="(item, idx) in cupState.history" :key="idx">
           <div class="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">

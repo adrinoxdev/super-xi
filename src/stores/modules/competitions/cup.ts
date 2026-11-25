@@ -25,7 +25,7 @@ export function createCup(ctx: { cupState: Ref<CupState>; club: CompetitionsClub
 
   const cupRoundLabel = computed(() => {
     if (cupState.value.thirdPlace) return 'Disputa de 3º Lugar'
-    const names = ['Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final da Taça Cacique']
+    const names = ['Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final da Taça do Povo']
     return names[cupState.value.roundIndex] || 'Final'
   })
 
@@ -48,7 +48,7 @@ export function createCup(ctx: { cupState: Ref<CupState>; club: CompetitionsClub
     const bracket = createBracket({
       competition: 'cup',
       season: clubStore.season,
-      label: 'Taça Cacique',
+      label: 'Taça do Povo',
       teams,
       rounds: CUP_ROUNDS,
       firstRound,
@@ -148,10 +148,10 @@ export function createCup(ctx: { cupState: Ref<CupState>; club: CompetitionsClub
       finish(userWon ? 3 : 4)
       return userWon
         ? {
-            toast: `3º LUGAR NA TAÇA CACIQUE! Cota: ${formatCurrency(prize)}`,
+            toast: `3º LUGAR NA TAÇA DO POVO! Cota: ${formatCurrency(prize)}`,
             toastType: 'success'
           }
-        : { toast: '4º lugar na Taça Cacique.', toastType: 'info' }
+        : { toast: '4º lugar na Taça do Povo.', toastType: 'info' }
     }
 
     const roundName = b.rounds[idx].label
@@ -162,7 +162,7 @@ export function createCup(ctx: { cupState: Ref<CupState>; club: CompetitionsClub
         cup.history.unshift({ roundName, summary, prize })
         cup.eliminated = true
         finish(2)
-        return { toast: 'Vice-campeão da Taça Cacique.', toastType: 'info' }
+        return { toast: 'Vice-campeão da Taça do Povo.', toastType: 'info' }
       }
       cup.history.unshift({ roundName, summary, prize: 0 })
       if (idx === 2) {
@@ -173,7 +173,7 @@ export function createCup(ctx: { cupState: Ref<CupState>; club: CompetitionsClub
       cup.eliminated = true
       completeBracket(b)
       cup.currentRival = null
-      return { toast: 'Eliminado da Taça Cacique.', toastType: 'warning' }
+      return { toast: 'Eliminado da Taça do Povo.', toastType: 'warning' }
     }
 
     const prize = PRIZES.cup.rounds[idx]
@@ -183,13 +183,13 @@ export function createCup(ctx: { cupState: Ref<CupState>; club: CompetitionsClub
       cup.champion = true
       cup.currentRival = null
       cup.finalPosition = 1
-      clubStore.recordTrophy('title', 'Campeão da Taça Cacique', prize)
-      return { toast: 'CAMPEÃO DA TAÇA CACIQUE!', toastType: 'success' }
+      clubStore.recordTrophy('title', 'Campeão da Taça do Povo', prize)
+      return { toast: 'CAMPEÃO DA TAÇA DO POVO!', toastType: 'success' }
     }
     cup.roundIndex += 1
     cup.currentRival = rivalFromTie(b, userPendingTie(b))
     return {
-      toast: `Classificado na Taça Cacique! Cota: ${formatCurrency(prize)}`,
+      toast: `Classificado na Taça do Povo! Cota: ${formatCurrency(prize)}`,
       toastType: 'success'
     }
   }

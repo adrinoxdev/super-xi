@@ -60,7 +60,7 @@ const sg = (r: ContinentalTeam) => r.gf - r.ga
       <Globe class="w-10 h-10 text-ink-muted mx-auto" />
       <h3 class="text-base sm:text-lg font-bold text-ink">Classificação Continental Pendente</h3>
       <p class="text-xs text-ink-muted max-w-lg mx-auto">
-        Termine no <strong class="text-ink">G-6 da Série A</strong> ou conquiste a <strong class="text-ink">Taça Cacique</strong> para disputar a Copa Condor de Prata ou a Copa Condor de Ouro na temporada seguinte!
+        Termine no <strong class="text-ink">G-6 da Série A</strong> ou conquiste a <strong class="text-ink">Taça do Povo</strong> para disputar a Copa Condor de Prata ou a Copa Condor de Ouro na temporada seguinte!
       </p>
     </BaseCard>
 

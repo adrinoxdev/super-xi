@@ -10,10 +10,11 @@ const { switchActiveMatch, opponentFor } = useMatchSimulation()
 
 const NAMES: Record<MatchCompetition, string> = {
   league: 'Liga',
-  cup: 'Taça Cacique',
+  cup: 'Taça do Povo',
   continental: 'Continental',
   supercup: 'Supercopa',
   recopa: 'Recopa',
+  mundial: 'Copa dos Continentes',
   friendly: 'Amistoso'
 }
 

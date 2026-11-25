@@ -4,7 +4,7 @@ import { LEAGUE_CLUBS_POOL } from '@/utils/league/leagueScheduler'
 import { mulberry32, shuffle } from '@/utils/core/random'
 import type { Rng } from '@/utils/core/random'
 
-/** Taça Cacique: sorteio por potes (A=4, B=4, C=4, D=3). Primeiro par: ['user', D1]. */
+/** Taça do Povo: sorteio por potes (A=4, B=4, C=4, D=3). Primeiro par: ['user', D1]. */
 export function seedCup(rng: Rng): { teams: BracketTeam[]; firstRound: Array<[string, string]> } {
   const draw = (div: number, n: number, tag: string): BracketTeam[] =>
     shuffle(LEAGUE_CLUBS_POOL[div], rng)
@@ -140,3 +140,32 @@ export const SERIE_C_FINAL_TEMPLATE: Array<[string, string]> = [
   ['1º Grupo B', '1º Grupo C'],
   ['2º Grupo B', '2º Grupo C']
 ]
+
+/** Copa dos Continentes: oitavas dos 8 grupos (A a H), 1º de um grupo contra o 2º do vizinho. */
+export const MUNDIAL_R16_TEMPLATE: Array<[string, string]> = [
+  ['1º Grupo A', '2º Grupo B'],
+  ['1º Grupo C', '2º Grupo D'],
+  ['1º Grupo E', '2º Grupo F'],
+  ['1º Grupo G', '2º Grupo H'],
+  ['1º Grupo B', '2º Grupo A'],
+  ['1º Grupo D', '2º Grupo C'],
+  ['1º Grupo F', '2º Grupo E'],
+  ['1º Grupo H', '2º Grupo G']
+]
+
+/** Recebe os ids de cada grupo já ordenados (1º primeiro) e devolve as oitavas na ordem do modelo. */
+export function seedMundialRoundOf16(
+  sortedGroups: Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H', string[]>
+): Array<[string, string]> {
+  const g = sortedGroups
+  return [
+    [g.A[0], g.B[1]],
+    [g.C[0], g.D[1]],
+    [g.E[0], g.F[1]],
+    [g.G[0], g.H[1]],
+    [g.B[0], g.A[1]],
+    [g.D[0], g.C[1]],
+    [g.F[0], g.E[1]],
+    [g.H[0], g.G[1]]
+  ]
+}

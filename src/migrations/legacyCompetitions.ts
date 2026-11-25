@@ -18,7 +18,7 @@ export interface LegacyContinentalDeps {
   seedContinentalKnockout: (forceUserTop2?: boolean) => void
 }
 
-/** Taça Cacique de save antigo: reconstrói a chave alinhada ao roundIndex, ao histórico e ao rival atual. */
+/** Taça do Povo de save antigo: reconstrói a chave alinhada ao roundIndex, ao histórico e ao rival atual. */
 export function migrateLegacyCup(cup: CupState, deps: LegacyCupDeps): void {
   if (cup.bracket) return
   const rival = cup.currentRival

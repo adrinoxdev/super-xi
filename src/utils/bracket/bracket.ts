@@ -13,8 +13,10 @@ const BASE_CONVERSION = 0.76
 const USER_ID = 'user'
 
 /** Placar de dois times da IA a partir do OVER (mandante ganha +MATCH_SIM.homeAdvantage). */
-export function simulateMatchScore(homePower: number, awayPower: number, rng: Rng = Math.random) {
-  const h = homePower + HOME_ADVANTAGE + (rng() * 2 - 1) * FORM_SWING
+export function simulateMatchScore(
+  homePower: number, awayPower: number, rng: Rng = Math.random, homeAdvantage = HOME_ADVANTAGE,
+) {
+  const h = homePower + homeAdvantage + (rng() * 2 - 1) * FORM_SWING
   const a = awayPower + (rng() * 2 - 1) * FORM_SWING
   const pH = clamp(MATCH_SIM.aiChanceBase + MATCH_SIM.slope * (h - a), MATCH_SIM.chanceMin, MATCH_SIM.chanceMax)
   const pA = clamp(MATCH_SIM.aiChanceBase + MATCH_SIM.slope * (a - h), MATCH_SIM.chanceMin, MATCH_SIM.chanceMax)
@@ -158,11 +160,14 @@ export function resolveTie(
   tie: BracketTie, teams: Record<string, BracketTeam>, rng: Rng = Math.random, userDrawWinProb = 0.55,
   /** Pênaltis já disputados ao vivo pelo usuário: valem no lugar do sorteio. */
   userPens?: { user: number; opp: number } | null,
+  /** Campo neutro (bracket.neutral): sem vantagem de mando. */
+  neutral = false,
 ): void {
   if (tie.winnerId || !tie.homeId || !tie.awayId) return
   for (const leg of tie.legs) {
     if (leg.played) continue
-    const s = simulateMatchScore(teams[leg.homeId]?.power ?? 0, teams[leg.awayId]?.power ?? 0, rng)
+    const s = simulateMatchScore(teams[leg.homeId]?.power ?? 0, teams[leg.awayId]?.power ?? 0, rng,
+      neutral ? 0 : HOME_ADVANTAGE)
     leg.homeScore = s.home
     leg.awayScore = s.away
     leg.played = true
@@ -185,9 +190,11 @@ export function resolveTie(
 }
 
 /** Simula confronto da IA; não toca em confronto com 'user'. */
-export function simulateTie(tie: BracketTie, teams: Record<string, BracketTeam>, rng: Rng = Math.random): void {
+export function simulateTie(
+  tie: BracketTie, teams: Record<string, BracketTeam>, rng: Rng = Math.random, neutral = false,
+): void {
   if (hasUser(tie) || tie.winnerId || !tie.homeId || !tie.awayId) return
-  resolveTie(tie, teams, rng)
+  resolveTie(tie, teams, rng, 0.55, null, neutral)
 }
 
 const allTies = (b: Bracket): BracketTie[] => [
@@ -272,10 +279,10 @@ export function userPendingTie(bracket: Bracket): BracketTie | null {
 export function simulatePhaseExceptUser(bracket: Bracket, roundIndex: number, rng: Rng = Math.random): void {
   const round = bracket.rounds[roundIndex]
   if (!round) return
-  for (const t of round.ties) simulateTie(t, bracket.teams, rng)
-  if (roundIndex === bracket.rounds.length - 1 && bracket.thirdPlace) simulateTie(bracket.thirdPlace, bracket.teams, rng)
+  for (const t of round.ties) simulateTie(t, bracket.teams, rng, !!bracket.neutral)
+  if (roundIndex === bracket.rounds.length - 1 && bracket.thirdPlace) simulateTie(bracket.thirdPlace, bracket.teams, rng, !!bracket.neutral)
   if (roundIndex === bracket.rounds.length - 2 && bracket.side) {
-    for (const t of bracket.side.ties) simulateTie(t, bracket.teams, rng)
+    for (const t of bracket.side.ties) simulateTie(t, bracket.teams, rng, !!bracket.neutral)
   }
 }
 
@@ -293,7 +300,7 @@ export function completeBracket(bracket: Bracket, rng: Rng = Math.random, opts: 
         setWinner(t, t.homeId === USER_ID ? 'away' : 'home')
         progress = true
       } else {
-        simulateTie(t, bracket.teams, rng)
+        simulateTie(t, bracket.teams, rng, !!bracket.neutral)
         progress = progress || !!t.winnerId
       }
     }

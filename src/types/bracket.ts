@@ -1,4 +1,4 @@
-export type BracketCompetition = 'cup' | 'continental' | 'serieD' | 'serieC'
+export type BracketCompetition = 'cup' | 'continental' | 'serieD' | 'serieC' | 'mundial'
 
 /** Time participante da chave. Para o usuário, id = 'user' e o nome exibido vem sempre da store club. */
 export interface BracketTeam {
@@ -64,7 +64,7 @@ export interface PodiumEntry {
 
 export interface Podium {
   competition: BracketCompetition
-  competitionLabel: string   // 'Taça Cacique', 'Copa Condor de Ouro', 'Liga Aurora — Série D'
+  competitionLabel: string   // 'Taça do Povo', 'Copa Condor de Ouro', 'Liga Aurora — Série D'
   season: number
   champion: PodiumEntry
   runnerUp: PodiumEntry
@@ -82,4 +82,6 @@ export interface Bracket {
   thirdPlace: BracketTie | null
   side: BracketSide | null
   podium: Podium | null
+  /** Jogo em campo neutro (sem mando). */
+  neutral?: boolean
 }

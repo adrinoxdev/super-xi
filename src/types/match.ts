@@ -11,7 +11,7 @@ export type FormationName =
   | '4-3-3' | '4-2-3-1' | '4-4-2' | '4-1-4-1' | '3-4-3'
   | '4-2-2-2' | '4-1-2-1-2' | '3-5-2' | '5-3-2'
 
-export type MatchCompetition = 'league' | 'cup' | 'continental' | 'supercup' | 'recopa' | 'friendly'
+export type MatchCompetition = 'league' | 'cup' | 'continental' | 'supercup' | 'recopa' | 'mundial' | 'friendly'
 
 export type MatchEventType =
   | 'info' | 'goal' | 'opp_goal' | 'sub' | 'injury' | 'comment' | 'penalty'

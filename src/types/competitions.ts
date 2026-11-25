@@ -73,4 +73,28 @@ export interface FinalState {
   scoreText: string
   rivalName: string
   rivalPower: number
+  /** Etiqueta de origem do rival real (ex.: 'Campeão da Taça'). */
+  rivalOrigin?: string
+}
+
+export type MundialConfed = 'sulamerica' | 'europa' | 'asia' | 'africa' | 'norte' | 'oceania' | 'sede'
+export type MundialEntry = 'ouro' | 'ranking' | 'sede'
+export interface GroupTeam extends ContinentalTeam { confed?: MundialConfed; tag?: string }
+export interface GroupMatchResult { round: number; homeId: string; awayId: string; hg: number; ag: number }
+export interface MundialGroup { id: string; teams: GroupTeam[]; results: GroupMatchResult[] }
+/** Resumo compacto da última edição (só uma fica guardada): grupos finais e pódio. */
+export interface MundialLastEdition {
+  season: number; edition: number; hostId: string; hostName: string; userPlayed: boolean
+  groups: Array<{ id: string; rows: Array<{ id: string; name: string; power: number; points: number; gf: number; ga: number; isUser: boolean }> }>
+  champion: string; runnerUp: string; third: string; fourth: string
+}
+export interface MundialState {
+  qualified: boolean; edition: number; season: number; hostId: string
+  userEntry: MundialEntry | null
+  stage: 'GROUPS' | 'KNOCKOUT' | 'DONE'; groupRound: number; userGroupId: string
+  groups: MundialGroup[]; bracket: Bracket | null
+  eliminated: boolean; champion: boolean; finalPosition: 1 | 2 | 3 | 4 | null
+  history: Array<{ roundName: string; summary: string; prize: number }>
+  /** Aditivo: última edição encerrada ou simulada sem o usuário. Save antigo não tem. */
+  last?: MundialLastEdition | null
 }

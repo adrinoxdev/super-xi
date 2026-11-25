@@ -1,9 +1,10 @@
 import type { Bracket, BracketTeam, BracketTie } from '@/types'
 import { playLeg, propagate, simulatePhaseExceptUser } from '@/utils/bracket/bracket'
 import { LEAGUE_CLUBS_POOL } from '@/utils/league/leagueScheduler'
+import { LEGACY_CUP_FINAL_NAME } from '@/config/competitions'
 import { TEAM_ID_BY_NAME } from '@/utils/identity/teamIdentities'
 
-export const OLD_CUP_NAMES = ['Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final da Taça Cacique']
+export const OLD_CUP_NAMES = ['Oitavas de Final', 'Quartas de Final', 'Semifinal', LEGACY_CUP_FINAL_NAME]
 export const CONTINENTAL_ROUND_LABELS = ['Quartas de Final Continental', 'Semifinal Continental', 'Final Continental']
 
 export const bracketTies = (b: Bracket): BracketTie[] => [

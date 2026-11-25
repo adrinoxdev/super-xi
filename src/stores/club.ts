@@ -4,6 +4,7 @@ import type {
   CareerStatEntry,
   ClubProgress,
   ClubSave,
+  SeasonEcoRecord,
   Milestone,
   ClubStaff,
   ClubUpgrades,
@@ -43,6 +44,7 @@ import {
 } from '@/utils/identity/crest'
 
 const PODIUM_ARCHIVE_MAX = 12
+const ECO_RECORDS_MAX = 8
 
 function defaultProgress(): ClubProgress {
   return { seasonStartOver: 0, seasonStartPlayerOver: {}, seasonGains: {}, milestones: [] }
@@ -102,6 +104,7 @@ export const useClubStore = defineStore('club', () => {
   const transferHistory = ref<TransferRecord[]>([])
   const trophyGallery = ref<TrophyRecord[]>([])
   const podiumArchive = ref<Podium[]>([])
+  const ecoRecords = ref<SeasonEcoRecord[]>([])
   const seasonGoals = ref<Record<string, number>>({})
   const seasonAssists = ref<Record<string, number>>({})
   const seasonApps = ref<Record<string, number>>({})
@@ -193,6 +196,14 @@ export const useClubStore = defineStore('club', () => {
       next.unshift(p)
     }
     podiumArchive.value = next.slice(0, PODIUM_ARCHIVE_MAX)
+  }
+
+  /** Histórico do ciclo: um registro por temporada (substitui o da mesma), os 8 mais recentes, em ordem crescente. */
+  function recordEcoSeason(rec: SeasonEcoRecord) {
+    const next = ecoRecords.value.filter((r) => r.season !== rec.season)
+    next.push({ ...rec })
+    next.sort((a, b) => a.season - b.season)
+    ecoRecords.value = next.slice(-ECO_RECORDS_MAX)
   }
 
   function recordTrophy(type: 'title' | 'promotion', title: string, prize: number) {
@@ -347,6 +358,7 @@ export const useClubStore = defineStore('club', () => {
       division: division.value,
       upgrades: { ...upgrades.value },
       podiumArchive: [...podiumArchive.value],
+      ecoRecords: ecoRecords.value.map((r) => ({ ...r })),
       tryoutsThisSeason: tryoutsThisSeason.value,
       restDayStart: restDayStart.value,
       restUses: restUses.value,
@@ -407,6 +419,14 @@ export const useClubStore = defineStore('club', () => {
     }
     upgrades.value = merged
     podiumArchive.value = Array.isArray(data.podiumArchive) ? data.podiumArchive.slice(0, PODIUM_ARCHIVE_MAX) : []
+    // Save antigo sem o campo fica sem registros (a reconstrução pelo trophyGallery/podiumArchive é da T9).
+    ecoRecords.value = Array.isArray(data.ecoRecords)
+      ? data.ecoRecords
+          .filter((r) => r && Number.isFinite(r.season))
+          .map((r) => ({ ...r }))
+          .sort((a, b) => a.season - b.season)
+          .slice(-ECO_RECORDS_MAX)
+      : []
     tryoutsThisSeason.value = Number.isFinite(data.tryoutsThisSeason) ? Math.max(0, Math.floor(data.tryoutsThisSeason as number)) : 0
     restDayStart.value = Number.isFinite(data.restDayStart) ? (data.restDayStart as number) : 0
     restUses.value = Number.isFinite(data.restUses) ? Math.max(0, Math.floor(data.restUses as number)) : 0
@@ -434,6 +454,7 @@ export const useClubStore = defineStore('club', () => {
     transferHistory.value = []
     trophyGallery.value = []
     podiumArchive.value = []
+    ecoRecords.value = []
     seasonGoals.value = {}
     seasonAssists.value = {}
     seasonApps.value = {}
@@ -504,6 +525,8 @@ export const useClubStore = defineStore('club', () => {
     podiumArchive,
     previousPodiums,
     archivePodiums,
+    ecoRecords,
+    recordEcoSeason,
     recordTrophy,
     recordGoal,
     recordAssist,
