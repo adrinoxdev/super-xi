@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 import type { MatchCompetition } from '@/types/match'
 import { computed, ref } from 'vue'
-import type { ContinentalState, CupState, FinalState } from '@/types'
+import type { ContinentalState, CupState, FinalState, MundialState } from '@/types'
 import { useClubStore } from './club'
-import { DEFAULT_SUPERCUP_RIVAL, DEFAULT_RECOPA_RIVAL, emptyCup, emptyContinental, emptyFinal } from './modules/competitions/defaults'
+import { DEFAULT_SUPERCUP_RIVAL, DEFAULT_RECOPA_RIVAL, emptyCup, emptyContinental, emptyFinal, emptyMundial } from './modules/competitions/defaults'
 import { createCup } from './modules/competitions/cup'
 import { createFinals } from './modules/competitions/finals'
 import { createContinental } from './modules/competitions/continental'
+import { createMundial } from './modules/competitions/mundial'
 import { createSave } from './modules/competitions/save'
 export type { ToastType, CompetitionToast } from './modules/competitions/types'
 
@@ -15,6 +16,7 @@ export const useCompetitionsStore = defineStore('competitions', () => {
 
   const cupState = ref<CupState>(emptyCup())
   const continentalState = ref<ContinentalState>(emptyContinental())
+  const mundialState = ref<MundialState>(emptyMundial())
   const supercupState = ref<FinalState>(emptyFinal(DEFAULT_SUPERCUP_RIVAL))
   const recopaState = ref<FinalState>(emptyFinal(DEFAULT_RECOPA_RIVAL))
   const { cupRoundLabel, initCupForSeason, finishCupForSeason, migrateCup, applyCupResult } = createCup({
@@ -40,10 +42,22 @@ export const useCompetitionsStore = defineStore('competitions', () => {
     club: clubStore
   })
 
+  const {
+    mundialStageLabel,
+    mundialStandings,
+    mundialOpponent,
+    hasPendingMundialThird,
+    openMundialEdition,
+    resetMundial,
+    finishMundialForSeason,
+    applyMundialResult
+  } = createMundial({ mundialState, club: clubStore })
+
   const hasPendingThirdPlace = computed(
     () =>
       (cupState.value.thirdPlace && isCompetitionPlayable('cup')) ||
-      (continentalState.value.stage === 'THIRD' && isCompetitionPlayable('continental'))
+      (continentalState.value.stage === 'THIRD' && isCompetitionPlayable('continental')) ||
+      (hasPendingMundialThird.value && isCompetitionPlayable('mundial'))
   )
 
   /** Chamar depois de fromSave: saves antigos ganham a chave reconstruída (a virada de temporada troca as vigentes). */
@@ -53,7 +67,7 @@ export const useCompetitionsStore = defineStore('competitions', () => {
     migrateContinental()
   }
 
-  const { toSave, fromSave } = createSave({ cupState, continentalState, supercupState, recopaState })
+  const { toSave, fromSave } = createSave({ cupState, continentalState, mundialState, supercupState, recopaState })
 
   function isCompetitionPlayable(comp: MatchCompetition): boolean {
     if (comp === 'cup') {
@@ -64,6 +78,10 @@ export const useCompetitionsStore = defineStore('competitions', () => {
       const c = continentalState.value
       return c.qualified && !c.eliminated && !c.champion
     }
+    if (comp === 'mundial') {
+      const m = mundialState.value
+      return m.qualified && !m.eliminated && !m.champion && m.stage !== 'DONE'
+    }
     if (comp === 'supercup') return supercupState.value.qualified && !supercupState.value.played
     if (comp === 'recopa') return recopaState.value.qualified && !recopaState.value.played
     return true
@@ -73,12 +91,20 @@ export const useCompetitionsStore = defineStore('competitions', () => {
     isCompetitionPlayable,
     cupState,
     continentalState,
+    mundialState,
     supercupState,
     recopaState,
     cupRoundLabel,
     continentalStageLabel,
     continentalStandings,
     continentalOpponent,
+    mundialStageLabel,
+    mundialStandings,
+    mundialOpponent,
+    openMundialEdition,
+    resetMundial,
+    finishMundialForSeason,
+    applyMundialResult,
     hasPendingFinal,
     hasPendingThirdPlace,
     initCupForSeason,
